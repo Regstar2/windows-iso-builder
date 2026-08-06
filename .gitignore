@@ -1,0 +1,51 @@
+output/
+.private/
+*.iso
+*.wim
+*.esd
+*.swm
+*.log
+*.zip
+*.aria2
+TestResults/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# -----------------------------------------------------------------------------
+# Private project governance files
+# These files are copied locally into each project and must not be committed.
+# If the project already has a .gitignore, merge this block instead of replacing it.
+# -----------------------------------------------------------------------------
+
+/AGENTS.md
+/.project-rules/
+# Private README governance and templates
+# `.project-rules/` is already ignored above; explicit template patterns also
+# protect temporary copies placed in the repository root.
+/README_TEMPLATE.md
+/README_TEMPLATE_EN.md
+/README_*_TEMPLATE.md
+# Private release and changelog templates
+/RELEASE_TEMPLATE.md
+/RELEASE_TEMPLATE_EN.md
+/RELEASE_*_TEMPLATE.md
+/GITHUB_RELEASE_BODY_TEMPLATE.md
+/CHANGELOG_TEMPLATE.md
+/docs/ai-prompts/
+/docs/private/
+
+# Local environment and secret files
+.env
+.env.*
+!.env.example
+*.local
+*.secret
+*.secrets
+
+# Local AI/tool state that should not be published
+/.cursor/
+/.codex/
+/.claude/
+/.ai/
