@@ -26,6 +26,108 @@ function Get-WibApiErrorText {
     }
 }
 
+function ConvertFrom-WibApiErrorBody {
+    param([AllowNull()][string]$Body)
+
+    if ([string]::IsNullOrWhiteSpace($Body)) {
+        return ''
+    }
+
+    try {
+        $payload = $Body | ConvertFrom-Json
+        if ($null -ne $payload.response -and ($payload.response.PSObject.Properties.Name -contains 'error')) {
+            return (Get-WibApiErrorText -ErrorValue $payload.response.error)
+        }
+    }
+    catch {
+        # Preserve a non-JSON response because it can still contain a useful
+        # proxy, CDN or server error message.
+    }
+
+    return $Body.Trim()
+}
+
+function Get-WibHttpErrorBody {
+    param($Exception)
+
+    $current = $Exception
+    while ($null -ne $current) {
+        $response = $current.Response
+        if ($null -ne $response) {
+            try {
+                if ($null -ne $response.Content) {
+                    $task = $response.Content.ReadAsStringAsync()
+                    $content = $task.GetAwaiter().GetResult()
+                    if (-not [string]::IsNullOrWhiteSpace($content)) {
+                        return $content
+                    }
+                }
+            }
+            catch {
+                # Windows PowerShell uses WebResponse instead of HttpResponseMessage.
+            }
+
+            try {
+                $stream = $response.GetResponseStream()
+                if ($null -ne $stream) {
+                    $reader = New-Object IO.StreamReader($stream)
+                    try {
+                        $content = $reader.ReadToEnd()
+                        if (-not [string]::IsNullOrWhiteSpace($content)) {
+                            return $content
+                        }
+                    }
+                    finally {
+                        $reader.Dispose()
+                    }
+                }
+            }
+            catch {
+                # The response body is optional; the original exception remains useful.
+            }
+        }
+        $current = $current.InnerException
+    }
+    return ''
+}
+
+function ConvertTo-WibApiSearchText {
+    param([Parameter(Mandatory = $true)][string]$Search)
+
+    $normalized = ($Search -replace '\s+', ' ').Trim()
+    $normalized = [regex]::Replace($normalized, '(?i)\bwindows\s*(10|11)\b', 'Windows $1')
+    $normalized = [regex]::Replace($normalized, '(?i)\bwin\s*(10|11)\b', 'Windows $1')
+    $normalized = [regex]::Replace($normalized, '(?i)\bwindows\s*server\b', 'Windows Server')
+    return $normalized
+}
+
+function Get-WibHttpStatusCode {
+    param($Exception)
+
+    $current = $Exception
+    while ($null -ne $current) {
+        try {
+            if ($null -ne $current.Response -and $null -ne $current.Response.StatusCode) {
+                return [int]$current.Response.StatusCode
+            }
+        }
+        catch {
+            # Some PowerShell and .NET combinations expose a response object
+            # whose StatusCode cannot be converted. Continue through inner errors.
+        }
+        $current = $current.InnerException
+    }
+    return $null
+}
+
+function Test-WibRetryableHttpStatusCode {
+    param([AllowNull()][Nullable[int]]$StatusCode)
+
+    if ($null -eq $StatusCode) { return $true }
+    if ($StatusCode -eq 408 -or $StatusCode -eq 429) { return $true }
+    return ($StatusCode -ge 500 -and $StatusCode -le 599)
+}
+
 function Invoke-WibApiRequest {
     param(
         [Parameter(Mandatory = $true)][ValidateSet('listid', 'listlangs', 'listeditions', 'updateinfo')][string]$Endpoint,
@@ -49,7 +151,9 @@ function Invoke-WibApiRequest {
 
     $uri = '{0}/{1}.php?{2}' -f $script:UupApiBaseUri, $Endpoint, $query
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-    $lastError = $null
+    $lastErrorMessage = ''
+    $lastStatusCode = $null
+    $lastErrorIsRetryable = $true
 
     for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
         try {
@@ -72,22 +176,41 @@ function Invoke-WibApiRequest {
             return $response
         }
         catch {
-            $lastError = $_
+            $lastStatusCode = Get-WibHttpStatusCode -Exception $_.Exception
+            $errorBody = Get-WibHttpErrorBody -Exception $_.Exception
+            $apiErrorText = ConvertFrom-WibApiErrorBody -Body $errorBody
+            $lastErrorMessage = if ([string]::IsNullOrWhiteSpace($apiErrorText)) {
+                $_.Exception.Message
+            }
+            else {
+                'UUP dump API: {0}' -f $apiErrorText
+            }
+            $lastErrorIsRetryable = Test-WibRetryableHttpStatusCode -StatusCode $lastStatusCode
+
+            if (-not $lastErrorIsRetryable) {
+                break
+            }
+
             if ($attempt -lt $Attempts) {
                 $delay = [Math]::Min(5 * $attempt, 20)
-                Write-WibWarning "Запрос $Endpoint не выполнен, попытка $attempt/$Attempts. Повтор через $delay с: $($_.Exception.Message)"
+                Write-WibWarning "Запрос $Endpoint не выполнен, попытка $attempt/$Attempts. Повтор через $delay с: $lastErrorMessage"
                 Start-Sleep -Seconds $delay
             }
         }
     }
 
-    $stale = Get-WibCachedValue -Path $cachePath -MaximumAgeHours 87600 -AllowStale
-    if ($null -ne $stale) {
-        Write-WibWarning "UUP dump недоступен. Используется устаревший кеш: $cachePath"
-        return $stale
+    if ($lastErrorIsRetryable) {
+        $stale = Get-WibCachedValue -Path $cachePath -MaximumAgeHours 87600 -AllowStale
+        if ($null -ne $stale) {
+            Write-WibWarning "UUP dump недоступен. Используется устаревший кеш: $cachePath"
+            return $stale
+        }
     }
 
-    throw "Не удалось выполнить запрос UUP dump API $Endpoint: $($lastError.Exception.Message)"
+    if ($null -ne $lastStatusCode) {
+        throw ('Не удалось выполнить запрос UUP dump API {0} (HTTP {1}): {2}' -f $Endpoint, $lastStatusCode, $lastErrorMessage)
+    }
+    throw ('Не удалось выполнить запрос UUP dump API {0}: {1}' -f $Endpoint, $lastErrorMessage)
 }
 
 function ConvertFrom-WibBuildCollection {
@@ -127,18 +250,80 @@ function Test-WibPreviewTitle {
 
 function Get-WibProductLabel {
     param([Parameter(Mandatory = $true)][string]$Title)
-    if ($Title -match '(?i)Windows 11') { return 'Windows 11' }
-    if ($Title -match '(?i)Windows 10') { return 'Windows 10' }
-    if ($Title -match '(?i)Windows Server') { return 'Windows Server' }
+    if ($Title -match '(?i)\bWindows\s+Server\b') { return 'Windows Server' }
+    if ($Title -match '(?i)\bWindows\s+11\b') { return 'Windows 11' }
+    if ($Title -match '(?i)\bWindows\s+10X\b') { return 'Windows 10X' }
+    if ($Title -match '(?i)\bWindows\s+10\b') { return 'Windows 10' }
     return 'Windows'
+}
+
+function Get-WibRequestedProduct {
+    param([Parameter(Mandatory = $true)][string]$Search)
+
+    $normalized = ConvertTo-WibApiSearchText -Search $Search
+    if ($normalized -match '(?i)\bWindows\s+Server\b') { return 'Windows Server' }
+    if ($normalized -match '(?i)\bWindows\s+11\b') { return 'Windows 11' }
+    if ($normalized -match '(?i)\bWindows\s+10\b') { return 'Windows 10' }
+    return ''
+}
+
+function Test-WibBuildMatchesSearch {
+    param(
+        [Parameter(Mandatory = $true)][string]$Search,
+        [Parameter(Mandatory = $true)][string]$Title,
+        [Parameter(Mandatory = $true)][string]$Build
+    )
+
+    $normalized = ConvertTo-WibApiSearchText -Search $Search
+    $requestedProduct = Get-WibRequestedProduct -Search $normalized
+    if (-not [string]::IsNullOrWhiteSpace($requestedProduct)) {
+        $actualProduct = Get-WibProductLabel -Title $Title
+        if ($actualProduct -ne $requestedProduct) {
+            return $false
+        }
+
+        switch ($requestedProduct) {
+            'Windows 10' { $normalized = [regex]::Replace($normalized, '(?i)\bWindows\s+10\b', ' ') }
+            'Windows 11' { $normalized = [regex]::Replace($normalized, '(?i)\bWindows\s+11\b', ' ') }
+            'Windows Server' { $normalized = [regex]::Replace($normalized, '(?i)\bWindows\s+Server\b', ' ') }
+        }
+    }
+
+    $remainingTerms = @(($normalized -replace '\s+', ' ').Trim() -split ' ' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    if ($remainingTerms.Count -eq 0) {
+        return $true
+    }
+
+    $searchableText = '{0} {1}' -f $Title, $Build
+    foreach ($term in $remainingTerms) {
+        if ($searchableText.IndexOf($term, [StringComparison]::OrdinalIgnoreCase) -lt 0) {
+            return $false
+        }
+    }
+    return $true
 }
 
 function Get-WibVersionLabel {
     param([Parameter(Mandatory = $true)][string]$Title)
-    $match = [regex]::Match($Title, '(?i)\b\d{2}H[12]\b')
-    if ($match.Success) {
-        return $match.Value.ToUpperInvariant()
+
+    # Prefer an explicit Windows release label. Do not infer a release from the
+    # numeric OS build because development builds can have a larger build number
+    # than a newer generally available release (for example 19564 vs 19045).
+    $versionMatch = [regex]::Match($Title, '(?i)\bversion\s+(?<version>\d{2}H[12]|\d{4})\b')
+    if ($versionMatch.Success) {
+        return $versionMatch.Groups['version'].Value.ToUpperInvariant()
     }
+
+    $halfMatch = [regex]::Match($Title, '(?i)\b(?<version>\d{2}H[12])\b')
+    if ($halfMatch.Success) {
+        return $halfMatch.Groups['version'].Value.ToUpperInvariant()
+    }
+
+    $serverYearMatch = [regex]::Match($Title, '(?i)\bWindows\s+Server\s+(?<version>20\d{2})\b')
+    if ($serverYearMatch.Success) {
+        return $serverYearMatch.Groups['version'].Value
+    }
+
     return ''
 }
 
@@ -153,8 +338,9 @@ function Search-WibBuilds {
     )
 
     $cache = Resolve-WibFullPath -Path $CacheDirectory -Create
+    $apiSearch = ConvertTo-WibApiSearchText -Search $Search
     try {
-        $api = Invoke-WibApiRequest -Endpoint 'listid' -Parameters @{ search = $Search; sortByDate = 1 } -CacheDirectory $cache -CacheHours 6 -ForceRefresh:$ForceRefresh
+        $api = Invoke-WibApiRequest -Endpoint 'listid' -Parameters @{ search = $apiSearch; sortByDate = 1 } -CacheDirectory $cache -CacheHours 6 -ForceRefresh:$ForceRefresh
     }
     catch {
         if ($_.Exception.Message -match 'SEARCH_NO_RESULTS') {
@@ -179,6 +365,7 @@ function Search-WibBuilds {
 
         if ($Architecture -ne 'all' -and $arch -ne $Architecture) { continue }
         if (-not $IncludePreview -and $isPreview) { continue }
+        if (-not (Test-WibBuildMatchesSearch -Search $apiSearch -Title $title -Build $build)) { continue }
 
         [pscustomobject]@{
             Uuid         = $uuid
@@ -188,6 +375,7 @@ function Search-WibBuilds {
             Build        = $build
             BuildVersion = ConvertTo-WibVersion -Build $build
             Architecture = $arch
+            EntryType    = Get-WibBuildEntryType -Title $title
             Created      = $createdSeconds
             CreatedAt    = if ($createdSeconds -gt 0) { Get-WibUnixDate -Seconds $createdSeconds } else { $null }
             IsPreview    = $isPreview

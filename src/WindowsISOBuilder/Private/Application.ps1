@@ -24,6 +24,10 @@ function Start-WibInteractiveBuild {
     )
 
     $build = Select-WibBuildInteractive -CacheDirectory $CacheDirectory
+    if ($null -eq $build) {
+        return $false
+    }
+
     $language = Select-WibLanguageInteractive -UpdateId $build.Uuid -CacheDirectory $CacheDirectory
     $editions = @(Select-WibEditionsInteractive -UpdateId $build.Uuid -Language $language.Code -CacheDirectory $CacheDirectory)
     $format = Select-WibImageFormatInteractive
@@ -46,9 +50,11 @@ function Start-WibInteractiveBuild {
 
     if (-not (Read-WibYesNo -Prompt 'Начать загрузку и сборку?' -Default $true)) {
         Write-Host 'Сборка отменена.'
-        return
+        return $false
     }
-    Invoke-WibBuildPlan -Plan $plan
+
+    Invoke-WibBuildPlan -Plan $plan | Out-Null
+    return $true
 }
 
 function Start-WibInteractive {
@@ -71,9 +77,11 @@ function Start-WibInteractive {
         switch ($choice) {
             0 { return }
             1 {
-                Start-WibInteractiveBuild -OutputDirectory $outputDirectory -CacheDirectory $cacheDirectory
-                Write-Host ''
-                Read-Host 'Нажмите Enter, чтобы вернуться в меню' | Out-Null
+                $buildStarted = Start-WibInteractiveBuild -OutputDirectory $outputDirectory -CacheDirectory $cacheDirectory
+                if ($buildStarted) {
+                    Write-Host ''
+                    Read-Host 'Нажмите Enter, чтобы вернуться в меню' | Out-Null
+                }
             }
             2 {
                 Show-WibCacheInfoInteractive -CacheDirectory $cacheDirectory
@@ -113,7 +121,11 @@ function Start-WibNonInteractive {
 
     $builds = @(Search-WibBuilds -Search $Search -Architecture $Architecture -IncludePreview:$IncludePreview -ForceRefresh:$ForceCatalogRefresh -CacheDirectory $CacheDirectory)
     if ($builds.Count -eq 0) { throw "По запросу '$Search' подходящие сборки не найдены." }
-    $build = $builds[0]
+    $normalBuilds = @($builds | Where-Object {
+        $entryType = if ($null -ne $_.PSObject.Properties['EntryType']) { [string]$_.EntryType } else { Get-WibBuildEntryType -Title $_.Title }
+        $entryType -eq 'Windows'
+    })
+    $build = if ($normalBuilds.Count -gt 0) { $normalBuilds[0] } else { $builds[0] }
 
     $availableLanguages = @(Get-WibLanguages -UpdateId $build.Uuid -CacheDirectory $CacheDirectory)
     if ($availableLanguages.Code -notcontains $Language) { throw "Язык $Language недоступен для сборки $($build.Build)." }

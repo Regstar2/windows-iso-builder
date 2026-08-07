@@ -33,6 +33,30 @@
     }
 
 
+    It 'parses every PowerShell source file without syntax errors' {
+        $files = Get-ChildItem -LiteralPath $root -Include '*.ps1', '*.psm1' -File -Recurse
+        $errors = foreach ($file in $files) {
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+                $file.FullName,
+                [ref]$tokens,
+                [ref]$parseErrors
+            ) | Out-Null
+
+            foreach ($parseError in $parseErrors) {
+                '{0}:{1}:{2} {3}' -f @(
+                    $file.FullName,
+                    $parseError.Extent.StartLineNumber,
+                    $parseError.Extent.StartColumnNumber,
+                    $parseError.Message
+                )
+            }
+        }
+
+        @($errors).Count | Should -Be 0
+    }
+
     It 'uses the repository README naming convention' {
         Test-Path -LiteralPath (Join-Path $root 'README.md') | Should -BeTrue
         Test-Path -LiteralPath (Join-Path $root 'README_EN.md') | Should -BeTrue

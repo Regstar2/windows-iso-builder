@@ -35,7 +35,7 @@ function Get-WibCachedValue {
         return Read-WibJsonFile -Path $Path
     }
     catch {
-        Write-WibWarning "Повреждён кеш $Path: $($_.Exception.Message)"
+        Write-WibWarning ('Повреждён кеш {0}: {1}' -f $Path, $_.Exception.Message)
         Remove-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
         return $null
     }

@@ -1,4 +1,4 @@
-<div align="center">
+﻿<div align="center">
 
 # Windows ISO Builder
 
@@ -29,6 +29,7 @@ The static structure and modular architecture are prepared, but a complete ISO b
 ## Features
 
 - dynamic search by release name, build number, or UUP dump title;
+- paginated browsing for large result sets, including next, previous, and direct page navigation;
 - no fixed catalog of supported Windows versions in the source code;
 - `x64`, `ARM64`, and `x86` filters, with Preview/Insider results hidden by default;
 - dynamic language and edition lists for the selected build;
@@ -63,7 +64,11 @@ Completed files are written to `output/`. The persistent work cache defaults to 
 
 In interactive mode, the program collects all parameters before requesting elevation. The selection can therefore be cancelled or changed before a long-running operation starts.
 
+The catalog distinguishes complete Windows build entries from servicing packages. `.NET`, cumulative, OOBE, and similar servicing records are hidden by default so they cannot be selected accidentally as ISO sources. The sort menu includes an `Entry type` option and places complete Windows builds before updates. This classification does not guarantee that Microsoft still retains the UUP files for a particular old build.
+
 A repeated run with the same build, language, and base edition uses the existing work directory. `aria2` verifies downloaded files and resumes incomplete transfers when supported by the server.
+
+The result table supports `S` to sort by relevance, build, architecture, date, entry type, or title and `F` to select the current installable build. Relevance compares the Windows release label first (for example, 22H2 is newer than 21H2 and 1809) and then chooses the highest build inside that release. This prevents an older LTSC branch with a newer servicing date or an old development build with a larger base number from being treated as the current release. Type sorting can place complete Windows builds or servicing packages first. The selected sort order is preserved while paging through results.
 
 ## Commands
 
@@ -79,7 +84,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Start-Builder.ps1 `
   -ImageFormat ESD
 ```
 
-This mode selects the first matching entry after sorting by build number and date. Direct UUID selection is not implemented yet.
+When matching entries exist, this mode prefers a complete Windows build over cumulative/.NET/OOBE servicing packages. Direct UUID selection is not implemented yet.
 
 ## Architecture
 

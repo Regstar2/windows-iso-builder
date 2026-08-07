@@ -1,7 +1,15 @@
-# Changelog
+﻿# Changelog
 
 ## Unreleased
 
+- Changed the default catalog order and `F` selection to rank Windows release families before servicing date/build number, preventing old LTSC or development builds from being treated as the current release.
+
+- каталог классифицирует полноценные сборки Windows, servicing-обновления и прочие записи; cumulative/.NET/OOBE-пакеты скрыты в интерактивном режиме по умолчанию;
+- в таблицу добавлен столбец `Тип`, а в меню сортировки — сортировка по типу записи с полноценными сборками Windows впереди;
+- неинтерактивный режим предпочитает полноценную сборку Windows, если API одновременно возвращает servicing-пакеты;
+- добавлена постраничная навигация по каталогу сборок: следующие/предыдущие 40 записей, переход к странице, новый поиск и возврат в главное меню;
+- исправлены ошибки синтаксического разбора PowerShell при двоеточии сразу после интерполируемых переменных пути и имени API endpoint;
+- добавлен статический тест разбора всех файлов `.ps1` и `.psm1`.
 - локальные правила проекта обновлены до `universal_project_rules_template_v5`;
 - техническое имя репозитория, корневого каталога и release-артефактов установлено как `windows-iso-builder`;
 - публичное название продукта и имя PowerShell-модуля сохранены без изменений;

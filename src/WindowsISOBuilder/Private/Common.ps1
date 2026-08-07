@@ -204,3 +204,48 @@ function ConvertTo-WibVersion {
         return [version]'0.0'
     }
 }
+
+function Get-WibBuildEntryType {
+    param([AllowNull()][string]$Title)
+
+    $text = ([string]$Title).Trim()
+    if ([string]::IsNullOrWhiteSpace($text)) { return 'Other' }
+
+    # Servicing packages can appear in listid next to complete OS UUP sets. They
+    # are useful catalog records but must not be presented as normal Windows ISO
+    # sources by default.
+    if ($text -match '(?i)^(?:Cumulative Update|Security Update|Critical Update|OOBE Update|Update for|Preview of Cumulative Update|\.NET Framework)' -or
+        $text -match '(?i)\b(?:Cumulative|Security|Critical|OOBE|Dynamic|Compatibility|Servicing Stack) Update\b' -or
+        $text -match '(?i)\b\.NET Framework\b') {
+        return 'Servicing'
+    }
+
+    if ($text -match '(?i)^Feature update to Windows (?:10|11)(?:,|\s+version\b|\s*\()' -or
+        $text -match '(?i)^Windows (?:10|11)(?:\s+Insider Preview\b|,\s*version\b|\s+build\b|\s*\(|$)' -or
+        $text -match '(?i)^Windows Server(?:\s+Insider Preview\b|,\s*version\b|\s+build\b|\s+\d{4}\b|\s*\(|$)') {
+        return 'Windows'
+    }
+
+    return 'Other'
+}
+
+function Get-WibBuildEntryTypeRank {
+    param([AllowNull()][string]$EntryType)
+
+    switch ([string]$EntryType) {
+        'Windows' { return 0 }
+        'Other' { return 1 }
+        'Servicing' { return 2 }
+        default { return 3 }
+    }
+}
+
+function Get-WibBuildEntryTypeLabel {
+    param([AllowNull()][string]$EntryType)
+
+    switch ([string]$EntryType) {
+        'Windows' { return 'Сборка' }
+        'Servicing' { return 'Обновл.' }
+        default { return 'Другое' }
+    }
+}
