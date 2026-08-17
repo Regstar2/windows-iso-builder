@@ -15,7 +15,7 @@ Describe 'UUP converter process execution' {
             $builderPath = Join-Path $script:ModuleRoot 'Private\Builder.ps1'
             $source = Get-Content -LiteralPath $builderPath -Raw
 
-            $source | Should -Match "Get-ChildItem\s+-LiteralPath\s+\$workDirectory\s+-Filter\s+'\*\.iso'"
+            $source | Should -Match 'Get-ChildItem\s+-LiteralPath\s+\$workDirectory\s+-Filter\s+''\*\.iso'''
             $source | Should -Match 'Подробный лог:\s+\$converterLogPath'
         }
     }
