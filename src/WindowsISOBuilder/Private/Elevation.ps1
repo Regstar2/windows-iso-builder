@@ -96,7 +96,7 @@ function Save-WibJobState {
         plan      = $Plan
     }
     if (-not [string]::IsNullOrWhiteSpace($failedStage)) {
-        $payload.failedStage = $failedStage
+        $payload['failedStage'] = $failedStage
     }
 
     Write-WibJsonFile -Path $Path -Depth 20 -Value $payload
@@ -118,12 +118,37 @@ function Invoke-WibBuildPlanCore {
         return $result
     }
     catch {
-        $context = Get-WibExecutionContext -Plan $Plan -StartedAt $startedAt
-        try { $_.Exception.Data['WibStage'] = [string]$context.Stage } catch { }
-        try { $_.Exception.Data['WibLogPath'] = [string]$context.LogPath } catch { }
-        try { $_.Exception.Data['WibWorkDirectory'] = [string]$context.WorkDirectory } catch { }
-        throw
+        $failure = $_
+        $context = [pscustomobject]@{
+            Stage         = 'preflight'
+            LogPath       = ''
+            WorkDirectory = ''
+        }
+
+        try {
+            $context = Get-WibExecutionContext -Plan $Plan -StartedAt $startedAt
+        }
+        catch {
+            # Keep fallback context and preserve the original build exception.
+        }
+
+        try { $failure.Exception.Data['WibStage'] = [string]$context.Stage } catch { }
+        try { $failure.Exception.Data['WibLogPath'] = [string]$context.LogPath } catch { }
+        try { $failure.Exception.Data['WibWorkDirectory'] = [string]$context.WorkDirectory } catch { }
+        throw $failure
     }
+}
+
+function Get-WibResultPropertyText {
+    param(
+        [Parameter(Mandatory = $true)]$Result,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    if ($null -eq $Result.PSObject.Properties[$Name]) {
+        return ''
+    }
+    return [string]$Result.$Name
 }
 
 function Format-WibElevatedFailure {
@@ -132,26 +157,33 @@ function Format-WibElevatedFailure {
         [Parameter(Mandatory = $true)][int]$ExitCode
     )
 
-    $stage = if ([string]::IsNullOrWhiteSpace([string]$Result.stage)) { 'unknown' } else { [string]$Result.stage }
-    $message = if ([string]::IsNullOrWhiteSpace([string]$Result.message)) { "Повышенный процесс завершился с кодом $ExitCode." } else { [string]$Result.message }
+    $stageValue = Get-WibResultPropertyText -Result $Result -Name 'stage'
+    $messageValue = Get-WibResultPropertyText -Result $Result -Name 'message'
+    $logPath = Get-WibResultPropertyText -Result $Result -Name 'logPath'
+    $workDirectory = Get-WibResultPropertyText -Result $Result -Name 'workDirectory'
+    $isoPath = Get-WibResultPropertyText -Result $Result -Name 'isoPath'
+    $stackTrace = Get-WibResultPropertyText -Result $Result -Name 'stackTrace'
+
+    $stage = if ([string]::IsNullOrWhiteSpace($stageValue)) { 'unknown' } else { $stageValue }
+    $message = if ([string]::IsNullOrWhiteSpace($messageValue)) { "Повышенный процесс завершился с кодом $ExitCode." } else { $messageValue }
     $lines = @(
         'Сборка с правами администратора завершилась ошибкой.',
         ('Этап: {0}' -f $stage),
         ('Причина: {0}' -f $message)
     )
 
-    if (-not [string]::IsNullOrWhiteSpace([string]$Result.logPath)) {
-        $lines += ('Лог: {0}' -f [string]$Result.logPath)
+    if (-not [string]::IsNullOrWhiteSpace($logPath)) {
+        $lines += ('Лог: {0}' -f $logPath)
     }
-    if (-not [string]::IsNullOrWhiteSpace([string]$Result.workDirectory)) {
-        $lines += ('Рабочий каталог: {0}' -f [string]$Result.workDirectory)
+    if (-not [string]::IsNullOrWhiteSpace($workDirectory)) {
+        $lines += ('Рабочий каталог: {0}' -f $workDirectory)
     }
-    if (-not [string]::IsNullOrWhiteSpace([string]$Result.isoPath)) {
-        $lines += ('ISO: {0}' -f [string]$Result.isoPath)
+    if (-not [string]::IsNullOrWhiteSpace($isoPath)) {
+        $lines += ('ISO: {0}' -f $isoPath)
     }
-    if (-not [string]::IsNullOrWhiteSpace([string]$Result.stackTrace)) {
+    if (-not [string]::IsNullOrWhiteSpace($stackTrace)) {
         $lines += 'Стек ошибки:'
-        $lines += [string]$Result.stackTrace
+        $lines += $stackTrace
     }
 
     return ($lines -join [Environment]::NewLine)
@@ -207,7 +239,11 @@ function Start-WibElevatedPlan {
             throw "Повышенный процесс завершился с кодом $($process.ExitCode), но не создал файл результата: $resultPath"
         }
 
-        if ($process.ExitCode -ne 0 -or -not [bool]$result.success) {
+        $success = $false
+        if ($null -ne $result.PSObject.Properties['success']) {
+            $success = [bool]$result.success
+        }
+        if ($process.ExitCode -ne 0 -or -not $success) {
             throw (Format-WibElevatedFailure -Result $result -ExitCode $process.ExitCode)
         }
 
