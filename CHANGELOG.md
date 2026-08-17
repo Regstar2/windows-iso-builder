@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- повышенный процесс сборки теперь передаёт родительскому процессу структурированный JSON-результат с `success`, этапом, сообщением, стеком, путём к логу, рабочим каталогом и путём к ISO; вместо общего `Exit code: 1` показывается реальная причина ошибки;
 - Changed the default catalog order and `F` selection to rank Windows release families before servicing date/build number, preventing old LTSC or development builds from being treated as the current release.
 
 - каталог классифицирует полноценные сборки Windows, servicing-обновления и прочие записи; cumulative/.NET/OOBE-пакеты скрыты в интерактивном режиме по умолчанию;
