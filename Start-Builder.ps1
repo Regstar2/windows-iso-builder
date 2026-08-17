@@ -135,15 +135,17 @@ try {
     exit 0
 }
 catch {
+    $failure = $_
+
     if ($PSCmdlet.ParameterSetName -eq 'Plan' -and -not [string]::IsNullOrWhiteSpace($ResultFile)) {
         $stage = 'startup'
         $logPath = ''
         $workDirectory = ''
 
         try {
-            if ($_.Exception.Data.Contains('WibStage')) { $stage = [string]$_.Exception.Data['WibStage'] }
-            if ($_.Exception.Data.Contains('WibLogPath')) { $logPath = [string]$_.Exception.Data['WibLogPath'] }
-            if ($_.Exception.Data.Contains('WibWorkDirectory')) { $workDirectory = [string]$_.Exception.Data['WibWorkDirectory'] }
+            if ($failure.Exception.Data.Contains('WibStage')) { $stage = [string]$failure.Exception.Data['WibStage'] }
+            if ($failure.Exception.Data.Contains('WibLogPath')) { $logPath = [string]$failure.Exception.Data['WibLogPath'] }
+            if ($failure.Exception.Data.Contains('WibWorkDirectory')) { $workDirectory = [string]$failure.Exception.Data['WibWorkDirectory'] }
         }
         catch {
             # Result serialization should still succeed with fallback values.
@@ -153,8 +155,8 @@ catch {
             Write-WibProcessResultFile -Path $ResultFile -Value ([ordered]@{
                 success       = $false
                 stage         = $stage
-                message       = [string]$_.Exception.Message
-                stackTrace    = [string]$_.ScriptStackTrace
+                message       = [string]$failure.Exception.Message
+                stackTrace    = [string]$failure.ScriptStackTrace
                 logPath       = $logPath
                 workDirectory = $workDirectory
                 isoPath       = ''
@@ -166,9 +168,9 @@ catch {
     }
 
     Write-Host ''
-    Write-Host ('ОШИБКА: {0}' -f $_.Exception.Message) -ForegroundColor Red
-    if ($_.ScriptStackTrace) {
-        Write-Host $_.ScriptStackTrace -ForegroundColor DarkGray
+    Write-Host ('ОШИБКА: {0}' -f $failure.Exception.Message) -ForegroundColor Red
+    if ($failure.ScriptStackTrace) {
+        Write-Host $failure.ScriptStackTrace -ForegroundColor DarkGray
     }
     exit 1
 }
