@@ -5,6 +5,10 @@ param(
     [ValidateNotNullOrEmpty()]
     [string]$PlanFile,
 
+    [Parameter(ParameterSetName = 'Plan')]
+    [ValidateNotNullOrEmpty()]
+    [string]$ResultFile,
+
     [Parameter(ParameterSetName = 'CommandLine')]
     [switch]$NonInteractive,
 
@@ -56,9 +60,50 @@ $ErrorActionPreference = 'Stop'
 $modulePath = Join-Path $PSScriptRoot 'src\WindowsISOBuilder\WindowsISOBuilder.psd1'
 Import-Module $modulePath -Force
 
+function Write-WibProcessResultFile {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)]$Value
+    )
+
+    $directory = Split-Path -Parent $Path
+    if ($directory -and -not (Test-Path -LiteralPath $directory)) {
+        New-Item -ItemType Directory -Path $directory -Force | Out-Null
+    }
+
+    $temporary = '{0}.{1}.tmp' -f $Path, [Guid]::NewGuid().ToString('N')
+    $json = $Value | ConvertTo-Json -Depth 12
+    [IO.File]::WriteAllText($temporary, $json, (New-Object Text.UTF8Encoding($false)))
+    Move-Item -LiteralPath $temporary -Destination $Path -Force
+}
+
 try {
     if ($PSCmdlet.ParameterSetName -eq 'Plan') {
-        Invoke-WibPlanFile -Path $PlanFile
+        $buildResult = Invoke-WibPlanFile -Path $PlanFile
+
+        if (-not [string]::IsNullOrWhiteSpace($ResultFile)) {
+            $stage = 'completed'
+            $logPath = ''
+            $workDirectory = ''
+            $isoPath = ''
+
+            if ($null -ne $buildResult) {
+                if ($null -ne $buildResult.PSObject.Properties['Stage']) { $stage = [string]$buildResult.Stage }
+                if ($null -ne $buildResult.PSObject.Properties['LogPath']) { $logPath = [string]$buildResult.LogPath }
+                if ($null -ne $buildResult.PSObject.Properties['WorkDirectory']) { $workDirectory = [string]$buildResult.WorkDirectory }
+                if ($null -ne $buildResult.PSObject.Properties['IsoPath']) { $isoPath = [string]$buildResult.IsoPath }
+            }
+
+            Write-WibProcessResultFile -Path $ResultFile -Value ([ordered]@{
+                success       = $true
+                stage         = $stage
+                message       = ''
+                stackTrace    = ''
+                logPath       = $logPath
+                workDirectory = $workDirectory
+                isoPath       = $isoPath
+            })
+        }
         exit 0
     }
 
@@ -90,6 +135,36 @@ try {
     exit 0
 }
 catch {
+    if ($PSCmdlet.ParameterSetName -eq 'Plan' -and -not [string]::IsNullOrWhiteSpace($ResultFile)) {
+        $stage = 'startup'
+        $logPath = ''
+        $workDirectory = ''
+
+        try {
+            if ($_.Exception.Data.Contains('WibStage')) { $stage = [string]$_.Exception.Data['WibStage'] }
+            if ($_.Exception.Data.Contains('WibLogPath')) { $logPath = [string]$_.Exception.Data['WibLogPath'] }
+            if ($_.Exception.Data.Contains('WibWorkDirectory')) { $workDirectory = [string]$_.Exception.Data['WibWorkDirectory'] }
+        }
+        catch {
+            # Result serialization should still succeed with fallback values.
+        }
+
+        try {
+            Write-WibProcessResultFile -Path $ResultFile -Value ([ordered]@{
+                success       = $false
+                stage         = $stage
+                message       = [string]$_.Exception.Message
+                stackTrace    = [string]$_.ScriptStackTrace
+                logPath       = $logPath
+                workDirectory = $workDirectory
+                isoPath       = ''
+            })
+        }
+        catch {
+            Write-Host ('Не удалось записать файл результата повышенного процесса: {0}' -f $_.Exception.Message) -ForegroundColor DarkYellow
+        }
+    }
+
     Write-Host ''
     Write-Host ('ОШИБКА: {0}' -f $_.Exception.Message) -ForegroundColor Red
     if ($_.ScriptStackTrace) {
