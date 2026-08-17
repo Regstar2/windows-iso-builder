@@ -26,9 +26,11 @@ $runtimeFiles = @(
     'CHANGELOG.md',
     'REQUIREMENTS.md',
     'SECURITY.md',
+    'CONTRIBUTING.md',
     'src',
     'docs\ARCHITECTURE.md',
     'docs\IMPLEMENTATION_STATUS.md',
+    'docs\SOURCE_V4_MIGRATION.md',
     ('docs\releases\v{0}.md' -f $Version),
     ('docs\releases\v{0}_EN.md' -f $Version)
 )
