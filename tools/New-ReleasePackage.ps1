@@ -2,7 +2,7 @@
 [CmdletBinding()]
 param(
     [string]$Version = '0.2.0-alpha.1',
-    [string]$OutputDirectory = (Join-Path (Split-Path -Parent $PSScriptRoot) 'dist')
+    [string]$OutputDirectory = ''
 )
 
 Set-StrictMode -Version Latest
@@ -10,7 +10,20 @@ $ErrorActionPreference = 'Stop'
 
 # Keep this script ASCII-only. Windows PowerShell 5.1 may interpret UTF-8 files
 # without a BOM using the active ANSI code page, which can break parsing.
-$projectRoot = Split-Path -Parent $PSScriptRoot
+# Also avoid using $PSScriptRoot in parameter default expressions: in Windows
+# PowerShell 5.1 it can still be empty while parameter defaults are evaluated.
+$scriptPath = $MyInvocation.MyCommand.Path
+if ([string]::IsNullOrWhiteSpace($scriptPath)) {
+    throw 'Unable to determine the release script path.'
+}
+
+$scriptDirectory = Split-Path -Parent $scriptPath
+$projectRoot = Split-Path -Parent $scriptDirectory
+
+if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
+    $OutputDirectory = Join-Path $projectRoot 'dist'
+}
+
 $outputDirectoryFull = [IO.Path]::GetFullPath($OutputDirectory)
 New-Item -ItemType Directory -Path $outputDirectoryFull -Force | Out-Null
 
