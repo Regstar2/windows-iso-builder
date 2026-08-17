@@ -16,7 +16,7 @@ Describe 'Elevated build result protocol' {
             $state.message | Should -Be 'converter failed'
         }
 
-        It 'attaches stage, log and work directory context to build exceptions' {
+        It 'attaches stage and work directory context to build exceptions' {
             $originalCore = $script:WibOriginalInvokeBuildPlanCore
             $outputDirectory = Join-Path $TestDrive 'output'
             $cacheDirectory = Join-Path $TestDrive 'cache'
@@ -59,7 +59,7 @@ Describe 'Elevated build result protocol' {
         }
 
         It 'reports the elevated child error instead of only exit code 1' {
-            $cacheDirectory = Join-Path $TestDrive 'cache'
+            $cacheDirectory = Join-Path $TestDrive 'cache-error'
             $plan = [pscustomobject]@{ CacheDirectory = $cacheDirectory }
 
             Mock Save-WibPlan { }
@@ -67,7 +67,15 @@ Describe 'Elevated build result protocol' {
             Mock Start-Process {
                 param($FilePath, $Verb, $Wait, $PassThru, $ArgumentList)
 
-                $resultIndex = [Array]::IndexOf([object[]]$ArgumentList, '-ResultFile')
+                $resultIndex = -1
+                for ($index = 0; $index -lt $ArgumentList.Count; $index++) {
+                    if ([string]$ArgumentList[$index] -eq '-ResultFile') {
+                        $resultIndex = $index
+                        break
+                    }
+                }
+                $resultIndex | Should -BeGreaterThan -1
+
                 $resultPath = ([string]$ArgumentList[$resultIndex + 1]).Trim([char]34)
                 Write-WibJsonFile -Path $resultPath -Value ([ordered]@{
                     success       = $false
@@ -93,7 +101,7 @@ Describe 'Elevated build result protocol' {
             $caught.Exception.Message | Should -Match 'downloading-uup-and-converting'
             $caught.Exception.Message | Should -Match 'uup_download_windows\.cmd завершился с кодом 1'
             $caught.Exception.Message | Should -Match 'build-test\.log'
-            $caught.Exception.Message | Should -Match 'C:\\UUP-ISO-Work\\work\\test'
+            $caught.Exception.Message | Should -Match ([regex]::Escape('C:\UUP-ISO-Work\work\test'))
             $caught.Exception.Message | Should -Match 'test stack trace'
         }
 
@@ -106,7 +114,15 @@ Describe 'Elevated build result protocol' {
             Mock Start-Process {
                 param($FilePath, $Verb, $Wait, $PassThru, $ArgumentList)
 
-                $resultIndex = [Array]::IndexOf([object[]]$ArgumentList, '-ResultFile')
+                $resultIndex = -1
+                for ($index = 0; $index -lt $ArgumentList.Count; $index++) {
+                    if ([string]$ArgumentList[$index] -eq '-ResultFile') {
+                        $resultIndex = $index
+                        break
+                    }
+                }
+                $resultIndex | Should -BeGreaterThan -1
+
                 $resultPath = ([string]$ArgumentList[$resultIndex + 1]).Trim([char]34)
                 Write-WibJsonFile -Path $resultPath -Value ([ordered]@{
                     success       = $true
