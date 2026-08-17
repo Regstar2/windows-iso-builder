@@ -13,7 +13,8 @@ $privateFiles = @(
     'Private\Selection.ps1',
     'Private\Builder.ps1',
     'Private\Elevation.ps1',
-    'Private\Application.ps1'
+    'Private\Application.ps1',
+    'Private\ConsoleProgress.ps1'
 )
 
 foreach ($relativePath in $privateFiles) {
