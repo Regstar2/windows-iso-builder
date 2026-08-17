@@ -29,6 +29,7 @@ The static structure and modular architecture are prepared, but a complete ISO b
 ## Features
 
 - dynamic search by release name, build number, or UUP dump title;
+- quick selection of the latest stable Windows 11 or Windows 10 x64 build without browsing the catalog and without hardcoding a release/build number;
 - paginated browsing for large result sets, including next, previous, and direct page navigation;
 - no fixed catalog of supported Windows versions in the source code;
 - `x64`, `ARM64`, and `x86` filters, with Preview/Insider results hidden by default;
@@ -45,10 +46,12 @@ The static structure and modular architecture are prepared, but a complete ISO b
 
 1. Extract the project to a local directory.
 2. Run `Start-Builder.cmd`.
-3. Select the search-and-build option.
-4. Enter a query such as `22H2` or `19045`.
-5. Select the build, architecture, language, editions, and format.
+3. For the normal workflow choose `Find a build and create ISO`; for the latest stable release choose `Quick download latest Windows`.
+4. In quick mode choose Windows 11 or Windows 10. The application refreshes the catalog and automatically selects the latest stable x64 build.
+5. Select language, editions, and image format.
 6. Approve UAC before downloading and conversion begin.
+
+Windows 8.1/8 and Windows 7 are not built by the current UUP pipeline. Their quick-menu entries are reserved for a future separate verified source.
 
 Completed files are written to `output/`. The persistent work cache defaults to `C:\UUP-ISO-Work`.
 
@@ -63,6 +66,8 @@ Completed files are written to `output/`. The persistent work cache defaults to 
 ## Usage
 
 In interactive mode, the program collects all parameters before requesting elevation. The selection can therefore be cancelled or changed before a long-running operation starts.
+
+Quick mode skips manual catalog browsing. For Windows 11 or Windows 10 it requests a fresh UUP dump catalog, keeps only stable complete x64 Windows builds, and uses the same relevance-ranking logic as the normal catalog. No release or build number is fixed in the source. After the build is selected automatically, the user still chooses language, editions, WIM/ESD, and optional build settings.
 
 The catalog distinguishes complete Windows build entries from servicing packages. `.NET`, cumulative, OOBE, and similar servicing records are hidden by default so they cannot be selected accidentally as ISO sources. The sort menu includes an `Entry type` option and places complete Windows builds before updates. This classification does not guarantee that Microsoft still retains the UUP files for a particular old build.
 
@@ -111,13 +116,14 @@ The project does not require compilation. Run the source through `Start-Builder.
 
 ## Testing
 
-The repository contains Pester tests and a PSScriptAnalyzer configuration:
+The repository contains Pester tests and a PSScriptAnalyzer configuration. Checks are run locally; GitHub Actions are not required for this project:
 
 ```powershell
-powershell.exe -NoProfile -File .\tests\Run-Tests.ps1
+powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-Tests.ps1
+Invoke-ScriptAnalyzer -Path . -Recurse -Settings .\.psscriptanalyzer.psd1
 ```
 
-CI is configured for Windows PowerShell 5.1 and PowerShell 7. These checks and a complete ISO build were not executed in the current environment; their presence in the repository does not prove that they pass.
+A complete real ISO build remains a separate manual validation step and is not considered verified solely because the unit tests pass.
 
 ## Documentation
 
@@ -141,6 +147,7 @@ This project is not affiliated with Microsoft, does not distribute completed ISO
 ## Limitations
 
 - the complete build workflow has not yet been validated on Windows 10 and Windows 11;
+- quick UUP mode currently supports Windows 10 and Windows 11; Windows 8.1/8 and Windows 7 require a separate source;
 - virtual-edition compatibility depends on the selected base edition and UUP dump converter version;
 - the external API and conversion-package format may change;
 - there is no GUI or automatic application updater;
