@@ -8,14 +8,14 @@ function Invoke-WibNativeWriteHost {
     param(
         [AllowNull()][object[]]$Object,
         [object]$Separator = ' ',
-        [Nullable[ConsoleColor]]$ForegroundColor,
-        [Nullable[ConsoleColor]]$BackgroundColor,
+        [AllowNull()][object]$ForegroundColor = $null,
+        [AllowNull()][object]$BackgroundColor = $null,
         [switch]$NoNewline
     )
 
     $parameters = @{ Separator = $Separator }
-    if ($null -ne $ForegroundColor) { $parameters.ForegroundColor = $ForegroundColor.Value }
-    if ($null -ne $BackgroundColor) { $parameters.BackgroundColor = $BackgroundColor.Value }
+    if ($null -ne $ForegroundColor) { $parameters.ForegroundColor = [ConsoleColor]$ForegroundColor }
+    if ($null -ne $BackgroundColor) { $parameters.BackgroundColor = [ConsoleColor]$BackgroundColor }
     if ($NoNewline) { $parameters.NoNewline = $true }
 
     Microsoft.PowerShell.Utility\Write-Host -Object $Object @parameters
@@ -200,12 +200,15 @@ function Write-Host {
             $script:WibConverterBuildLogPath = $Matches['path'].Trim()
         }
 
+        $foreground = if ($PSBoundParameters.ContainsKey('ForegroundColor')) { $ForegroundColor } else { $null }
+        $background = if ($PSBoundParameters.ContainsKey('BackgroundColor')) { $BackgroundColor } else { $null }
+
         if ($trimmed -eq '=== Загрузка файлов Microsoft и создание ISO ===') {
             Invoke-WibNativeWriteHost `
                 -Object $Object `
                 -Separator $Separator `
-                -ForegroundColor $(if ($PSBoundParameters.ContainsKey('ForegroundColor')) { [Nullable[ConsoleColor]]$ForegroundColor } else { $null }) `
-                -BackgroundColor $(if ($PSBoundParameters.ContainsKey('BackgroundColor')) { [Nullable[ConsoleColor]]$BackgroundColor } else { $null }) `
+                -ForegroundColor $foreground `
+                -BackgroundColor $background `
                 -NoNewline:$NoNewline
             Start-WibConverterProgress
             return
@@ -216,8 +219,8 @@ function Write-Host {
             Invoke-WibNativeWriteHost `
                 -Object $Object `
                 -Separator $Separator `
-                -ForegroundColor $(if ($PSBoundParameters.ContainsKey('ForegroundColor')) { [Nullable[ConsoleColor]]$ForegroundColor } else { $null }) `
-                -BackgroundColor $(if ($PSBoundParameters.ContainsKey('BackgroundColor')) { [Nullable[ConsoleColor]]$BackgroundColor } else { $null }) `
+                -ForegroundColor $foreground `
+                -BackgroundColor $background `
                 -NoNewline:$NoNewline
             return
         }
@@ -228,8 +231,8 @@ function Write-Host {
             Invoke-WibNativeWriteHost `
                 -Object $Object `
                 -Separator $Separator `
-                -ForegroundColor $(if ($PSBoundParameters.ContainsKey('ForegroundColor')) { [Nullable[ConsoleColor]]$ForegroundColor } else { $null }) `
-                -BackgroundColor $(if ($PSBoundParameters.ContainsKey('BackgroundColor')) { [Nullable[ConsoleColor]]$BackgroundColor } else { $null }) `
+                -ForegroundColor $foreground `
+                -BackgroundColor $background `
                 -NoNewline:$NoNewline
             return
         }
@@ -242,8 +245,8 @@ function Write-Host {
         Invoke-WibNativeWriteHost `
             -Object $Object `
             -Separator $Separator `
-            -ForegroundColor $(if ($PSBoundParameters.ContainsKey('ForegroundColor')) { [Nullable[ConsoleColor]]$ForegroundColor } else { $null }) `
-            -BackgroundColor $(if ($PSBoundParameters.ContainsKey('BackgroundColor')) { [Nullable[ConsoleColor]]$BackgroundColor } else { $null }) `
+            -ForegroundColor $foreground `
+            -BackgroundColor $background `
             -NoNewline:$NoNewline
     }
 }
