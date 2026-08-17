@@ -15,7 +15,7 @@ Describe 'Interactive build completion message' {
 
             Show-WibBuildSuccess -Result $result
 
-            Should -Invoke Write-WibStage -Times 1 -ParameterFilter { $Name -eq 'Сборка завершена' }
+            Should -Invoke Write-WibStage -Times 1 -ParameterFilter { $Message -eq 'Сборка завершена' }
             Should -Invoke Write-Host -Times 1 -ParameterFilter { $Object -eq 'ISO успешно создан.' }
             Should -Invoke Write-Host -Times 1 -ParameterFilter { $Object -eq 'ISO: C:\output\Windows.iso' }
             Should -Invoke Write-Host -Times 1 -ParameterFilter { $Object -eq 'Лог сборки: C:\output\logs\build-test.log' }
