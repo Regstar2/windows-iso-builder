@@ -1,4 +1,17 @@
-﻿$script:RepositoryRoot = Split-Path -Parent $PSScriptRoot
+﻿BeforeAll {
+    # Pester 5 separates discovery from test execution. Resolve the repository
+    # root during the run phase so it remains available to every It block.
+    if (-not [string]::IsNullOrWhiteSpace($env:WIB_REPOSITORY_ROOT)) {
+        $script:RepositoryRoot = $env:WIB_REPOSITORY_ROOT
+    }
+    else {
+        $script:RepositoryRoot = Split-Path -Parent $PSScriptRoot
+    }
+
+    if ([string]::IsNullOrWhiteSpace($script:RepositoryRoot) -or -not (Test-Path -LiteralPath $script:RepositoryRoot)) {
+        throw 'Не удалось определить корневой каталог репозитория для статических тестов.'
+    }
+}
 
 Describe 'Repository safety rules' {
     It 'does not hardcode a supported Windows version catalog in source code' {
