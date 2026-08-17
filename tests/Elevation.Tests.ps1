@@ -78,13 +78,14 @@ Describe 'Elevated build result protocol' {
 
                 $resultPath = ([string]$ArgumentList[$resultIndex + 1]).Trim([char]34)
                 Write-WibJsonFile -Path $resultPath -Value ([ordered]@{
-                    success       = $false
-                    stage         = 'downloading-uup-and-converting'
-                    message       = 'uup_download_windows.cmd завершился с кодом 1.'
-                    stackTrace    = 'test stack trace'
-                    logPath       = 'C:\output\logs\build-test.log'
-                    workDirectory = 'C:\UUP-ISO-Work\work\test'
-                    isoPath       = ''
+                    success          = $false
+                    stage            = 'downloading-uup-and-converting'
+                    message          = 'uup_download_windows.cmd завершился с кодом 1.'
+                    stackTrace       = 'test stack trace'
+                    logPath          = 'C:\output\logs\build-test.log'
+                    executionLogPath = 'C:\project\logs\elevated-test.log'
+                    workDirectory    = 'C:\UUP-ISO-Work\work\test'
+                    isoPath          = ''
                 })
                 return [pscustomobject]@{ ExitCode = 1 }
             }
@@ -101,6 +102,7 @@ Describe 'Elevated build result protocol' {
             $caught.Exception.Message | Should -Match 'downloading-uup-and-converting'
             $caught.Exception.Message | Should -Match 'uup_download_windows\.cmd завершился с кодом 1'
             $caught.Exception.Message | Should -Match 'build-test\.log'
+            $caught.Exception.Message | Should -Match 'elevated-test\.log'
             $caught.Exception.Message | Should -Match ([regex]::Escape('C:\UUP-ISO-Work\work\test'))
             $caught.Exception.Message | Should -Match 'test stack trace'
         }
@@ -125,13 +127,14 @@ Describe 'Elevated build result protocol' {
 
                 $resultPath = ([string]$ArgumentList[$resultIndex + 1]).Trim([char]34)
                 Write-WibJsonFile -Path $resultPath -Value ([ordered]@{
-                    success       = $true
-                    stage         = 'completed'
-                    message       = ''
-                    stackTrace    = ''
-                    logPath       = 'C:\output\logs\build-test.log'
-                    workDirectory = 'C:\UUP-ISO-Work\work\test'
-                    isoPath       = 'C:\output\Windows.iso'
+                    success          = $true
+                    stage            = 'completed'
+                    message          = ''
+                    stackTrace       = ''
+                    logPath          = 'C:\output\logs\build-test.log'
+                    executionLogPath = 'C:\project\logs\elevated-test.log'
+                    workDirectory    = 'C:\UUP-ISO-Work\work\test'
+                    isoPath          = 'C:\output\Windows.iso'
                 })
                 return [pscustomobject]@{ ExitCode = 0 }
             }
@@ -139,29 +142,38 @@ Describe 'Elevated build result protocol' {
             $result = Start-WibElevatedPlan -Plan $plan
             $result.success | Should -BeTrue
             $result.stage | Should -Be 'completed'
+            $result.executionLogPath | Should -Be 'C:\project\logs\elevated-test.log'
             $result.isoPath | Should -Be 'C:\output\Windows.iso'
         }
     }
 }
 
 Describe 'Plan child process result file' {
-    It 'writes structured failure JSON before exiting with code 1' {
+    It 'writes structured failure JSON and an execution log before exiting with code 1' {
         $projectRoot = Split-Path -Parent $PSScriptRoot
         $entryScript = Join-Path $projectRoot 'Start-Builder.ps1'
         $missingPlan = Join-Path $TestDrive 'missing-plan.json'
         $resultPath = Join-Path $TestDrive 'child-result.json'
+        $executionLogPath = Join-Path $TestDrive 'child-execution.log'
 
-        & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $entryScript -PlanFile $missingPlan -ResultFile $resultPath *> $null
+        & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $entryScript -PlanFile $missingPlan -ResultFile $resultPath -ExecutionLogFile $executionLogPath *> $null
         $LASTEXITCODE | Should -Be 1
         Test-Path -LiteralPath $resultPath | Should -BeTrue
+        Test-Path -LiteralPath $executionLogPath | Should -BeTrue
 
         $result = Get-Content -LiteralPath $resultPath -Raw -Encoding UTF8 | ConvertFrom-Json
         $result.success | Should -BeFalse
         $result.stage | Should -Be 'startup'
         $result.message | Should -Match 'Файл плана не найден'
+        $result.executionLogPath | Should -Be ([IO.Path]::GetFullPath($executionLogPath))
         $result.PSObject.Properties.Name | Should -Contain 'stackTrace'
         $result.PSObject.Properties.Name | Should -Contain 'logPath'
+        $result.PSObject.Properties.Name | Should -Contain 'executionLogPath'
         $result.PSObject.Properties.Name | Should -Contain 'workDirectory'
         $result.PSObject.Properties.Name | Should -Contain 'isoPath'
+
+        $executionLog = Get-Content -LiteralPath $executionLogPath -Raw -Encoding UTF8
+        $executionLog | Should -Match 'Файл плана не найден'
+        $executionLog | Should -Match 'Лог выполнения'
     }
 }
