@@ -17,6 +17,32 @@ function Show-WibCacheInfoInteractive {
     }
 }
 
+function Show-WibBuildSuccess {
+    param([AllowNull()]$Result)
+
+    Write-Host ''
+    Write-WibStage 'Сборка завершена'
+    Write-Host 'ISO успешно создан.' -ForegroundColor Green
+
+    if ($null -eq $Result) {
+        return
+    }
+
+    $isoPath = Get-WibResultPropertyText -Result $Result -Name 'isoPath'
+    $buildLogPath = Get-WibResultPropertyText -Result $Result -Name 'logPath'
+    $executionLogPath = Get-WibResultPropertyText -Result $Result -Name 'executionLogPath'
+
+    if (-not [string]::IsNullOrWhiteSpace($isoPath)) {
+        Write-Host ('ISO: {0}' -f $isoPath) -ForegroundColor Green
+    }
+    if (-not [string]::IsNullOrWhiteSpace($buildLogPath)) {
+        Write-Host ('Лог сборки: {0}' -f $buildLogPath) -ForegroundColor DarkGray
+    }
+    if (-not [string]::IsNullOrWhiteSpace($executionLogPath)) {
+        Write-Host ('Лог повышенного процесса: {0}' -f $executionLogPath) -ForegroundColor DarkGray
+    }
+}
+
 function Start-WibInteractiveBuild {
     param(
         [Parameter(Mandatory = $true)][string]$OutputDirectory,
@@ -53,7 +79,8 @@ function Start-WibInteractiveBuild {
         return $false
     }
 
-    Invoke-WibBuildPlan -Plan $plan | Out-Null
+    $buildResult = Invoke-WibBuildPlan -Plan $plan
+    Show-WibBuildSuccess -Result $buildResult
     return $true
 }
 
