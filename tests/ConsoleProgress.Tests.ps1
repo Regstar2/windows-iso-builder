@@ -63,14 +63,14 @@ Describe 'Compact converter progress' {
     }
 }
 
-Describe 'Quick latest menu scope' {
+Describe 'Quick recommended menu scope' {
     It 'does not advertise unsupported Windows 7 or 8 choices' {
         $applicationPath = Join-Path $PSScriptRoot '..\src\WindowsISOBuilder\Private\Application.ps1'
         $source = Get-Content -LiteralPath $applicationPath -Raw -Encoding UTF8
 
         $source | Should -Not -Match 'Windows 8\.1'
         $source | Should -Not -Match 'Windows 7'
-        $source | Should -Match 'Windows 11 — последняя стабильная x64'
-        $source | Should -Match 'Windows 10 — последняя стабильная x64'
+        $source | Should -Match 'Windows 11 — рекомендуемая стабильная x64'
+        $source | Should -Match 'Windows 10 — рекомендуемая стабильная x64'
     }
 }
