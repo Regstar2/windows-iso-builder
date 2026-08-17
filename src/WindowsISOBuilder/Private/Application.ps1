@@ -52,9 +52,11 @@ function Get-WibQuickLatestBuild {
     )
 
     # Quick mode deliberately skips the catalog UI, but it must never hardcode
-    # a Windows release or build number. Always refresh the UUP dump catalog and
-    # let the same release-ranking logic used by the normal UI choose the latest
-    # stable, installable build for the selected Windows family.
+    # a Windows release or build number. Always refresh the UUP dump catalog.
+    # Windows 11 uses an annual mainstream feature-update cadence in the second
+    # half of the year, so prefer stable H2 releases over specialized H1 releases
+    # intended for selected new hardware. If no H2 release is available, fall
+    # back to the newest stable build instead of making quick mode unusable.
     $builds = @(Search-WibBuilds `
         -Search $Product `
         -Architecture amd64 `
@@ -90,7 +92,28 @@ function Get-WibQuickLatestBuild {
         throw "UUP dump не вернул стабильную полноценную сборку $Product x64."
     }
 
-    return Get-WibNewestBuild -Builds $candidates
+    $recommendedCandidates = $candidates
+    if ($Product -eq 'Windows 11') {
+        $mainstreamCandidates = @($candidates | Where-Object {
+            $versionLabel = if ($null -ne $_.PSObject.Properties['VersionLabel']) {
+                [string]$_.VersionLabel
+            }
+            else {
+                Get-WibVersionLabel -Title ([string]$_.Title)
+            }
+
+            $versionLabel -match '^\d{2}H2$'
+        })
+
+        if ($mainstreamCandidates.Count -gt 0) {
+            $recommendedCandidates = $mainstreamCandidates
+        }
+        else {
+            Write-WibWarning 'Для Windows 11 не найден обычный стабильный H2-релиз. Используется последняя стабильная сборка из UUP dump.'
+        }
+    }
+
+    return Get-WibNewestBuild -Builds $recommendedCandidates
 }
 
 function Start-WibBuildFromSelectedBuild {
@@ -103,7 +126,7 @@ function Start-WibBuildFromSelectedBuild {
 
     if ($QuickMode) {
         Write-Host ''
-        Write-Host ('Выбрана последняя стабильная сборка: {0}' -f $Build.Title) -ForegroundColor Green
+        Write-Host ('Выбрана рекомендуемая стабильная сборка: {0}' -f $Build.Title) -ForegroundColor Green
         Write-Host ('Сборка: {0}; архитектура: {1}' -f $Build.Build, $Build.Architecture) -ForegroundColor DarkGray
         Write-Host 'Быстрый режим пропускает каталог сборок; язык, редакции и формат можно выбрать ниже.' -ForegroundColor DarkGray
     }
@@ -171,8 +194,8 @@ function Start-WibQuickLatestInteractive {
     )
 
     Write-WibStage 'Быстро скачать последнюю Windows'
-    Write-Host '1. Windows 11 — последняя стабильная x64'
-    Write-Host '2. Windows 10 — последняя стабильная x64'
+    Write-Host '1. Windows 11 — рекомендуемая стабильная x64'
+    Write-Host '2. Windows 10 — рекомендуемая стабильная x64'
     Write-Host '0. Назад'
 
     $choice = Read-WibNumber -Prompt 'Версия Windows' -Minimum 0 -Maximum 2 -Default 1
@@ -182,7 +205,7 @@ function Start-WibQuickLatestInteractive {
 
     $product = if ($choice -eq 1) { 'Windows 11' } else { 'Windows 10' }
     Write-Host ''
-    Write-Host ("Ищу последнюю стабильную сборку $product x64 в UUP dump...") -ForegroundColor Cyan
+    Write-Host ("Ищу рекомендуемую стабильную сборку $product x64 в UUP dump...") -ForegroundColor Cyan
     $build = Get-WibQuickLatestBuild -Product $product -CacheDirectory $CacheDirectory
 
     return Start-WibBuildFromSelectedBuild `
