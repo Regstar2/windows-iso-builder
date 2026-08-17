@@ -38,6 +38,7 @@ The static structure and modular architecture are prepared, but a complete ISO b
 - `install.esd` or `install.wim` output;
 - API, conversion-package, and UUP-file caching;
 - resumable `aria2` downloads in a persistent work directory;
+- a compact download/conversion progress bar instead of continuously printing `aria2` output; full converter output is stored in `converter-*.log`;
 - logs, SHA-256, and JSON metadata for the result;
 - ISO structure validation with `Mount-DiskImage` and DISM;
 - interactive TUI and non-interactive PowerShell mode.
@@ -50,8 +51,6 @@ The static structure and modular architecture are prepared, but a complete ISO b
 4. In quick mode choose Windows 11 or Windows 10. The application refreshes the catalog and automatically selects the latest stable x64 build.
 5. Select language, editions, and image format.
 6. Approve UAC before downloading and conversion begin.
-
-Windows 8.1/8 and Windows 7 are not built by the current UUP pipeline. Their quick-menu entries are reserved for a future separate verified source.
 
 Completed files are written to `output/`. The persistent work cache defaults to `C:\UUP-ISO-Work`.
 
@@ -68,6 +67,8 @@ Completed files are written to `output/`. The persistent work cache defaults to 
 In interactive mode, the program collects all parameters before requesting elevation. The selection can therefore be cancelled or changed before a long-running operation starts.
 
 Quick mode skips manual catalog browsing. For Windows 11 or Windows 10 it requests a fresh UUP dump catalog, keeps only stable complete x64 Windows builds, and uses the same relevance-ranking logic as the normal catalog. No release or build number is fixed in the source. After the build is selected automatically, the user still chooses language, editions, WIM/ESD, and optional build settings.
+
+While `uup_download_windows.cmd` runs, detailed `aria2` and converter lines are no longer continuously printed to the console. The application shows one updating progress bar with the current stage, download percentage, and speed when those values are available. Full raw converter output is stored next to the build log in `output/logs/converter-*.log`.
 
 The catalog distinguishes complete Windows build entries from servicing packages. `.NET`, cumulative, OOBE, and similar servicing records are hidden by default so they cannot be selected accidentally as ISO sources. The sort menu includes an `Entry type` option and places complete Windows builds before updates. This classification does not guarantee that Microsoft still retains the UUP files for a particular old build.
 
@@ -103,12 +104,12 @@ Public reports must not contain complete UUP URLs, product keys, tokens, or pers
 
 ## Troubleshooting
 
-After an error, the program keeps a log and displays its location. Check:
+After an error, the program keeps logs and displays their locations. Check:
 
 1. access to UUP dump and Microsoft CDN;
 2. free space on the system and work drives;
 3. whether antivirus software blocked `aria2`, DISM, or the converter;
-4. the log for the failed run.
+4. the run's `build-*.log`, `converter-*.log`, and elevated-process log.
 
 ## Build
 
@@ -147,7 +148,7 @@ This project is not affiliated with Microsoft, does not distribute completed ISO
 ## Limitations
 
 - the complete build workflow has not yet been validated on Windows 10 and Windows 11;
-- quick UUP mode currently supports Windows 10 and Windows 11; Windows 8.1/8 and Windows 7 require a separate source;
+- quick UUP mode supports Windows 10 and Windows 11;
 - virtual-edition compatibility depends on the selected base edition and UUP dump converter version;
 - the external API and conversion-package format may change;
 - there is no GUI or automatic application updater;
