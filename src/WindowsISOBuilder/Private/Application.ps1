@@ -17,19 +17,122 @@ function Show-WibCacheInfoInteractive {
     }
 }
 
-function Start-WibInteractiveBuild {
+function Show-WibBuildSuccess {
+    param([AllowNull()]$Result)
+
+    Write-Host ''
+    Write-WibStage 'Сборка завершена'
+    Write-Host 'ISO успешно создан.' -ForegroundColor Green
+
+    if ($null -eq $Result) {
+        return
+    }
+
+    $isoPath = Get-WibResultPropertyText -Result $Result -Name 'isoPath'
+    $buildLogPath = Get-WibResultPropertyText -Result $Result -Name 'logPath'
+    $executionLogPath = Get-WibResultPropertyText -Result $Result -Name 'executionLogPath'
+
+    if (-not [string]::IsNullOrWhiteSpace($isoPath)) {
+        Write-Host ('ISO: {0}' -f $isoPath) -ForegroundColor Green
+    }
+    if (-not [string]::IsNullOrWhiteSpace($buildLogPath)) {
+        Write-Host ('Лог сборки: {0}' -f $buildLogPath) -ForegroundColor DarkGray
+    }
+    if (-not [string]::IsNullOrWhiteSpace($executionLogPath)) {
+        Write-Host ('Лог повышенного процесса: {0}' -f $executionLogPath) -ForegroundColor DarkGray
+    }
+}
+
+function Get-WibQuickLatestBuild {
     param(
-        [Parameter(Mandatory = $true)][string]$OutputDirectory,
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('Windows 11', 'Windows 10')]
+        [string]$Product,
         [Parameter(Mandatory = $true)][string]$CacheDirectory
     )
 
-    $build = Select-WibBuildInteractive -CacheDirectory $CacheDirectory
-    if ($null -eq $build) {
-        return $false
+    # Quick mode deliberately skips the catalog UI, but it must never hardcode
+    # a Windows release or build number. Always refresh the UUP dump catalog.
+    # Windows 11 uses an annual mainstream feature-update cadence in the second
+    # half of the year, so prefer stable H2 releases over specialized H1 releases
+    # intended for selected new hardware. If no H2 release is available, fall
+    # back to the newest stable build instead of making quick mode unusable.
+    $builds = @(Search-WibBuilds `
+        -Search $Product `
+        -Architecture amd64 `
+        -ForceRefresh `
+        -CacheDirectory $CacheDirectory)
+
+    $candidates = @($builds | Where-Object {
+        $entryType = if ($null -ne $_.PSObject.Properties['EntryType']) {
+            [string]$_.EntryType
+        }
+        else {
+            Get-WibBuildEntryType -Title ([string]$_.Title)
+        }
+
+        $actualProduct = if ($null -ne $_.PSObject.Properties['Product']) {
+            [string]$_.Product
+        }
+        else {
+            Get-WibProductLabel -Title ([string]$_.Title)
+        }
+
+        $isPreview = if ($null -ne $_.PSObject.Properties['IsPreview']) {
+            [bool]$_.IsPreview
+        }
+        else {
+            Test-WibPreviewTitle -Title ([string]$_.Title)
+        }
+
+        $entryType -eq 'Windows' -and $actualProduct -eq $Product -and -not $isPreview
+    })
+
+    if ($candidates.Count -eq 0) {
+        throw "UUP dump не вернул стабильную полноценную сборку $Product x64."
     }
 
-    $language = Select-WibLanguageInteractive -UpdateId $build.Uuid -CacheDirectory $CacheDirectory
-    $editions = @(Select-WibEditionsInteractive -UpdateId $build.Uuid -Language $language.Code -CacheDirectory $CacheDirectory)
+    $recommendedCandidates = $candidates
+    if ($Product -eq 'Windows 11') {
+        $mainstreamCandidates = @($candidates | Where-Object {
+            $versionLabel = if ($null -ne $_.PSObject.Properties['VersionLabel']) {
+                [string]$_.VersionLabel
+            }
+            else {
+                Get-WibVersionLabel -Title ([string]$_.Title)
+            }
+
+            $versionLabel -match '^\d{2}H2$'
+        })
+
+        if ($mainstreamCandidates.Count -gt 0) {
+            $recommendedCandidates = $mainstreamCandidates
+        }
+        else {
+            Write-WibWarning 'Для Windows 11 не найден обычный стабильный H2-релиз. Используется последняя стабильная сборка из UUP dump.'
+        }
+    }
+
+    return Get-WibNewestBuild -Builds $recommendedCandidates
+}
+
+function Start-WibBuildFromSelectedBuild {
+    param(
+        [Parameter(Mandatory = $true)]$Build,
+        [Parameter(Mandatory = $true)][string]$OutputDirectory,
+        [Parameter(Mandatory = $true)][string]$CacheDirectory,
+        [switch]$QuickMode
+    )
+
+    if ($QuickMode) {
+        Write-Host ''
+        Write-Host ('Выбрана рекомендуемая стабильная сборка: {0}' -f $Build.Title) -ForegroundColor Green
+        Write-Host ('Сборка: {0}; архитектура: {1}' -f $Build.Build, $Build.Architecture) -ForegroundColor DarkGray
+        Write-Host 'Быстрый режим пропускает каталог сборок; язык, редакции и формат можно выбрать ниже.' -ForegroundColor DarkGray
+    }
+
+    $language = Select-WibLanguageInteractive -UpdateId $Build.Uuid -CacheDirectory $CacheDirectory
+    $editions = @(Select-WibEditionsInteractive -UpdateId $Build.Uuid -Language $language.Code -CacheDirectory $CacheDirectory)
     $format = Select-WibImageFormatInteractive
 
     Write-WibStage 'Дополнительные параметры'
@@ -37,7 +140,16 @@ function Start-WibInteractiveBuild {
     $cleanup = Read-WibYesNo -Prompt 'Выполнить очистку компонентов после интеграции?' -Default $true
     $netFx3 = Read-WibYesNo -Prompt 'Добавить .NET Framework 3.5?' -Default $false
 
-    $plan = New-WibBuildPlan -Build $build -Language $language.Code -Editions @($editions.Code) -ImageFormat $format -AddUpdates $addUpdates -Cleanup $cleanup -NetFx3 $netFx3 -OutputDirectory $OutputDirectory -CacheDirectory $CacheDirectory
+    $plan = New-WibBuildPlan `
+        -Build $Build `
+        -Language $language.Code `
+        -Editions @($editions.Code) `
+        -ImageFormat $format `
+        -AddUpdates $addUpdates `
+        -Cleanup $cleanup `
+        -NetFx3 $netFx3 `
+        -OutputDirectory $OutputDirectory `
+        -CacheDirectory $CacheDirectory
 
     Write-WibStage 'Подтверждение'
     Write-Host "Сборка:      $($plan.Build.Title)"
@@ -53,8 +165,54 @@ function Start-WibInteractiveBuild {
         return $false
     }
 
-    Invoke-WibBuildPlan -Plan $plan | Out-Null
+    $buildResult = Invoke-WibBuildPlan -Plan $plan
+    Show-WibBuildSuccess -Result $buildResult
     return $true
+}
+
+function Start-WibInteractiveBuild {
+    param(
+        [Parameter(Mandatory = $true)][string]$OutputDirectory,
+        [Parameter(Mandatory = $true)][string]$CacheDirectory
+    )
+
+    $build = Select-WibBuildInteractive -CacheDirectory $CacheDirectory
+    if ($null -eq $build) {
+        return $false
+    }
+
+    return Start-WibBuildFromSelectedBuild `
+        -Build $build `
+        -OutputDirectory $OutputDirectory `
+        -CacheDirectory $CacheDirectory
+}
+
+function Start-WibQuickLatestInteractive {
+    param(
+        [Parameter(Mandatory = $true)][string]$OutputDirectory,
+        [Parameter(Mandatory = $true)][string]$CacheDirectory
+    )
+
+    Write-WibStage 'Быстро скачать последнюю Windows'
+    Write-Host '1. Windows 11 — рекомендуемая стабильная x64'
+    Write-Host '2. Windows 10 — рекомендуемая стабильная x64'
+    Write-Host '0. Назад'
+
+    $choice = Read-WibNumber -Prompt 'Версия Windows' -Minimum 0 -Maximum 2 -Default 1
+    if ($choice -eq 0) {
+        return $false
+    }
+
+    $product = if ($choice -eq 1) { 'Windows 11' } else { 'Windows 10' }
+    Write-Host ''
+    Write-Host ("Ищу рекомендуемую стабильную сборку $product x64 в UUP dump...") -ForegroundColor Cyan
+    $build = Get-WibQuickLatestBuild -Product $product -CacheDirectory $CacheDirectory
+
+    return Start-WibBuildFromSelectedBuild `
+        -Build $build `
+        -OutputDirectory $OutputDirectory `
+        -CacheDirectory $CacheDirectory `
+        -QuickMode
 }
 
 function Start-WibInteractive {
@@ -68,11 +226,12 @@ function Start-WibInteractive {
         Show-WibHeader
         Write-Host ''
         Write-Host '1. Найти сборку и создать ISO'
-        Write-Host '2. Показать размер кеша'
-        Write-Host '3. Очистить кеш API'
-        Write-Host '4. Очистить весь кеш и незавершённые загрузки'
+        Write-Host '2. Быстро скачать последнюю Windows'
+        Write-Host '3. Показать размер кеша'
+        Write-Host '4. Очистить кеш API'
+        Write-Host '5. Очистить весь кеш и незавершённые загрузки'
         Write-Host '0. Выход'
-        $choice = Read-WibNumber -Prompt 'Действие' -Minimum 0 -Maximum 4 -Default 1
+        $choice = Read-WibNumber -Prompt 'Действие' -Minimum 0 -Maximum 5 -Default 1
 
         switch ($choice) {
             0 { return }
@@ -84,16 +243,23 @@ function Start-WibInteractive {
                 }
             }
             2 {
+                $buildStarted = Start-WibQuickLatestInteractive -OutputDirectory $outputDirectory -CacheDirectory $cacheDirectory
+                if ($buildStarted) {
+                    Write-Host ''
+                    Read-Host 'Нажмите Enter, чтобы вернуться в меню' | Out-Null
+                }
+            }
+            3 {
                 Show-WibCacheInfoInteractive -CacheDirectory $cacheDirectory
                 Write-Host ''
                 Read-Host 'Нажмите Enter, чтобы вернуться в меню' | Out-Null
             }
-            3 {
+            4 {
                 if (Read-WibYesNo -Prompt 'Удалить кеш каталога и метаданных API?' -Default $false) {
                     Clear-WibCache -CacheDirectory $cacheDirectory -Category Api -Confirm:$false
                 }
             }
-            4 {
+            5 {
                 if (Read-WibYesNo -Prompt 'Удалить весь кеш, включая загруженные UUP-файлы?' -Default $false) {
                     Clear-WibCache -CacheDirectory $cacheDirectory -Category All -Confirm:$false
                 }

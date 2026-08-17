@@ -1,4 +1,4 @@
-﻿function Assert-WibHostRequirements {
+function Assert-WibHostRequirements {
     if ($env:OS -ne 'Windows_NT') {
         throw 'Сборка ISO поддерживается только в Windows 10 и Windows 11.'
     }
@@ -149,6 +149,37 @@ function Set-WibConverterConfiguration {
     }
 }
 
+function Invoke-WibUupDownloadScript {
+    param(
+        [Parameter(Mandatory = $true)][string]$PackageDirectory,
+        [Parameter(Mandatory = $true)][string]$ScriptName
+    )
+
+    # Running the generated .cmd directly from a PowerShell pipeline can return
+    # before every process spawned by the batch file has finished. UUP wrappers
+    # commonly use a nested PowerShell process plus Out-String -Stream so the
+    # parent does not look for the ISO while converter child processes are still
+    # running. Explicitly propagate cmd.exe's exit code from that child process.
+    $powerShellExecutable = Get-WibPowerShellExecutable
+    $escapedScriptName = $ScriptName.Replace("'", "''")
+    $childCommand = '& $env:ComSpec /D /C ''call "{0}"''; exit $LASTEXITCODE' -f $escapedScriptName
+
+    Push-Location $PackageDirectory
+    try {
+        & $powerShellExecutable `
+            -NoLogo `
+            -NoProfile `
+            -ExecutionPolicy Bypass `
+            -Command $childCommand |
+            Out-String -Stream |
+            ForEach-Object { Write-Host $_ }
+        return $LASTEXITCODE
+    }
+    finally {
+        Pop-Location
+    }
+}
+
 function Get-WibIsoMetadata {
     param([Parameter(Mandatory = $true)][string]$IsoPath)
 
@@ -271,6 +302,7 @@ function Invoke-WibBuildPlanCore {
     $logsDirectory = Join-Path $outputDirectory 'logs'
     New-Item -ItemType Directory -Path $logsDirectory -Force | Out-Null
     $logPath = Join-Path $logsDirectory ('build-{0}.log' -f (Get-Date -Format 'yyyyMMdd-HHmmss'))
+    $converterLogPath = Join-Path $logsDirectory (([IO.Path]::GetFileName($logPath)) -replace '^build-', 'converter-')
     $transcriptStarted = $false
 
     $jobKey = '{0}-{1}-{2}' -f $Plan.Build.Uuid, $Plan.Language, $Plan.SourceEdition
@@ -314,24 +346,21 @@ function Invoke-WibBuildPlanCore {
         if (-not (Test-Path -LiteralPath $configPath)) { throw 'В пакете отсутствует ConvertConfig.ini.' }
         Set-WibConverterConfiguration -Path $configPath -Plan $Plan
 
-        Get-ChildItem -LiteralPath $packageDirectory -Filter '*.iso' -File -Recurse -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+        Get-ChildItem -LiteralPath $workDirectory -Filter '*.iso' -File -Recurse -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
 
         Save-WibJobState -Path $statePath -Stage 'downloading-uup-and-converting' -Plan $Plan
         Write-WibStage 'Загрузка файлов Microsoft и создание ISO'
         Write-WibInfo 'aria2 продолжит неполные загрузки из сохранённого рабочего каталога.'
 
-        Push-Location $packageDirectory
-        try {
-            & $env:ComSpec /D /C ('call "{0}"' -f $downloadScript.Name) | ForEach-Object { Write-Host $_ }
-            $exitCode = $LASTEXITCODE
-        }
-        finally {
-            Pop-Location
-        }
-        if ($exitCode -ne 0) { throw "uup_download_windows.cmd завершился с кодом $exitCode." }
+        $exitCode = Invoke-WibUupDownloadScript -PackageDirectory $packageDirectory -ScriptName $downloadScript.Name
+        if ($exitCode -ne 0) { throw "uup_download_windows.cmd завершился с кодом $exitCode. Подробный лог: $converterLogPath" }
 
-        $iso = Get-ChildItem -LiteralPath $packageDirectory -Filter '*.iso' -File -Recurse | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-        if (-not $iso) { throw 'Конвертер завершился без ISO-файла.' }
+        $iso = Get-ChildItem -LiteralPath $workDirectory -Filter '*.iso' -File -Recurse -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+        if (-not $iso) {
+            throw "Конвертер завершился, но ISO-файл не найден в рабочем каталоге: $workDirectory. Подробный лог: $converterLogPath"
+        }
         if ($iso.Length -lt 1GB) { throw "Созданный ISO подозрительно мал: $($iso.Length) байт." }
 
         $editionPart = ConvertTo-WibSafeFilePart -Value (@($Plan.Editions) -join '+')
