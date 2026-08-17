@@ -8,6 +8,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# Keep this script ASCII-only. Windows PowerShell 5.1 may interpret UTF-8 files
+# without a BOM using the active ANSI code page, which can break parsing.
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $outputDirectoryFull = [IO.Path]::GetFullPath($OutputDirectory)
 New-Item -ItemType Directory -Path $outputDirectoryFull -Force | Out-Null
@@ -41,7 +43,7 @@ try {
     foreach ($relativePath in $runtimeFiles) {
         $sourcePath = Join-Path $projectRoot $relativePath
         if (-not (Test-Path -LiteralPath $sourcePath)) {
-            throw "Не найден файл релизного пакета: $relativePath"
+            throw "Release package file not found: $relativePath"
         }
 
         $destinationPath = Join-Path $packageRoot $relativePath
