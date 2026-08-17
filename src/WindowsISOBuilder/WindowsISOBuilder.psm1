@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 
 $script:ModuleRoot = $PSScriptRoot
 $script:ProjectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$script:WibVersion = '0.1.0-alpha.1'
+$script:WibVersion = '0.2.0-alpha.1'
 
 $privateFiles = @(
     'Private\Common.ps1',
