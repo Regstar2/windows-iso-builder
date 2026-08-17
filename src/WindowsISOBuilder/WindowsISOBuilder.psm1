@@ -12,6 +12,7 @@ $privateFiles = @(
     'Private\Plan.ps1',
     'Private\Selection.ps1',
     'Private\Builder.ps1',
+    'Private\Elevation.ps1',
     'Private\Application.ps1'
 )
 
