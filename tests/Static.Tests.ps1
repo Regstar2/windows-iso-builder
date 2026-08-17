@@ -40,10 +40,33 @@ Describe 'Repository safety rules' {
     }
 
     It 'does not modify the machine execution policy' {
-        foreach ($file in $script:PowerShellFiles) {
+        $violations = foreach ($file in $script:PowerShellFiles) {
             $source = Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8
-            $source | Should -Not -Match '(?i)Set-ExecutionPolicy'
+            $tokens = $null
+            $parseErrors = $null
+            $ast = [System.Management.Automation.Language.Parser]::ParseInput(
+                $source,
+                $file.FullName,
+                [ref]$tokens,
+                [ref]$parseErrors
+            )
+
+            foreach ($parseError in $parseErrors) {
+                throw ('Не удалось разобрать {0}: {1}' -f $file.FullName, $parseError.Message)
+            }
+
+            $commands = $ast.FindAll({
+                param($node)
+                $node -is [System.Management.Automation.Language.CommandAst] -and
+                    $node.GetCommandName() -ieq 'Set-ExecutionPolicy'
+            }, $true)
+
+            foreach ($command in $commands) {
+                '{0}:{1} {2}' -f $file.FullName, $command.Extent.StartLineNumber, $command.Extent.Text
+            }
         }
+
+        @($violations).Count | Should -Be 0
     }
 
     It 'keeps generated output and cache out of Git' {
