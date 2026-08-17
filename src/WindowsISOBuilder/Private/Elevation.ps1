@@ -160,6 +160,7 @@ function Format-WibElevatedFailure {
     $stageValue = Get-WibResultPropertyText -Result $Result -Name 'stage'
     $messageValue = Get-WibResultPropertyText -Result $Result -Name 'message'
     $logPath = Get-WibResultPropertyText -Result $Result -Name 'logPath'
+    $executionLogPath = Get-WibResultPropertyText -Result $Result -Name 'executionLogPath'
     $workDirectory = Get-WibResultPropertyText -Result $Result -Name 'workDirectory'
     $isoPath = Get-WibResultPropertyText -Result $Result -Name 'isoPath'
     $stackTrace = Get-WibResultPropertyText -Result $Result -Name 'stackTrace'
@@ -173,7 +174,10 @@ function Format-WibElevatedFailure {
     )
 
     if (-not [string]::IsNullOrWhiteSpace($logPath)) {
-        $lines += ('Лог: {0}' -f $logPath)
+        $lines += ('Лог сборки: {0}' -f $logPath)
+    }
+    if (-not [string]::IsNullOrWhiteSpace($executionLogPath)) {
+        $lines += ('Лог выполнения: {0}' -f $executionLogPath)
     }
     if (-not [string]::IsNullOrWhiteSpace($workDirectory)) {
         $lines += ('Рабочий каталог: {0}' -f $workDirectory)
@@ -202,6 +206,10 @@ function Start-WibElevatedPlan {
     $resultPath = Join-Path $plansDirectory ('result-{0}.json' -f $operationId)
     Save-WibPlan -Plan $Plan -Path $planPath
 
+    $executionLogsDirectory = Join-Path $script:ProjectRoot 'logs'
+    New-Item -ItemType Directory -Path $executionLogsDirectory -Force | Out-Null
+    $elevatedExecutionLogPath = Join-Path $executionLogsDirectory ('elevated-{0}.log' -f $operationId)
+
     $entryScript = Join-Path $script:ProjectRoot 'Start-Builder.ps1'
     $arguments = @(
         '-NoLogo',
@@ -213,16 +221,19 @@ function Start-WibElevatedPlan {
         '-PlanFile',
         (Quote-WibCommandArgument -Value $planPath),
         '-ResultFile',
-        (Quote-WibCommandArgument -Value $resultPath)
+        (Quote-WibCommandArgument -Value $resultPath),
+        '-ExecutionLogFile',
+        (Quote-WibCommandArgument -Value $elevatedExecutionLogPath)
     )
 
     Write-Host 'Для загрузки и конвертации UUP требуются права администратора. Открывается UAC...' -ForegroundColor Yellow
+    Write-Host ('Лог повышенного процесса: {0}' -f $elevatedExecutionLogPath) -ForegroundColor DarkGray
     try {
         try {
             $process = Start-Process -FilePath (Get-WibPowerShellExecutable) -Verb RunAs -Wait -PassThru -ArgumentList $arguments
         }
         catch {
-            throw "Не удалось запустить сборку с правами администратора: $($_.Exception.Message)"
+            throw "Не удалось запустить сборку с правами администратора: $($_.Exception.Message). Лог выполнения: $elevatedExecutionLogPath"
         }
 
         $result = $null
@@ -231,12 +242,12 @@ function Start-WibElevatedPlan {
                 $result = Read-WibJsonFile -Path $resultPath
             }
             catch {
-                throw "Повышенный процесс завершился с кодом $($process.ExitCode), но файл результата повреждён: $resultPath. $($_.Exception.Message)"
+                throw "Повышенный процесс завершился с кодом $($process.ExitCode), но файл результата повреждён: $resultPath. $($_.Exception.Message). Лог выполнения: $elevatedExecutionLogPath"
             }
         }
 
         if ($null -eq $result) {
-            throw "Повышенный процесс завершился с кодом $($process.ExitCode), но не создал файл результата: $resultPath"
+            throw "Повышенный процесс завершился с кодом $($process.ExitCode), но не создал файл результата: $resultPath. Лог выполнения: $elevatedExecutionLogPath"
         }
 
         $success = $false
