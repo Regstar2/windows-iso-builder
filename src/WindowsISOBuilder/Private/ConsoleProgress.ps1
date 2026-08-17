@@ -222,6 +222,18 @@ function Write-Host {
             return
         }
 
+        if ($script:WibConverterProgressActive -and $trimmed -match '^ОШИБКА СБОРКИ:') {
+            Write-WibConverterDetailLine -Line $text
+            Stop-WibConverterProgress
+            Invoke-WibNativeWriteHost `
+                -Object $Object `
+                -Separator $Separator `
+                -ForegroundColor $(if ($PSBoundParameters.ContainsKey('ForegroundColor')) { [Nullable[ConsoleColor]]$ForegroundColor } else { $null }) `
+                -BackgroundColor $(if ($PSBoundParameters.ContainsKey('BackgroundColor')) { [Nullable[ConsoleColor]]$BackgroundColor } else { $null }) `
+                -NoNewline:$NoNewline
+            return
+        }
+
         if ($script:WibConverterProgressActive) {
             Update-WibConverterProgressFromLine -Line $text
             return
