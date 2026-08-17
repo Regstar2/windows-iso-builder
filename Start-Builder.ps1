@@ -51,14 +51,14 @@ param(
     [switch]$NoCleanup,
 
     [Parameter(ParameterSetName = 'CommandLine')]
-    [switch]$NetFx3
+    [switch]$NetFx3,
+
+    [Parameter()]
+    [string]$ExecutionLogFile
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-
-$modulePath = Join-Path $PSScriptRoot 'src\WindowsISOBuilder\WindowsISOBuilder.psd1'
-Import-Module $modulePath -Force
 
 function Write-WibProcessResultFile {
     param(
@@ -77,7 +77,45 @@ function Write-WibProcessResultFile {
     Move-Item -LiteralPath $temporary -Destination $Path -Force
 }
 
+function Start-WibExecutionTranscript {
+    param([AllowEmptyString()][string]$RequestedPath)
+
+    $path = $RequestedPath
+    if ([string]::IsNullOrWhiteSpace($path)) {
+        $logsDirectory = Join-Path $PSScriptRoot 'logs'
+        $fileName = 'execution-{0}-{1}.log' -f (Get-Date -Format 'yyyyMMdd-HHmmss'), $PID
+        $path = Join-Path $logsDirectory $fileName
+    }
+    elseif (-not [IO.Path]::IsPathRooted($path)) {
+        $path = Join-Path $PSScriptRoot $path
+    }
+
+    $directory = Split-Path -Parent $path
+    if ($directory -and -not (Test-Path -LiteralPath $directory)) {
+        New-Item -ItemType Directory -Path $directory -Force | Out-Null
+    }
+
+    $fullPath = [IO.Path]::GetFullPath($path)
+    Start-Transcript -LiteralPath $fullPath -Force | Out-Null
+    return $fullPath
+}
+
+$executionLogPath = ''
+$executionTranscriptStarted = $false
 try {
+    $executionLogPath = Start-WibExecutionTranscript -RequestedPath $ExecutionLogFile
+    $executionTranscriptStarted = $true
+    Write-Host ('Лог выполнения: {0}' -f $executionLogPath) -ForegroundColor DarkGray
+}
+catch {
+    Write-Host ('ПРЕДУПРЕЖДЕНИЕ: не удалось запустить лог выполнения: {0}' -f $_.Exception.Message) -ForegroundColor Yellow
+}
+
+$exitCode = 0
+try {
+    $modulePath = Join-Path $PSScriptRoot 'src\WindowsISOBuilder\WindowsISOBuilder.psd1'
+    Import-Module $modulePath -Force
+
     if ($PSCmdlet.ParameterSetName -eq 'Plan') {
         $buildResult = Invoke-WibPlanFile -Path $PlanFile
 
@@ -95,19 +133,18 @@ try {
             }
 
             Write-WibProcessResultFile -Path $ResultFile -Value ([ordered]@{
-                success       = $true
-                stage         = $stage
-                message       = ''
-                stackTrace    = ''
-                logPath       = $logPath
-                workDirectory = $workDirectory
-                isoPath       = $isoPath
+                success          = $true
+                stage            = $stage
+                message          = ''
+                stackTrace       = ''
+                logPath          = $logPath
+                executionLogPath = $executionLogPath
+                workDirectory    = $workDirectory
+                isoPath          = $isoPath
             })
         }
-        exit 0
     }
-
-    if ($NonInteractive) {
+    elseif ($NonInteractive) {
         if ([string]::IsNullOrWhiteSpace($Search)) {
             throw 'Для неинтерактивного режима требуется параметр -Search.'
         }
@@ -128,14 +165,14 @@ try {
         if ($PSBoundParameters.ContainsKey('CacheDirectory')) { $parameters.CacheDirectory = $CacheDirectory }
 
         Start-WibNonInteractive @parameters
-        exit 0
     }
-
-    Start-WibInteractive -ApplicationRoot $PSScriptRoot
-    exit 0
+    else {
+        Start-WibInteractive -ApplicationRoot $PSScriptRoot
+    }
 }
 catch {
     $failure = $_
+    $exitCode = 1
 
     if ($PSCmdlet.ParameterSetName -eq 'Plan' -and -not [string]::IsNullOrWhiteSpace($ResultFile)) {
         $stage = 'startup'
@@ -153,13 +190,14 @@ catch {
 
         try {
             Write-WibProcessResultFile -Path $ResultFile -Value ([ordered]@{
-                success       = $false
-                stage         = $stage
-                message       = [string]$failure.Exception.Message
-                stackTrace    = [string]$failure.ScriptStackTrace
-                logPath       = $logPath
-                workDirectory = $workDirectory
-                isoPath       = ''
+                success          = $false
+                stage            = $stage
+                message          = [string]$failure.Exception.Message
+                stackTrace       = [string]$failure.ScriptStackTrace
+                logPath          = $logPath
+                executionLogPath = $executionLogPath
+                workDirectory    = $workDirectory
+                isoPath          = ''
             })
         }
         catch {
@@ -172,5 +210,14 @@ catch {
     if ($failure.ScriptStackTrace) {
         Write-Host $failure.ScriptStackTrace -ForegroundColor DarkGray
     }
-    exit 1
 }
+finally {
+    if (-not [string]::IsNullOrWhiteSpace($executionLogPath)) {
+        Write-Host ('Лог выполнения сохранён: {0}' -f $executionLogPath) -ForegroundColor DarkGray
+    }
+    if ($executionTranscriptStarted) {
+        try { Stop-Transcript | Out-Null } catch { }
+    }
+}
+
+exit $exitCode
