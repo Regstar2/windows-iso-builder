@@ -11,6 +11,16 @@ Describe 'Compact converter progress' {
             Mock Write-Progress { }
         }
 
+        It 'supports normal Write-Host calls without explicit colors on Windows PowerShell 5.1' {
+            { Write-Host 'Windows ISO Builder' } | Should -Not -Throw
+            { Write-Host '' } | Should -Not -Throw
+        }
+
+        It 'supports explicit console colors through the Write-Host wrapper' {
+            { Write-Host 'Windows ISO Builder' -ForegroundColor Cyan } | Should -Not -Throw
+            { Write-Host 'diagnostic' -ForegroundColor DarkGray } | Should -Not -Throw
+        }
+
         It 'maps aria2 download percentage into the overall progress bar' {
             Start-WibConverterProgress
             Update-WibConverterProgressFromLine -Line '[#abcdef 2.0GiB/4.0GiB(50%) CN:16 DL:12MiB ETA:2m]'
