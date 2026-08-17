@@ -164,18 +164,6 @@ function Start-WibInteractiveBuild {
         -CacheDirectory $CacheDirectory
 }
 
-function Show-WibLegacyQuickDownloadUnavailable {
-    param([Parameter(Mandatory = $true)][string]$Product)
-
-    Write-Host ''
-    Write-WibStage 'Источник недоступен'
-    Write-Host ("$Product пока нельзя скачать через быстрый режим этого приложения.") -ForegroundColor Yellow
-    Write-Host 'Текущий конвейер основан на UUP dump / Unified Update Platform и рассчитан на Windows 10/11.' -ForegroundColor DarkGray
-    Write-Host 'Пункт зарезервирован: Windows 8.1/7 можно будет подключить позже через отдельный проверенный источник.' -ForegroundColor DarkGray
-    Write-Host ''
-    Read-Host 'Нажмите Enter, чтобы вернуться в меню' | Out-Null
-}
-
 function Start-WibQuickLatestInteractive {
     param(
         [Parameter(Mandatory = $true)][string]$OutputDirectory,
@@ -185,21 +173,11 @@ function Start-WibQuickLatestInteractive {
     Write-WibStage 'Быстро скачать последнюю Windows'
     Write-Host '1. Windows 11 — последняя стабильная x64'
     Write-Host '2. Windows 10 — последняя стабильная x64'
-    Write-Host '3. Windows 8.1 — пока недоступно через UUP dump' -ForegroundColor DarkGray
-    Write-Host '4. Windows 7 — пока недоступно через UUP dump' -ForegroundColor DarkGray
     Write-Host '0. Назад'
 
-    $choice = Read-WibNumber -Prompt 'Версия Windows' -Minimum 0 -Maximum 4 -Default 1
-    switch ($choice) {
-        0 { return $false }
-        3 {
-            Show-WibLegacyQuickDownloadUnavailable -Product 'Windows 8.1'
-            return $false
-        }
-        4 {
-            Show-WibLegacyQuickDownloadUnavailable -Product 'Windows 7'
-            return $false
-        }
+    $choice = Read-WibNumber -Prompt 'Версия Windows' -Minimum 0 -Maximum 2 -Default 1
+    if ($choice -eq 0) {
+        return $false
     }
 
     $product = if ($choice -eq 1) { 'Windows 11' } else { 'Windows 10' }
