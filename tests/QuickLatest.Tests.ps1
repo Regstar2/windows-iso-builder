@@ -1,9 +1,9 @@
 ﻿$modulePath = Join-Path $PSScriptRoot '..\src\WindowsISOBuilder\WindowsISOBuilder.psd1'
 Import-Module $modulePath -Force
 
-Describe 'Quick latest Windows selection' {
+Describe 'Quick recommended Windows selection' {
     InModuleScope WindowsISOBuilder {
-        It 'selects the latest stable Windows 11 release dynamically' {
+        It 'prefers the newest mainstream Windows 11 H2 release over a newer specialized H1 release' {
             $script:quickBuilds = @(
                 [pscustomobject]@{
                     Uuid = 'win11-24h2'
@@ -28,15 +28,15 @@ Describe 'Quick latest Windows selection' {
                     IsPreview = $false
                 },
                 [pscustomobject]@{
-                    Uuid = 'win11-preview'
-                    Title = 'Windows 11 Insider Preview 28000.1000'
+                    Uuid = 'win11-26h1'
+                    Title = 'Windows 11, version 26H1 (28000.2704)'
                     Product = 'Windows 11'
                     VersionLabel = '26H1'
-                    Build = '28000.1000'
+                    Build = '28000.2704'
                     Architecture = 'amd64'
                     EntryType = 'Windows'
                     CreatedAt = [datetime]'2026-08-03'
-                    IsPreview = $true
+                    IsPreview = $false
                 },
                 [pscustomobject]@{
                     Uuid = 'servicing'
@@ -60,6 +60,32 @@ Describe 'Quick latest Windows selection' {
                 $Search -eq 'Windows 11' -and
                 $Architecture -eq 'amd64' -and
                 $ForceRefresh
+            }
+        }
+
+        It 'falls back to the newest stable Windows 11 build if no mainstream H2 release exists' {
+            $script:quickBuilds = @(
+                [pscustomobject]@{
+                    Uuid = 'win11-h1-only'
+                    Title = 'Windows 11, version 26H1 (28000.2704)'
+                    Product = 'Windows 11'
+                    VersionLabel = '26H1'
+                    Build = '28000.2704'
+                    Architecture = 'amd64'
+                    EntryType = 'Windows'
+                    CreatedAt = [datetime]'2026-08-03'
+                    IsPreview = $false
+                }
+            )
+
+            Mock Search-WibBuilds { return $script:quickBuilds }
+            Mock Write-WibWarning { }
+
+            $selected = Get-WibQuickLatestBuild -Product 'Windows 11' -CacheDirectory $TestDrive
+            $selected.Uuid | Should -Be 'win11-h1-only'
+
+            Assert-MockCalled Write-WibWarning -Times 1 -Exactly -ParameterFilter {
+                $Message -match 'H2-релиз'
             }
         }
 
