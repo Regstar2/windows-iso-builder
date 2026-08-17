@@ -143,3 +143,25 @@ Describe 'Elevated build result protocol' {
         }
     }
 }
+
+Describe 'Plan child process result file' {
+    It 'writes structured failure JSON before exiting with code 1' {
+        $projectRoot = Split-Path -Parent $PSScriptRoot
+        $entryScript = Join-Path $projectRoot 'Start-Builder.ps1'
+        $missingPlan = Join-Path $TestDrive 'missing-plan.json'
+        $resultPath = Join-Path $TestDrive 'child-result.json'
+
+        & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $entryScript -PlanFile $missingPlan -ResultFile $resultPath *> $null
+        $LASTEXITCODE | Should -Be 1
+        Test-Path -LiteralPath $resultPath | Should -BeTrue
+
+        $result = Get-Content -LiteralPath $resultPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $result.success | Should -BeFalse
+        $result.stage | Should -Be 'startup'
+        $result.message | Should -Match 'Файл плана не найден'
+        $result.PSObject.Properties.Name | Should -Contain 'stackTrace'
+        $result.PSObject.Properties.Name | Should -Contain 'logPath'
+        $result.PSObject.Properties.Name | Should -Contain 'workDirectory'
+        $result.PSObject.Properties.Name | Should -Contain 'isoPath'
+    }
+}
