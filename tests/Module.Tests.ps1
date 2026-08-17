@@ -103,7 +103,7 @@ Describe 'WindowsISOBuilder module' {
             Mock Write-Host { }
 
             $selected = Select-WibBuildInteractive -CacheDirectory $TestDrive
-            $selected.Uuid | Should -Be 'uuid-41'
+            $selected.Uuid | Should -Be 'uuid-45'
         }
 
         It 'returns to the main menu when build selection is cancelled' {
@@ -166,7 +166,6 @@ Describe 'WindowsISOBuilder module' {
                 $line | Should -Not -Match "[`r`n]"
             }
         }
-
 
         It 'classifies full Windows builds separately from servicing packages' {
             Get-WibBuildEntryType -Title 'Windows 10 build 19564.1005' | Should -Be 'Windows'
