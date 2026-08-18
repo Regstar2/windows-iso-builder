@@ -293,11 +293,14 @@ function Get-WibDirectorySizeBytes {
     if (-not (Test-Path -LiteralPath $Path)) {
         return [int64]0
     }
-    $measure = Get-ChildItem -LiteralPath $Path -File -Recurse -Force -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum
-    if ($null -eq $measure.Sum) {
-        return [int64]0
+
+    [int64]$totalBytes = 0
+    foreach ($file in @(Get-ChildItem -LiteralPath $Path -File -Recurse -Force -ErrorAction SilentlyContinue)) {
+        if ($null -ne $file -and $null -ne $file.PSObject.Properties['Length']) {
+            $totalBytes += [int64]$file.Length
+        }
     }
-    return [int64]$measure.Sum
+    return $totalBytes
 }
 
 function Get-WibUnixDate {
