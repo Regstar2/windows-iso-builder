@@ -163,8 +163,20 @@ function Write-WibJsonFile {
 
     $temporary = '{0}.{1}.tmp' -f $Path, [Guid]::NewGuid().ToString('N')
     $json = ConvertTo-WibJsonText -Value $Value -Depth $Depth
-    [IO.File]::WriteAllText($temporary, $json, (New-Object Text.UTF8Encoding($false)))
-    Move-Item -LiteralPath $temporary -Destination $Path -Force
+    try {
+        [IO.File]::WriteAllText($temporary, $json, (New-Object Text.UTF8Encoding($false)))
+        if ([IO.File]::Exists($Path)) {
+            [IO.File]::Replace($temporary, $Path, $null)
+        }
+        else {
+            [IO.File]::Move($temporary, $Path)
+        }
+    }
+    finally {
+        if ([IO.File]::Exists($temporary)) {
+            [IO.File]::Delete($temporary)
+        }
+    }
 }
 
 function Read-WibJsonFile {
