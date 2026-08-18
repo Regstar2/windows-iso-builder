@@ -124,7 +124,15 @@ function Invoke-WibUupDownloadScript {
         if (Get-Command Get-WibConverterCurrentStage -ErrorAction SilentlyContinue) { return (Get-WibConverterCurrentStage) }
         return 'download'
     }
-    $result = Invoke-WibManagedProcess -FilePath $commandProcessor -ArgumentList $arguments -WorkingDirectory $PackageDirectory -Stage 'download' -LineHandler $lineHandler -StageProvider $stageProvider
+    try {
+        $result = Invoke-WibManagedProcess -FilePath $commandProcessor -ArgumentList $arguments -WorkingDirectory $PackageDirectory -Stage 'download' -LineHandler $lineHandler -StageProvider $stageProvider
+    }
+    catch {
+        $knownCode = ''
+        try { if ($_.Exception.Data.Contains('WibErrorCode')) { $knownCode = [string]$_.Exception.Data['WibErrorCode'] } } catch { }
+        if (-not [string]::IsNullOrWhiteSpace($knownCode)) { throw }
+        throw (New-WibErrorException -Code 'DOWNLOAD_FAILED' -Message ('Unable to start or monitor the UUP download/conversion process: {0}' -f $_.Exception.Message) -Stage 'download' -PublicMessage 'The UUP download process could not be started or monitored.')
+    }
     return [int]$result.ExitCode
 }
 
@@ -322,7 +330,9 @@ function Invoke-WibBuildPlan {
 
     if ($env:OS -eq 'Windows_NT' -and -not (Test-WibAdministrator)) {
         Assert-WibNotCancelled -Stage 'preflight'
-        return (Start-WibElevatedPlan -Plan $Plan)
+        $result = Start-WibElevatedPlan -Plan $Plan
+        Assert-WibNotCancelled -Stage 'verify'
+        return $result
     }
     return Invoke-WibBuildPlanCore -Plan $Plan
 }
