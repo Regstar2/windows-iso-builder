@@ -179,12 +179,17 @@ function Write-WibJsonFile {
         [IO.Directory]::CreateDirectory($directory) | Out-Null
     }
 
-    $temporary = '{0}.{1}.tmp' -f $targetPath, [Guid]::NewGuid().ToString('N')
+    $operationId = [Guid]::NewGuid().ToString('N')
+    $temporary = '{0}.{1}.tmp' -f $targetPath, $operationId
+    $backup = '{0}.{1}.bak' -f $targetPath, $operationId
     $json = ConvertTo-WibJsonText -Value $Value -Depth $Depth
     try {
         [IO.File]::WriteAllText($temporary, $json, (New-Object Text.UTF8Encoding($false)))
         if ([IO.File]::Exists($targetPath)) {
-            [IO.File]::Replace($temporary, $targetPath, $null)
+            # Windows PowerShell 5.1 / .NET Framework does not reliably accept
+            # a null backup path for File.Replace. A same-directory backup keeps
+            # the replacement atomic and is deleted immediately afterwards.
+            [IO.File]::Replace($temporary, $targetPath, $backup)
         }
         else {
             [IO.File]::Move($temporary, $targetPath)
@@ -193,6 +198,9 @@ function Write-WibJsonFile {
     finally {
         if ([IO.File]::Exists($temporary)) {
             [IO.File]::Delete($temporary)
+        }
+        if ([IO.File]::Exists($backup)) {
+            [IO.File]::Delete($backup)
         }
     }
 }
