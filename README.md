@@ -6,75 +6,80 @@
 
 **Русский** · [English](README_EN.md)
 
-[Быстрый старт](#быстрый-старт) · [Backend Contract](#backend-contract) · [Документация](#документация) · [Ограничения](#ограничения)
+[Быстрый старт](#быстрый-старт) · [Backend Contract](#backend-contract) · [Надёжность](#надёжность-и-отмена) · [Документация](#документация)
 
 </div>
 
 ## О проекте
 
-Windows ISO Builder проводит пользователя через поиск сборки Windows, выбор архитектуры, языка, редакций и формата установочного образа. Каталог версий не хранится в исходном коде: данные запрашиваются у UUP dump, а файлы Windows загружаются с Microsoft Windows Update/CDN.
+Windows ISO Builder использует динамический каталог UUP dump, а файлы Windows получает с Microsoft Windows Update/CDN через сгенерированный UUP dump conversion package. Проект не содержит зашитого каталога Windows и не реализует собственный UUP downloader/converter.
 
-Техническое имя репозитория и корневого каталога — `windows-iso-builder`. Публичное название продукта — Windows ISO Builder.
-
-Проект не заменяет UUP dump и не реализует собственный UUP-движок. Его задача — сократить ручной процесс до одного интерактивного сценария и предоставить стабильный машиночитаемый слой над тем же PowerShell backend.
+TUI/CLI и machine-readable Backend Contract используют один PowerShell backend.
 
 ## Статус проекта
 
-Текущая версия — **`0.2.1-alpha.1`**. Версия manifest PowerShell-модуля — `0.2.1`; Backend Contract Schema и BuildPlan Schema имеют независимые версии `1`.
+Текущая версия — **`0.2.2-alpha.1`**.
 
-`0.2.1-alpha.1` — архитектурная alpha перед будущим GUI. GUI в этой версии отсутствует. Существующие TUI/CLI, UUP dump workflow, UAC/elevation, кеширование и конвертация сохраняются; добавлен отдельный JSON/NDJSON Backend Contract для будущих frontend-клиентов.
+- ApplicationVersion: `0.2.2-alpha.1`;
+- PowerShell ModuleVersion: `0.2.2`;
+- Backend Contract SchemaVersion: `1`;
+- BuildPlan SchemaVersion: `1`.
 
-Подробная матрица реализации находится в [статусе реализации](docs/IMPLEMENTATION_STATUS.md).
+`0.2.2-alpha.1` — второй архитектурный релиз перед будущим GUI. GUI, WPF/WinUI и C# в этой версии отсутствуют намеренно.
 
 ## Возможности
 
-- динамический поиск по названию релиза, номеру сборки или заголовку UUP dump;
-- быстрый выбор рекомендуемой стабильной Windows 11 или Windows 10 x64 без просмотра каталога и без зашитого номера сборки;
-- для Windows 11 quick mode предпочитает массовый стабильный `YYH2`-релиз специализированным H1-веткам, если подходящий H2 доступен;
-- постраничный просмотр больших результатов поиска;
-- Preview/Insider скрыты по умолчанию;
-- динамическая загрузка языков и редакций;
-- одна или несколько редакций через virtual editions;
-- `install.esd` или `install.wim`;
-- кеширование API, конвертационного пакета и UUP-файлов;
-- штатное продолжение незавершённых загрузок средствами `aria2`;
-- компактная console progress-индикация, полный raw output в `converter-*.log`;
-- структурированная передача результата elevated-процесса родителю;
-- execution/elevated/converter/build-логи;
-- SHA-256 и JSON-метаданные результата;
-- проверка структуры ISO через `Mount-DiskImage` и DISM;
-- TUI и неинтерактивный PowerShell CLI;
-- **Backend Contract v1**: JSON request/response, NDJSON events, стабильные error codes и отдельная machine entry point.
+- динамический поиск Windows builds и quick mode без hardcoded build numbers;
+- динамические languages/editions, multi-edition через virtual editions;
+- `install.wim` и `install.esd`;
+- API/package/UUP cache и штатный `aria2` resume;
+- compact console progress и полный `converter-*.log`;
+- build/elevated/execution logs, SHA-256 и JSON metadata;
+- TUI и non-interactive PowerShell CLI;
+- Backend Contract v1 с JSON response/request и NDJSON events;
+- `RunPreflight` с агрегированным machine-readable report;
+- local preflight до UAC и повторный authoritative preflight в worker;
+- structured error taxonomy с source-level error codes и optional `details`;
+- `CancelBuild` и cooperative cancellation по `requestId`;
+- отмена через elevation boundary;
+- PID-rooted termination только собственного process tree;
+- сохранение partial UUP cache/work directory после отмены.
 
 ## Быстрый старт
 
-1. Скачайте исходники или release ZIP и распакуйте их.
+1. Распакуйте проект или release ZIP.
 2. Запустите `Start-Builder.cmd`.
-3. Для обычного режима выберите `Найти сборку и создать ISO`; для рекомендуемого стабильного выпуска — `Быстро скачать последнюю Windows`.
-4. Выберите язык, редакции и формат образа.
-5. Подтвердите UAC перед загрузкой и конвертацией.
+3. Выберите обычный поиск или quick mode.
+4. Выберите язык, редакции и WIM/ESD.
+5. До UAC приложение выполнит local preflight. При fatal problem UAC не открывается.
+6. При успешном preflight подтвердите UAC и дождитесь ISO.
 
-Готовые файлы сохраняются в `output/`. Постоянный рабочий кеш по умолчанию расположен в `C:\UUP-ISO-Work`.
+По умолчанию рабочий кеш: `C:\UUP-ISO-Work`. Готовые ISO сохраняются в выбранный output directory.
 
 ## Требования
 
-- Windows 10 или Windows 11 x64 для реальной сборки ISO;
+- Windows 10/11 x64 для реальной ISO build;
 - Windows PowerShell 5.1 или PowerShell 7;
-- права администратора на этапе загрузки и конвертации;
-- не менее 35–50 ГБ свободного места;
+- DISM, `Expand-Archive`, `Get-FileHash`;
+- права администратора для UUP/conversion stage;
+- conservative minimum: 40 GiB для cache/work и 8 GiB для output;
 - доступ к UUP dump и Microsoft Windows Update/CDN.
 
-## Использование
+`Mount-DiskImage` используется для более глубокой post-build проверки, но его отсутствие само по себе является warning, а не fatal preflight failure.
 
-Интерактивный режим сначала собирает параметры и только затем запрашивает повышение прав. Быстрый режим использует тот же reusable selector, который теперь доступен и Backend Contract; конкретные Windows release/build не фиксируются в production-коде.
+## Надёжность и отмена
 
-Во время `uup_download_windows.cmd` подробные строки `aria2` и конвертера не используются как API. Один существующий parser формирует progress state: console renderer показывает его человеку, а structured event sink при наличии `EventFile` публикует DTO. Raw output остаётся в `output/logs/converter-*.log`.
+`RunPreflight` не останавливается на первой независимой проблеме. Он возвращает `ready` и массив `checks` со стабильными `id`, `status`, `severity`, `code`, `message`, `data`. `availableBytes` и `requiredBytes` передаются числами.
 
-Повторный запуск с той же сборкой, языком и базовой редакцией использует существующий рабочий каталог и штатный resume `aria2`.
+Обычная неготовность environment — успешная Backend Contract operation (`success=true`, `data.ready=false`), а не transport failure.
 
-## Команды
+`ExecuteBuildPlan` использует свой `requestId` как operation id. `CancelBuild` принимает `targetRequestId` и `cacheDirectory`, создавая control marker с именем на основе SHA-256 request id. Raw request id никогда не становится filesystem path.
 
-Неинтерактивный пример остаётся совместимым:
+`CancelBuild` означает только **«запрос отмены принят»**. Фактическая остановка подтверждается final response/event целевой `ExecuteBuildPlan` operation с `BUILD_CANCELLED`/`cancelled`.
+
+При отмене managed runner завершает process tree, корнем которого является PID процесса, запущенного самим Windows ISO Builder. Поиск и kill по имени `aria2`, `dism` или другого процесса не используется. Partial downloads и work directory сохраняются для resume.
+
+## Использование CLI
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Start-Builder.ps1 `
@@ -86,63 +91,50 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Start-Builder.ps1 `
   -ImageFormat ESD
 ```
 
-### Backend Contract
+## Backend Contract
 
-`Invoke-WibBackend.ps1` — отдельная machine entry point и не заменяет `Start-Builder.ps1`. Запрос и ответ передаются через UTF-8 JSON-файлы; progress/стадии при необходимости пишутся в UTF-8 NDJSON.
-
-Пример безопасного `GetVersion`:
+Machine entry point:
 
 ```powershell
-@'
-{
-  "schemaVersion": 1,
-  "requestId": "smoke-get-version",
-  "command": "GetVersion",
-  "arguments": {}
-}
-'@ | Set-Content -LiteralPath .\request.json -Encoding UTF8
-
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
   -File .\Invoke-WibBackend.ps1 `
   -RequestFile .\request.json `
   -ResponseFile .\response.json `
   -EventFile .\events.ndjson
-
-Get-Content .\response.json -Raw
 ```
 
-Backend Contract v1 поддерживает команды `GetVersion`, `SearchBuilds`, `GetRecommendedBuild`, `GetLanguages`, `GetEditions`, `CreateBuildPlan`, `ValidateBuildPlan`, `ExecuteBuildPlan`. Полное описание: [docs/BACKEND_CONTRACT.md](docs/BACKEND_CONTRACT.md).
+Backend Contract Schema v1 поддерживает:
 
-## Архитектура
+`GetVersion`, `SearchBuilds`, `GetRecommendedBuild`, `GetLanguages`, `GetEditions`, `CreateBuildPlan`, `ValidateBuildPlan`, `ExecuteBuildPlan`, `RunPreflight`, `CancelBuild`.
 
-PowerShell backend остаётся источником истины для UUP API, BuildPlan, elevation и конвертации. Backend Contract — внешний адаптер над существующими функциями, а не второй backend. См. [архитектуру](docs/ARCHITECTURE.md).
+Schema остаётся `1`: новые команды/error codes/optional fields являются backward-compatible расширением v1. BuildPlan Schema также остаётся `1`; cancellation относится к runtime ExecutionContext и не записывается в постоянный BuildPlan.
+
+Полный contract: [docs/BACKEND_CONTRACT.md](docs/BACKEND_CONTRACT.md).
 
 ## Безопасность
 
-Программа не отключает антивирус, UAC или глобальную политику выполнения PowerShell. Backend request считается недоверенным: command ограничен allowlist, `Invoke-Expression` не используется, JSON не исполняется как код.
-
-В публичные отчёты нельзя включать полные UUP signed URLs, ключи продукта, токены и персональные пути. См. [SECURITY.md](SECURITY.md).
-
-## Диагностика
-
-После ошибки TUI сохраняет журнал и показывает путь к нему. Machine API возвращает стабильный `error.code`; frontend не должен классифицировать ошибку по локализованному `error.message`.
-
-Проверяйте доступность UUP dump/Microsoft CDN, свободное место и `build-*.log`, `converter-*.log`, execution/elevated logs конкретного запуска.
-
-## Сборка
-
-Компиляция не требуется. Основной пользовательский entry point — `Start-Builder.cmd`/`Start-Builder.ps1`; machine entry point — `Invoke-WibBackend.ps1`. Модуль находится в `src/WindowsISOBuilder/`.
+- explicit command allowlist;
+- нет `Invoke-Expression`/eval;
+- request считается untrusted input;
+- cancellation path строится только через SHA-256 request id;
+- process termination выполняется только по PID собственного process tree;
+- preflight probe использует уникальный temporary file и удаляет его;
+- machine responses не должны раскрывать tokens, signed UUP URLs, product keys или Exception object graph.
 
 ## Тестирование
 
-Проект использует **локальные** Pester-тесты и PSScriptAnalyzer; GitHub Actions не являются частью процесса проверки или выпуска.
+Проект использует локальные Pester tests и PSScriptAnalyzer. GitHub Actions намеренно не являются release gate.
 
 ```powershell
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-Tests.ps1
-Invoke-ScriptAnalyzer -Path . -Recurse -Settings .\.psscriptanalyzer.psd1
+
+$issues = @(Invoke-ScriptAnalyzer `
+  -Path . `
+  -Recurse `
+  -Settings .\.psscriptanalyzer.psd1)
 ```
 
-Backend Contract tests мокируют UUP/build операции и не скачивают Windows. Реальная ISO-сборка остаётся отдельной end-to-end проверкой.
+Основные reliability tests работают на mocks и не скачивают Windows. Реальный process-tree smoke test является opt-in (`WIB_RUN_PROCESS_CANCELLATION_SMOKE=1`) и использует dummy PowerShell child process, а не aria2/DISM.
 
 ## Документация
 
@@ -150,26 +142,19 @@ Backend Contract tests мокируют UUP/build операции и не ск�
 - [Требования](REQUIREMENTS.md)
 - [Архитектура](docs/ARCHITECTURE.md)
 - [Статус реализации](docs/IMPLEMENTATION_STATUS.md)
-- [Миграция исходной v4](docs/SOURCE_V4_MIGRATION.md)
 - [История изменений](CHANGELOG.md)
 - [Release notes](docs/releases/)
+- [Безопасность](SECURITY.md)
 - [Участие в разработке](CONTRIBUTING.md)
-
-## Происхождение и благодарности
-
-UUP dump предоставляет каталог, метаданные и пакет конвертации. Файлы Windows загружаются средствами этого пакета с серверов Microsoft Windows Update/CDN.
-
-Проект не связан с Microsoft, не распространяет готовые ISO Windows, не активирует Windows и не обходит лицензирование.
 
 ## Ограничения
 
-- `0.2.1-alpha.1` — ранняя архитектурная версия, а не стабильный релиз;
-- GUI, WPF/WinUI, updater, USB/Rufus integration, queue/history/profiles и полный cancellation subsystem не реализованы;
-- Backend Contract v1 не является сетевым HTTP API: transport основан на локальных JSON/NDJSON файлах и процессе PowerShell;
-- полная taxonomy ошибок и расширенный preflight отложены на последующие версии;
-- внешний API UUP dump и формат конвертационного пакета могут измениться;
-- реальная матрица всех Windows/языков/редакций/WIM/ESD не гарантируется.
+- `0.2.2-alpha.1` остаётся alpha;
+- GUI, WPF/WinUI, queue/history/profiles, updater, USB/Rufus integration и dynamic disk estimator не реализованы;
+- transport Backend Contract — local JSON/NDJSON files + PowerShell process, не HTTP server;
+- full Windows 10/11 E2E matrix не является частью этого релиза;
+- внешний UUP dump API/conversion package может измениться.
 
 ## Лицензия
 
-Собственный код Windows ISO Builder распространяется по лицензии [MIT](LICENSE). Windows, UUP dump и сторонние инструменты сохраняют собственные лицензии и условия использования.
+Собственный код Windows ISO Builder распространяется по [MIT License](LICENSE). Windows, UUP dump и сторонние инструменты имеют собственные лицензии и условия использования.
