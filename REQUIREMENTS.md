@@ -33,6 +33,7 @@ Local checks минимум:
 - Windows host;
 - 64-bit OS;
 - PowerShell 5.1+;
+- `cmd.exe`;
 - `dism.exe`;
 - `Expand-Archive`;
 - `Get-FileHash`;
@@ -53,22 +54,9 @@ Local checks минимум:
 
 Существующий PS5.1-compatible metadata mechanism (`Exception.Data` / `New-WibErrorException`) остаётся источником structured classification. Error code назначается в месте возникновения failure, а не по тексту сообщения.
 
-Поддерживаемая taxonomy включает прежние codes и дополнительно:
+Taxonomy сохраняет прежние codes и дополнительно включает:
 
-- `UNSUPPORTED_HOST`;
-- `REQUIRED_COMPONENT_MISSING`;
-- `PATH_NOT_WRITABLE`;
-- `DISK_SPACE_LOW`;
-- `NETWORK_ERROR`;
-- `UUP_PACKAGE_DOWNLOAD_FAILED`;
-- `UUP_PACKAGE_INVALID`;
-- `DOWNLOAD_FAILED`;
-- `CONVERTER_FAILED`;
-- `DISM_FAILED`;
-- `ISO_NOT_FOUND`;
-- `ISO_VALIDATION_FAILED`;
-- `ELEVATION_CANCELLED`;
-- `BUILD_CANCELLED`.
+`UNSUPPORTED_HOST`, `REQUIRED_COMPONENT_MISSING`, `PATH_NOT_WRITABLE`, `DISK_SPACE_LOW`, `NETWORK_ERROR`, `UUP_PACKAGE_DOWNLOAD_FAILED`, `UUP_PACKAGE_INVALID`, `DOWNLOAD_FAILED`, `CONVERTER_FAILED`, `DISM_FAILED`, `ISO_NOT_FOUND`, `ISO_VALIDATION_FAILED`, `ELEVATION_CANCELLED`, `BUILD_CANCELLED`.
 
 `error.details` может содержать только controlled scalar/DTO data, например path, bytes, component, exitCode и targetRequestId. Exception object, tokens, signed download URLs, secrets и product keys не сериализуются.
 
@@ -78,7 +66,9 @@ Local checks минимум:
 - request id должен быть уникальным для конкретной operation;
 - `CancelBuild` принимает `targetRequestId` и `cacheDirectory`;
 - control filename строится по SHA-256 request id и не допускает path traversal;
-- pre-existing marker не удаляется при initialization, поэтому cancel-before-worker race не теряется;
+- marker создаётся с `CreateNew`, имеет проверяемый owned format и не перезаписывает colliding user file;
+- cleanup удаляет только валидный marker для ожидаемого request hash;
+- pre-existing valid marker не удаляется при initialization, поэтому cancel-before-worker race не теряется;
 - cancellation context не добавляется в permanent BuildPlan fields;
 - cancellation checks выполняются перед/после preflight, перед UAC, на download/retry/extraction/converter/verify boundaries и перед final success;
 - retry delays являются cancellable и не используют busy loop;
@@ -101,16 +91,7 @@ Local checks минимум:
 
 ## Backend Contract v1 commands
 
-- `GetVersion`;
-- `SearchBuilds`;
-- `GetRecommendedBuild`;
-- `GetLanguages`;
-- `GetEditions`;
-- `CreateBuildPlan`;
-- `ValidateBuildPlan`;
-- `ExecuteBuildPlan`;
-- `RunPreflight`;
-- `CancelBuild`.
+`GetVersion`, `SearchBuilds`, `GetRecommendedBuild`, `GetLanguages`, `GetEditions`, `CreateBuildPlan`, `ValidateBuildPlan`, `ExecuteBuildPlan`, `RunPreflight`, `CancelBuild`.
 
 `CancelBuild` acknowledgement означает только принятие запроса отмены. Остановка target build подтверждается final target response/event.
 
@@ -120,7 +101,7 @@ Local checks минимум:
 - dispatch — explicit allowlist;
 - нет eval/`Invoke-Expression`;
 - request id не используется как raw filesystem path;
-- CancelBuild не выбирает arbitrary filename;
+- CancelBuild не выбирает arbitrary filename и не перезаписывает/удаляет foreign collision;
 - preflight probe создаётся через unique `CreateNew` file и удаляется;
 - process termination применяется только к PID собственного runner;
 - machine DTO не содержит secrets или arbitrary internal object graphs.

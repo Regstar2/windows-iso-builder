@@ -72,23 +72,13 @@ Schema v1 поддерживает:
 }
 ```
 
-`SearchBuilds` arguments:
+`SearchBuilds`: required `search`; optional `architecture`, `includePreview`, `forceRefresh`, `cacheDirectory`.
 
-```json
-{
-  "search": "Windows 11 25H2",
-  "architecture": "amd64",
-  "includePreview": false,
-  "forceRefresh": false,
-  "cacheDirectory": "C:\\UUP-ISO-Work"
-}
-```
+`GetRecommendedBuild`: required `product`; optional `architecture`, `forceRefresh`, `cacheDirectory`.
 
-`GetRecommendedBuild`: `product`, optional `architecture`, `forceRefresh`, `cacheDirectory`.
+`GetLanguages`: required `updateId`; optional `forceRefresh`, `cacheDirectory`.
 
-`GetLanguages`: required `updateId`, optional `forceRefresh`, `cacheDirectory`.
-
-`GetEditions`: required `updateId`, `language`, optional `forceRefresh`, `cacheDirectory`.
+`GetEditions`: required `updateId`, `language`; optional `forceRefresh`, `cacheDirectory`.
 
 `CreateBuildPlan`: controlled build DTO + `language`, `editions`, `imageFormat`, update/cleanup/netFx3 flags, output/cache paths. It reuses `New-WibBuildPlan`.
 
@@ -158,6 +148,7 @@ Current stable check ids:
 - `host.windows`;
 - `host.architecture`;
 - `host.powershell`;
+- `tool.cmd`;
 - `tool.dism`;
 - `tool.expandArchive`;
 - `tool.getFileHash`;
@@ -215,7 +206,7 @@ The cancel command has its **own** `requestId`. `targetRequestId` identifies the
 8. Target operation finishes with `success=false`, `error.code=BUILD_CANCELLED` and a `cancelled` event.
 9. Parent consumes/removes the control marker; UUP cache/work data remains.
 
-The raw request id is never used as a filename. A marker that already exists before worker initialization is intentionally preserved, so cancel-before-worker races are not lost. Therefore `ExecuteBuildPlan.requestId` must be unique for each operation.
+The raw request id is never used as a filename. A marker that already exists before worker initialization is intentionally preserved, so cancel-before-worker races are not lost. Marker creation uses a validated Windows ISO Builder marker format and `CreateNew`; an unrelated colliding user file is neither overwritten nor removed. `ExecuteBuildPlan.requestId` must be unique for each operation.
 
 BuildPlan does not contain `requestId`, cancellation path/hash, or event-file fields. Those are runtime ExecutionContext data.
 
@@ -253,88 +244,31 @@ BuildPlan does not contain `requestId`, cancellation path/hash, or event-file fi
 }
 ```
 
-`error.details` is optional and controlled. Examples:
-
-```json
-{
-  "path": "D:\\cache",
-  "availableBytes": 12000000000,
-  "requiredBytes": 42949672960,
-  "component": "dism.exe",
-  "exitCode": 1,
-  "targetRequestId": "build-request-456"
-}
-```
-
-Exception objects, tokens, signed UUP download URLs, product keys and arbitrary internal metadata are excluded.
+`error.details` is optional and controlled. It may contain path, bytes, component, exit code, target request id, failed-check ids or other documented scalar/DTO fields. Exception objects, tokens, signed UUP download URLs, product keys and arbitrary internal metadata are excluded.
 
 ## Error codes v1
 
 Existing codes remain valid:
 
-- `INVALID_REQUEST`;
-- `UNSUPPORTED_SCHEMA`;
-- `INVALID_COMMAND`;
-- `INVALID_ARGUMENT`;
-- `BUILD_NOT_FOUND`;
-- `LANGUAGE_NOT_FOUND`;
-- `EDITION_NOT_FOUND`;
-- `UUP_API_ERROR`;
-- `UUP_API_UNAVAILABLE`;
-- `INVALID_BUILD_PLAN`;
-- `ELEVATION_FAILED`;
-- `BUILD_FAILED`;
-- `INTERNAL_ERROR`.
+`INVALID_REQUEST`, `UNSUPPORTED_SCHEMA`, `INVALID_COMMAND`, `INVALID_ARGUMENT`, `BUILD_NOT_FOUND`, `LANGUAGE_NOT_FOUND`, `EDITION_NOT_FOUND`, `UUP_API_ERROR`, `UUP_API_UNAVAILABLE`, `INVALID_BUILD_PLAN`, `ELEVATION_FAILED`, `BUILD_FAILED`, `INTERNAL_ERROR`.
 
 Added in `0.2.2-alpha.1`:
 
-- `UNSUPPORTED_HOST`;
-- `REQUIRED_COMPONENT_MISSING`;
-- `PATH_NOT_WRITABLE`;
-- `DISK_SPACE_LOW`;
-- `NETWORK_ERROR`;
-- `UUP_PACKAGE_DOWNLOAD_FAILED`;
-- `UUP_PACKAGE_INVALID`;
-- `DOWNLOAD_FAILED`;
-- `CONVERTER_FAILED`;
-- `DISM_FAILED`;
-- `ISO_NOT_FOUND`;
-- `ISO_VALIDATION_FAILED`;
-- `ELEVATION_CANCELLED`;
-- `BUILD_CANCELLED`.
+`UNSUPPORTED_HOST`, `REQUIRED_COMPONENT_MISSING`, `PATH_NOT_WRITABLE`, `DISK_SPACE_LOW`, `NETWORK_ERROR`, `UUP_PACKAGE_DOWNLOAD_FAILED`, `UUP_PACKAGE_INVALID`, `DOWNLOAD_FAILED`, `CONVERTER_FAILED`, `DISM_FAILED`, `ISO_NOT_FOUND`, `ISO_VALIDATION_FAILED`, `ELEVATION_CANCELLED`, `BUILD_CANCELLED`.
 
 Clients must handle unknown future v1 error codes as generic failures and use `code`, not localized `message`, for classification.
 
 ## Events
 
-Each `EventFile` line is one JSON event with:
+Each `EventFile` line is one JSON event with `schemaVersion`, target `requestId`, monotonic `sequence`, UTC `timestamp`, `type`, normalized `stage`, `message`, and `progress` object.
 
-- `schemaVersion`;
-- target `requestId`;
-- monotonic `sequence`;
-- UTC `timestamp`;
-- `type`;
-- normalized `stage`;
-- `message`;
-- `progress` object.
-
-Event types include:
-
-- `stage`;
-- `progress`;
-- `completed`;
-- `failed`;
-- `cancelled`;
-- `warning`;
-- `info`.
+Event types include `stage`, `progress`, `completed`, `failed`, `cancelled`, `warning`, `info`.
 
 `cancelled` is an additive Schema v1 event type. Schema v1 clients must ignore unknown event types and unknown optional properties while preserving their current behavior.
 
 The cancel-command event stream, if requested, uses the cancel command `requestId`. The target build stream always retains the target build `requestId`.
 
-Normalized stages remain: `startup`, `catalog`, `metadata`, `plan`, `preflight`, `download`, `convert`, `verify`, `completed`, `failed`.
-
-Cancellation events carry the real stage where cancellation was observed, for example `download`, `convert`, or `verify`.
+Normalized stages remain `startup`, `catalog`, `metadata`, `plan`, `preflight`, `download`, `convert`, `verify`, `completed`, `failed`. Cancellation events carry the real stage where cancellation was observed.
 
 ## Elevation behavior
 
@@ -344,15 +278,7 @@ Cancellation runtime context is forwarded separately from BuildPlan through the 
 
 ## Compatibility policy
 
-Within Schema v1 clients must tolerate:
-
-- new optional response/error/event properties;
-- new allowlisted commands they do not call;
-- new error codes;
-- new event types;
-- additional preflight check ids.
-
-Clients must not assume that every event type or error code is known. Removing/renaming required fields or changing their meaning would require a new schema version.
+Within Schema v1 clients must tolerate new optional response/error/event properties, new allowlisted commands they do not call, new error codes, new event types and additional preflight check ids. Removing/renaming required fields or changing their meaning would require a new schema version.
 
 ## Security
 
@@ -360,6 +286,7 @@ Clients must not assume that every event type or error code is known. Removing/r
 - no eval/`Invoke-Expression`;
 - paths normalized before use;
 - cancellation filename derived only from SHA-256 target request id;
+- cancellation marker uses a validated owned format and never overwrites a foreign collision;
 - no kill-by-process-name;
 - process tree termination targets only an owned PID;
-- event I/O is best-effort and cannot be used to inject executable code.
+- event I/O is best-effort and cannot inject executable code.
