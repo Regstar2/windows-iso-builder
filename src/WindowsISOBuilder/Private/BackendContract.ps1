@@ -96,8 +96,34 @@ function Get-WibBackendLanguage {
 
 function Get-WibBackendStringArray {
     param($Object, [string]$Name, [string]$Code = 'INVALID_ARGUMENT', [string]$Stage = 'plan')
-    $value = Get-WibBackendProperty -Object $Object -Name $Name
-    if ($null -eq $value -or $value -is [string]) { Throw-WibBackendError -Code $Code -Message ("Argument '{0}' must be a string array." -f $Name) -Stage $Stage }
+
+    $found = $false
+    $value = $null
+    if ($null -ne $Object) {
+        if ($Object -is [System.Collections.IDictionary]) {
+            foreach ($key in $Object.Keys) {
+                if ([string]::Equals([string]$key, $Name, [StringComparison]::OrdinalIgnoreCase)) {
+                    $value = $Object[$key]
+                    $found = $true
+                    break
+                }
+            }
+        }
+        else {
+            foreach ($property in $Object.PSObject.Properties) {
+                if ([string]::Equals([string]$property.Name, $Name, [StringComparison]::OrdinalIgnoreCase)) {
+                    $value = $property.Value
+                    $found = $true
+                    break
+                }
+            }
+        }
+    }
+
+    if (-not $found -or $null -eq $value -or $value -is [string]) {
+        Throw-WibBackendError -Code $Code -Message ("Argument '{0}' must be a string array." -f $Name) -Stage $Stage
+    }
+
     $result = @()
     foreach ($item in @($value)) {
         if ($null -eq $item -or -not ($item -is [string]) -or [string]::IsNullOrWhiteSpace([string]$item)) {
