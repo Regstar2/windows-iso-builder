@@ -2,95 +2,56 @@
 
 # Windows ISO Builder
 
-An interactive PowerShell UUP dump client for searching, downloading, and automatically building Windows ISO images without manually handling the website, UUIDs, SKUs, or `ConvertConfig.ini`.
+A GUI and PowerShell UUP dump client for searching, downloading, and building Windows ISO images without manually handling UUIDs, SKUs, or `ConvertConfig.ini`.
 
 [Русский](README.md) · **English**
 
-[Quick start](#quick-start) · [Backend Contract](#backend-contract) · [Release validation](#release-validation) · [Documentation](#documentation)
-
 </div>
 
-## About
+## Status
 
-Windows ISO Builder uses the dynamic UUP dump catalog and obtains Windows files from Microsoft Windows Update/CDN through the generated UUP dump conversion package. The project does not embed a Windows version catalog and does not implement a custom UUP downloader/converter.
+Current version: **`0.3.0-alpha.1`**.
 
-TUI, non-interactive CLI, and the machine-readable Backend Contract share the same PowerShell backend.
-
-## Project status
-
-Current version: **`0.2.3-alpha.1`**.
-
-- ApplicationVersion: `0.2.3-alpha.1`;
-- PowerShell ModuleVersion: `0.2.3`;
+- ApplicationVersion: `0.3.0-alpha.1`;
+- PowerShell ModuleVersion: `0.3.0`;
 - Backend Contract SchemaVersion: `1`;
 - BuildPlan SchemaVersion: `1`.
 
-`0.2.3-alpha.1` is the final backend-focused validation release before `v0.3.0` GUI work begins. GUI, WPF/WinUI, and C# are intentionally absent.
+`v0.3.0-alpha.1` adds the first WPF GUI. The existing TUI, CLI, and machine-readable Backend Contract remain supported. The GUI is not a second UUP/build backend: it uses `Invoke-WibBackend.ps1` and Contract v1.
 
-## Features
+## Quick start — GUI
 
-- dynamic Windows build search and quick mode without hardcoded build numbers;
-- dynamic languages/editions and multi-edition virtual editions;
-- `install.wim` and `install.esd`;
-- API/package/UUP cache and native `aria2` resume;
-- compact console progress and complete `converter-*.log` output;
-- build/elevated/execution logs, SHA-256, and JSON metadata;
-- TUI and non-interactive PowerShell CLI;
-- Backend Contract v1 with JSON requests/responses and NDJSON events;
-- `RunPreflight` with an aggregated machine-readable report;
-- local preflight before UAC and authoritative preflight inside the worker;
-- structured source-level error taxonomy with optional `details`;
-- `CancelBuild` and cooperative cancellation addressed by `requestId`;
-- cancellation forwarding across the elevation boundary;
-- PID-rooted termination of only the process tree owned by the build;
-- preservation of partial UUP cache/work data after cancellation;
-- a local release-validation workflow that validates source and the release ZIP separately.
+1. Download the release ZIP and extract it completely.
+2. Run `WindowsISOBuilder.exe` as a normal user.
+3. Select Windows 11/10 and request the recommended build, or open Catalog mode.
+4. Select language, one or more editions, ESD/WIM, and the output directory.
+5. Run readiness checks.
+6. If no fatal check blocks the build, choose Create ISO and approve UAC when the backend requests elevation.
+7. On completion, the GUI shows the ISO path and SHA-256.
 
-## Quick start
+The user release is self-contained `win-x64`; installing a separate .NET Runtime is not required. The .NET 10 SDK is a development/build dependency only.
 
-1. Download and extract the release ZIP.
-2. Run `Start-Builder.cmd`.
-3. Select normal search or quick mode.
-4. Choose language, editions, and WIM/ESD.
-5. Local preflight runs before UAC. Fatal problems must not open the elevation prompt.
-6. If preflight succeeds, approve UAC and wait for the ISO.
+## GUI scope
 
-Default work cache: `C:\UUP-ISO-Work`.
+The first GUI includes Quick Mode, Catalog Mode, dynamic languages/editions, multi-edition selection, ESD/WIM, build options, `CreateBuildPlan`, `RunPreflight`, async `ExecuteBuildPlan`, NDJSON progress, cooperative `CancelBuild`, structured error handling, result actions, and a local GUI log.
 
-## Requirements
+The GUI manifest uses `asInvoker`. Elevation remains owned by the existing backend immediately before the privileged build stage.
 
-- Windows 10/11 x64 for real ISO builds;
-- Windows PowerShell 5.1 or PowerShell 7;
-- DISM, `Expand-Archive`, and `Get-FileHash`;
-- administrator rights for the UUP/conversion stage;
-- conservative minimums: 40 GiB cache/work and 8 GiB output;
-- access to UUP dump and Microsoft Windows Update/CDN.
+## Console / automation
 
-`Mount-DiskImage` enables deeper post-build validation, but its absence is a warning rather than a fatal preflight failure.
-
-## Reliability and cancellation
-
-`RunPreflight` returns `ready` plus `checks` with stable `id`, `status`, `severity`, `code`, `message`, and `data`. An environment that is not ready is a successful Backend Contract operation (`success=true`, `data.ready=false`), not a transport failure.
-
-`ExecuteBuildPlan.requestId` is the public operation id. `CancelBuild` accepts `targetRequestId` and `cacheDirectory`; the control filename is derived from a SHA-256 hash, never from the raw request id.
-
-`CancelBuild` only acknowledges that a cancellation request was accepted. Actual termination is confirmed by the target `ExecuteBuildPlan` response/event using `BUILD_CANCELLED`/`cancelled`.
-
-The managed runner terminates only the process tree rooted at a PID started by Windows ISO Builder. It never searches for or kills `aria2`, DISM, or other processes by name. Partial downloads/work data remain available for resume.
-
-## CLI example
+The TUI is not deprecated:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Start-Builder.ps1 `
-  -NonInteractive `
-  -Search 22H2 `
-  -Architecture amd64 `
-  -Language ru-ru `
-  -Editions Core,Professional `
-  -ImageFormat ESD
+.\Start-Builder.cmd
 ```
 
-## Backend Contract
+or:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Start-Builder.ps1
+```
+
+Machine entry point:
 
 ```powershell
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
@@ -100,73 +61,55 @@ powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
   -EventFile .\events.ndjson
 ```
 
-Backend Contract Schema v1 commands:
+## Architecture boundary
 
-`GetVersion`, `SearchBuilds`, `GetRecommendedBuild`, `GetLanguages`, `GetEditions`, `CreateBuildPlan`, `ValidateBuildPlan`, `ExecuteBuildPlan`, `RunPreflight`, `CancelBuild`.
+The PowerShell backend remains the sole owner of UUP catalog/recommendation, BuildPlan, preflight, UAC/elevation, download, converter/DISM, ISO validation, and cancellation process-tree management.
 
-After `v0.2.3`, Contract v1 and BuildPlan v1 are the baseline interface for the first GUI. Additive optional fields remain allowed; breaking changes require a new SchemaVersion.
+The GUI does not import `WindowsISOBuilder.psm1`, invoke private functions, parse `Write-Host`/transcripts/aria2/converter output, or classify failures from localized messages.
 
-Full contract: [docs/BACKEND_CONTRACT_EN.md](docs/BACKEND_CONTRACT_EN.md).
+Compatibility is based on `contractSchemaVersion == 1`, not exact ApplicationVersion matching.
 
-## Release validation
+See [Backend Contract v1](docs/BACKEND_CONTRACT_EN.md) and [GUI architecture](docs/GUI_ARCHITECTURE_EN.md).
 
-The project uses local Pester tests, PSScriptAnalyzer, and one release-validation entry point. GitHub Actions are intentionally not a release gate.
+## Requirements
 
-Quick validation does not download a UUP set or build an ISO:
+User runtime: Windows 10/11 x64, Windows PowerShell 5.1, standard Windows servicing tools, network access to UUP dump/Microsoft CDN, enough disk space, and administrator approval only for the privileged build stage.
+
+Development requires the .NET 10 SDK.
+
+## GUI build
 
 ```powershell
-powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
-  -File .\tools\Invoke-ReleaseValidation.ps1
+dotnet restore .\WindowsISOBuilder.sln
+dotnet build .\WindowsISOBuilder.sln -c Release
+dotnet test .\WindowsISOBuilder.sln -c Release --no-build
+powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\tools\Build-Gui.ps1
 ```
 
-Full safe release smoke includes temporary ZIP creation/extraction and the controlled process-tree test:
+`Build-Gui.ps1` restores, builds, tests, and publishes self-contained `win-x64`. It never installs the SDK automatically.
+
+## Release validation
 
 ```powershell
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
   -File .\tools\Invoke-ReleaseValidation.ps1 -Full
 ```
 
-Validation writes machine-readable `validation-result.json` and returns a non-zero exit code when a required check fails. Generated reports and `dist/` are not committed.
+Full validation covers GUI build/test/publish, Pester, PSScriptAnalyzer, backend smokes, packaging, checksum/manifest validation, and packaged `WindowsISOBuilder.exe --backend-smoke`. Safe automated smoke does not download Windows or request UAC.
 
-Source validation and release-package validation are separate layers. See [docs/VALIDATION_MATRIX_EN.md](docs/VALIDATION_MATRIX_EN.md) for the actual automated, smoke, and real-E2E statuses.
+Actual execution status must remain separate from implementation status. See [VALIDATION_MATRIX_EN.md](docs/VALIDATION_MATRIX_EN.md).
 
 ## Release package
 
-`tools/New-ReleasePackage.ps1` reads the application version from `VERSION`, creates the ZIP and `.sha256`, and adds a generated `release-manifest.json` containing application, module, Backend Contract, and BuildPlan versions.
-
-The ZIP is built from a centralized allowlist and must not contain `tests`, `.git`, `.github`, `output`, `logs`, `dist`, cache, IDE state, `.project-rules`, or user-specific files.
+The release ZIP contains `WindowsISOBuilder.exe` plus its self-contained runtime, the existing PowerShell backend/TUI/CLI, documentation, and a package-only `release-manifest.json` with application/module/schema versions and additive GUI metadata.
 
 ## Security
 
-- explicit Backend command allowlist;
-- no `Invoke-Expression`/eval;
-- requests are untrusted input;
-- cancellation paths are derived from SHA-256 request-id hashes;
-- process termination targets only an owned PID tree;
-- machine responses must not expose tokens, signed UUP URLs, product keys, or Exception object graphs;
-- release validation performs a limited scan of current tracked files and the package for obvious secrets/personal paths.
+Requests are untrusted data; backend dispatch is allowlisted; C# uses `ProcessStartInfo.ArgumentList`; user strings are not executed as PowerShell; GUI cancellation uses `CancelBuild` instead of process killing; signed URLs/tokens/product keys are not GUI-log data; backend code is resolved deterministically from the package and never downloaded at runtime.
 
-This scan is not a historical Git-history audit.
+## v0.3.0 limitations
 
-## Documentation
-
-- [Backend Contract v1](docs/BACKEND_CONTRACT_EN.md)
-- [Validation matrix](docs/VALIDATION_MATRIX_EN.md)
-- [Requirements](REQUIREMENTS.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Implementation status](docs/IMPLEMENTATION_STATUS.md)
-- [Changelog](CHANGELOG.md)
-- [Release notes](docs/releases/)
-- [Security](SECURITY.md)
-- [Contributing](CONTRIBUTING.md)
-
-## Limitations
-
-- `0.2.3-alpha.1` remains an alpha release;
-- GUI, WPF/WinUI, queue/history/profiles, updater, USB/Rufus integration, and dynamic disk estimation are not implemented;
-- Backend Contract transport is local JSON/NDJSON files plus a PowerShell process, not an HTTP server;
-- Windows 10 real E2E and a separate Windows 11 WIM baseline may be marked confirmed only after they are actually built manually;
-- the external UUP dump API/conversion package can change.
+History, profiles, queue, cache-management GUI, updater, installer/MSIX, USB/Rufus integration, full theme/language settings, customization/debloat, driver injection, TPM bypass, activation, a custom UUP engine/downloader/converter, and GitHub Actions are intentionally outside this GUI MVP.
 
 ## License
 

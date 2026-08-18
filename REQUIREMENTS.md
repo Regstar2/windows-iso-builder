@@ -1,189 +1,104 @@
-# Требования к Windows ISO Builder
-
-## Назначение
-
-Windows ISO Builder — PowerShell-клиент UUP dump для интерактивной и автоматизированной сборки Windows ISO. Каталог Windows остаётся динамическим; собственный UUP downloader/converter не разрабатывается.
-
-Версия `0.2.3-alpha.1` не является feature release. Её цель — сделать существующий backend воспроизводимо проверяемым перед началом GUI и зафиксировать Backend Contract v1 / BuildPlan v1 как baseline интеграции.
+# Требования к Windows ISO Builder v0.3.0-alpha.1
 
 ## Версионирование
 
-- ApplicationVersion: `0.2.3-alpha.1`, единый source of truth — `VERSION`;
-- ModuleVersion: `0.2.3`;
-- Backend Contract SchemaVersion: `1`;
+- ApplicationVersion: `0.3.0-alpha.1`; source of truth — root `VERSION`.
+- ModuleVersion: `0.3.0`.
+- Backend Contract SchemaVersion: `1`.
 - BuildPlan SchemaVersion: `1`.
 
-Schema не повышается без breaking change. Additive optional properties/error codes/event types остаются допустимыми расширениями v1.
+GUI получает user-visible ApplicationVersion через backend `GetVersion`. Contract/BuildPlan schema не повышаются: GUI использует существующий v1 без breaking change.
 
-## Сохранённые требования backend
+## Runtime requirements
 
-1. Каталог builds/languages/editions загружается динамически с UUP dump.
-2. Production code не содержит hardcoded Windows release catalog.
-3. TUI, CLI, quick mode, WIM/ESD, virtual editions, caching/resume и elevation остаются совместимыми.
-4. Console progress и structured progress используют один converter parser.
-5. BuildPlan описывает, что собирать; runtime ExecutionContext управляет конкретным запуском.
-6. Backend Contract не парсит `Write-Host`, transcript, localized Exception.Message или raw aria2 output для классификации ошибок.
-7. Windows PowerShell 5.1 остаётся обязательным target runtime; PowerShell 7 поддерживается как совместимая среда.
+Пользовательский release рассчитан на Windows x64 и публикуется как self-contained `win-x64`, поэтому отдельный .NET Runtime не требуется.
 
-## Backend Contract v1 baseline
+Backend сохраняет требования Windows PowerShell 5.1, Windows servicing tools, доступ к UUP dump/Microsoft Windows Update CDN, достаточный disk space и UAC approval для privileged build stage.
 
-Стабильный набор команд первого GUI:
+GUI запускается без administrator manifest (`asInvoker`).
 
-`GetVersion`, `SearchBuilds`, `GetRecommendedBuild`, `GetLanguages`, `GetEditions`, `CreateBuildPlan`, `ValidateBuildPlan`, `ExecuteBuildPlan`, `RunPreflight`, `CancelBuild`.
+## Development requirements
 
-Regression tests должны защищать semantic contract, а не byte-for-byte JSON. Обязательные поля response envelope, основных DTO и event envelope не могут исчезать в Schema v1. Новые optional fields разрешены.
+Для разработки/validation GUI требуется .NET 10 SDK. SDK автоматически не устанавливается.
 
-Breaking rename/removal/semantic change после `v0.2.3` требует осознанного перехода на Backend Contract SchemaVersion 2.
+Поддерживаемые команды:
 
-## BuildPlan v1 compatibility
+```powershell
+dotnet restore .\WindowsISOBuilder.sln
+dotnet build .\WindowsISOBuilder.sln -c Release
+dotnet test .\WindowsISOBuilder.sln -c Release --no-build
+powershell.exe -File .\tools\Build-Gui.ps1
+```
 
-BuildPlan SchemaVersion остаётся `1`. В repository хранится небольшой fixture `tests/fixtures/build-plan-v1.json`, который должен:
+## GUI architecture requirements
 
-- читаться текущим backend;
-- проходить `ValidateBuildPlan`;
-- round-trip через contract DTO без потери required data;
-- оставаться Schema v1.
+1. C#, WPF, `net10.0-windows`, SDK-style project.
+2. No Electron/WebView UI and no heavy third-party UI framework.
+3. Backend communication only through `Invoke-WibBackend.ps1` + Backend Contract Schema v1.
+4. No direct module/private function calls, no parsing human console text and no duplicated UUP/conversion/preflight/cancellation engine.
+5. All backend operations asynchronous from the UI thread.
+6. Safe process arguments via `ProcessStartInfo.ArgumentList`.
+7. Strongly typed System.Text.Json DTOs; unknown optional properties and additive event types must not crash the GUI.
+8. Startup handshake: locate backend → `GetVersion` → require contract schema 1 → ready.
+9. Packaged backend path is deterministic relative to the executable. Dev override may be used only for development/testing.
+10. Request/response/event transport uses per-operation app-owned temp directories and does not delete build logs/cache/work/ISO.
 
-Volatile runtime state (`requestId`, event file, cancellation path/hash) не добавляется в persistent BuildPlan.
+## User flows
+
+Quick Mode:
+
+`GetRecommendedBuild → GetLanguages → GetEditions → CreateBuildPlan → RunPreflight → ExecuteBuildPlan`.
+
+Catalog Mode:
+
+`SearchBuilds → selected build → GetLanguages → GetEditions → shared build flow`.
+
+Recommendation, language and edition catalogs must remain backend-owned and dynamic.
 
 ## Preflight
 
-Один reusable engine `Invoke-WibPreflight` используется Backend Contract и build workflow.
+GUI renders `ready` and structured checks (`status`, `severity`, `code`, `data`). `ready=false` disables ExecuteBuildPlan. Warning severity must remain distinct from fatal failures. Retry is supported.
 
-Local checks включают Windows host, 64-bit OS, PowerShell, `cmd.exe`, DISM, archive/hash tools, optional `Mount-DiskImage`, path/write probes и централизованные disk minimums.
+## Progress and events
 
-`RunPreflight` агрегирует независимые checks. Fatal checks задают `ready=false`; warnings не блокируют build. Неготовое environment возвращается как `success=true`, `data.ready=false`.
+The NDJSON reader tails incrementally, keeps incomplete trailing data, handles UTF-8, ignores duplicate/out-of-order sequence telemetry and unknown additive event types, and updates WPF state asynchronously.
 
-`onlineChecks=false` не выполняет сетевой запрос. Validation release smoke использует только offline mode.
-
-## Structured errors
-
-Source-level `Exception.Data` metadata остаётся источником structured classification. Backend не должен определять error code по локализованному message.
-
-Сохраняются, среди прочих, коды:
-
-`DISK_SPACE_LOW`, `PATH_NOT_WRITABLE`, `UUP_API_UNAVAILABLE`, `UUP_PACKAGE_INVALID`, `CONVERTER_FAILED`, `ISO_NOT_FOUND`, `BUILD_CANCELLED`.
-
-Regression tests используют controlled failure injection/mocks и проверяют стабильность codes без создания настоящих OS/UUP failures.
+Overall progress/speed come from backend event fields; the final Backend response is the completion source of truth.
 
 ## Cancellation
 
-Существующий cooperative cancellation механизм сохраняется без переписывания:
+GUI sends `CancelBuild(targetRequestId, cacheDirectory)` and waits for target `BUILD_CANCELLED`/cancelled/final response semantics. It must not use `Process.Kill`, `taskkill`, `Stop-Process`, kill-by-name, or directly terminate aria2/DISM/backend trees.
 
-- `ExecuteBuildPlan.requestId` — operation id;
-- `CancelBuild` принимает `targetRequestId` и `cacheDirectory`;
-- control filename строится по SHA-256 request id;
-- cancellation checks выполняются на безопасных boundaries;
-- managed child process завершается только по owned PID tree;
-- partial UUP/work data сохраняются для resume;
-- final cancellation классифицируется `BUILD_CANCELLED` и публикует `cancelled` event.
+Closing the GUI during an active build must explicitly offer to continue or cancel-and-exit; cancel-and-exit uses the same backend cancellation contract.
 
-## Unified release validation
+## Error handling
 
-Обязателен единый entry point:
+Classification uses `error.code`, never localized message matching. Known codes get user-friendly titles/actions; unknown v1 codes map to a generic failure. Technical details may show code/stage/backend message/log path/request correlation but not secrets or giant stack traces by default.
 
-`tools/Invoke-ReleaseValidation.ps1`
+## Security/logging
 
-По умолчанию он не должен:
+GUI log location: `%LOCALAPPDATA%\WindowsISOBuilder\logs`. Log startup/backend path/version, command names, request IDs, state transitions and frontend exceptions. Do not log signed UUP URLs, tokens, product keys, secrets or arbitrary full request payloads.
 
-- скачивать UUP set;
-- собирать настоящий ISO;
-- запускать многочасовой E2E;
-- требовать UAC.
+## Testing
 
-Quick validation включает минимум version/schema checks, module import, полный `tests/Run-Tests.ps1`, Backend `GetVersion`, offline `RunPreflight`, event/JSON smoke, package configuration/syntax и current-tree safety scan.
+C# tests cover DTO/envelopes, compatibility with unknown fields/codes/types, request generation/serialization, safe process arguments, backend path resolution, error mapping, state behavior and NDJSON tailing including partial lines/duplicates/UTF-8.
 
-Full validation дополнительно делает release ZIP build/smoke, требует PSScriptAnalyzer, выполняет PS7 smoke при наличии `pwsh` и controlled process-tree smoke.
+A Windows integration smoke may invoke real `Invoke-WibBackend.ps1` only for safe operations such as `GetVersion`; it must not download Windows or request UAC.
 
-Отсутствие PowerShell 7 не является fatal. Отсутствие PSScriptAnalyzer в Full mode является FAIL; Quick mode может пометить его SKIPPED.
+Existing Pester/PowerShell validation remains mandatory.
 
-Validation возвращает deterministic exit code:
+## Publish/package
 
-- `0` — все required checks прошли;
-- non-zero — минимум один required check failed;
-- optional skipped сами по себе не дают failure.
+Release GUI: `win-x64`, `self-contained=true`. Reliability is preferred over single-file packaging. The package keeps `Start-Builder.cmd`, `Start-Builder.ps1`, `Invoke-WibBackend.ps1` and PowerShell backend.
 
-## Structured validation report
+Package-only `release-manifest.json` includes additive:
 
-Validation создаёт machine-readable `validation-result.json` с версиями, timestamp, mode, success, checks и summary.
+```json
+"gui": { "included": true, "runtime": "win-x64", "selfContained": true }
+```
 
-Report не должен содержать secrets, machine name, username или персональные absolute paths. Generated report не коммитится.
+Full validation fails if GUI build/test/publish or packaged GUI backend handshake fails.
 
-Validation report — developer/release tooling и не входит в Backend Contract Schema.
+## Out of scope
 
-## Release package
-
-`tools/New-ReleasePackage.ps1`:
-
-- по умолчанию читает ApplicationVersion из `VERSION`;
-- использует централизованный release allowlist/denylist;
-- генерирует package staging;
-- генерирует `release-manifest.json` только внутри package staging;
-- создаёт ZIP и `.sha256`;
-- не требует byte-for-byte reproducible ZIP, но logical file set должен быть deterministic для одного source version.
-
-Release manifest содержит:
-
-- `applicationVersion`;
-- `moduleVersion`;
-- `backendContractSchemaVersion`;
-- `buildPlanSchemaVersion`.
-
-Он не содержит timestamp, username, machine name, absolute local path или secrets.
-
-## Source validation != release validation
-
-Green source tests не означают, что release ZIP корректен.
-
-Package validation отдельно проверяет:
-
-- ZIP существует и открывается;
-- checksum существует и совпадает;
-- expected logical files присутствуют;
-- unexpected/denied files отсутствуют;
-- generated manifest имеет правильные версии;
-- `Start-Builder.ps1` парсится;
-- packaged module импортируется именно из Temp extract root;
-- packaged Backend `GetVersion` работает;
-- packaged offline `RunPreflight` работает;
-- package safety scan не находит obvious secrets/personal paths/generated junk.
-
-## Security scan scope
-
-Локальный scan предназначен только для очевидных ошибок в текущих tracked files и текущем release package. Он проверяет common token prefixes, private-key blocks, очевидные access-token/client-secret assignments, персональные `C:\Users\...` пути и случайные generated/runtime artefacts.
-
-Это не Git-history secret audit. История commits/reflog/forks требует отдельного специализированного аудита.
-
-## Real E2E
-
-Реальные Windows builds не запускаются автоматически validation tool.
-
-Минимальная pre-GUI baseline-матрица:
-
-1. Windows 11 x64, ru-RU, Core + Professional, ESD — ранее Confirmed baseline;
-2. Windows 10 x64, Professional, ru-RU/en-US, ESD — Not run до фактической проверки;
-3. Windows 11 x64, одна обычная edition, WIM — Not run до фактической проверки.
-
-Не требуется полный Cartesian product, ARM64/x86 matrix или отдельный многогигабайтный cancellation/resume E2E.
-
-Подробности: `docs/VALIDATION_MATRIX.md`.
-
-## GUI integration boundary
-
-Будущий GUI работает только через:
-
-- `Invoke-WibBackend.ps1`;
-- Backend Contract Schema v1;
-- BuildPlan Schema v1;
-- `RunPreflight`;
-- `ExecuteBuildPlan`;
-- `CancelBuild`;
-- `requestId`;
-- NDJSON event stream;
-- structured error codes.
-
-GUI не вызывает private PowerShell functions, не парсит `Write-Host`, aria2 output или localized error messages.
-
-## Не входит в `0.2.3-alpha.1`
-
-GUI, WPF, WinUI, C#, installer, MSIX, updater, queue, history, profiles, USB writer, Rufus integration, dynamic disk estimator, driver injection, Windows customization/debloat, TPM bypass, activation, custom UUP downloader/converter и GitHub Actions.
+History, profiles, queue, cache-management GUI, updater, installer/MSIX, USB writer/Rufus, full theme/language settings, account/cloud features, Windows customization/debloat, drivers, TPM bypass, activation, custom UUP downloader/converter and GitHub Actions.

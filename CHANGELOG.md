@@ -2,7 +2,53 @@
 
 ## Unreleased
 
-Пока нет изменений после `0.2.3-alpha.1`.
+Пока нет изменений после `0.3.0-alpha.1`.
+
+## 0.3.0-alpha.1 — 2026-08-18
+
+### Added
+
+- first Windows GUI on C# / WPF / .NET 10;
+- Quick Mode for Windows 11 and Windows 10 through Backend Contract `GetRecommendedBuild`;
+- Catalog Mode through `SearchBuilds` with architecture, Preview and servicing display filter;
+- dynamic language and multi-edition selection;
+- ESD/WIM and existing backend build options;
+- GUI preflight, progress, cancellation, success and structured error UX;
+- strongly typed C# Backend Contract v1 client;
+- incremental UTF-8 NDJSON event reader;
+- GUI logging and frontend exception boundary;
+- C# GUI test project and Windows backend integration smokes;
+- `tools/Build-Gui.ps1`;
+- self-contained `win-x64` GUI publishing;
+- packaged GUI backend handshake smoke;
+- GUI architecture documentation in Russian and English.
+
+### Changed
+
+- GUI becomes the recommended interactive user entry point;
+- release package contains the GUI together with the existing PowerShell backend/TUI/CLI;
+- release validation verifies GUI build/test/publish, package contents, backend handshake and package source isolation;
+- release manifest has additive `gui` metadata.
+
+### Compatibility
+
+- ApplicationVersion: `0.3.0-alpha.1`;
+- PowerShell ModuleVersion: `0.3.0`;
+- Backend Contract SchemaVersion remains `1`;
+- BuildPlan SchemaVersion remains `1`;
+- TUI/CLI remain supported;
+- PowerShell backend remains the sole owner of UUP/build/elevation/cancellation workflow.
+
+### Validation status
+
+- C# tests: **NOT RUN** in the agent environment;
+- Pester: **NOT RUN** in the agent environment;
+- PSScriptAnalyzer: **NOT RUN** in the agent environment;
+- PS5.1 smoke: **NOT RUN** in the agent environment;
+- PS7 smoke: **NOT RUN** in the agent environment;
+- Full release validation: **NOT RUN** in the agent environment;
+- manual GUI smoke: **NOT RUN**;
+- real GUI Windows 11 x64 ru-RU Professional ESD E2E: **NOT RUN**.
 
 ## 0.2.3-alpha.1 — 2026-08-18
 
@@ -142,7 +188,7 @@
 ### Validation status
 
 - локальные тесты и PSScriptAnalyzer используются как обязательная автоматическая проверка;
-- подтверждён реальный end-to-end сценарий Windows 11 x64 ru-ru до готового ISO;
+- подтверждён real end-to-end сценарий Windows 11 x64 ru-ru до готового ISO;
 - подтверждён multi-edition сценарий Core + Professional на реальной сборке;
 - отдельный Windows 10 end-to-end, принудительный обрыв сети и полная ручная WIM/ESD-матрица не являются release gates для этой alpha.
 

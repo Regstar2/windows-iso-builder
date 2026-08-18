@@ -13,12 +13,14 @@
         'REQUIREMENTS.md'
         'SECURITY.md'
         'CONTRIBUTING.md'
-        'src'
+        'src\WindowsISOBuilder'
         'docs\ARCHITECTURE.md'
         'docs\IMPLEMENTATION_STATUS.md'
         'docs\SOURCE_V4_MIGRATION.md'
         'docs\BACKEND_CONTRACT.md'
         'docs\BACKEND_CONTRACT_EN.md'
+        'docs\GUI_ARCHITECTURE.md'
+        'docs\GUI_ARCHITECTURE_EN.md'
         'docs\VALIDATION_MATRIX.md'
         'docs\VALIDATION_MATRIX_EN.md'
         'docs\validation'
@@ -29,6 +31,7 @@
     RequiredPackageFiles = @(
         'VERSION'
         'release-manifest.json'
+        'WindowsISOBuilder.exe'
         'Start-Builder.cmd'
         'Start-Builder.ps1'
         'Invoke-WibBackend.ps1'
@@ -39,6 +42,8 @@
         'docs\ARCHITECTURE.md'
         'docs\BACKEND_CONTRACT.md'
         'docs\BACKEND_CONTRACT_EN.md'
+        'docs\GUI_ARCHITECTURE.md'
+        'docs\GUI_ARCHITECTURE_EN.md'
         'docs\VALIDATION_MATRIX.md'
         'docs\VALIDATION_MATRIX_EN.md'
     )
@@ -51,6 +56,8 @@
         'logs'
         'dist'
         'cache'
+        'bin'
+        'obj'
         '.project-rules'
         '.vscode'
         '.idea'
@@ -60,39 +67,7 @@
         '.ai'
     )
 
-    DeniedFileNames = @(
-        '.DS_Store'
-        'Thumbs.db'
-        'validation-result.json'
-    )
-
-    DeniedExtensions = @(
-        '.iso'
-        '.wim'
-        '.esd'
-        '.swm'
-        '.log'
-        '.zip'
-        '.aria2'
-        '.tmp'
-        '.bak'
-        '.user'
-        '.suo'
-        '.secret'
-        '.secrets'
-        '.local'
-    )
-
-    TextScanExtensions = @(
-        '.ps1'
-        '.psm1'
-        '.psd1'
-        '.cmd'
-        '.md'
-        '.json'
-        '.txt'
-        '.yml'
-        '.yaml'
-        '.ini'
-    )
+    DeniedFileNames = @('.DS_Store','Thumbs.db','validation-result.json')
+    DeniedExtensions = @('.iso','.wim','.esd','.swm','.log','.zip','.aria2','.tmp','.bak','.user','.suo','.secret','.secrets','.local')
+    TextScanExtensions = @('.ps1','.psm1','.psd1','.cmd','.md','.json','.txt','.yml','.yaml','.ini','.cs','.csproj','.xaml')
 }

@@ -10,56 +10,40 @@ $ErrorActionPreference = 'Stop'
 
 # Keep this script ASCII-only. Windows PowerShell 5.1 may interpret UTF-8 files
 # without a BOM using the active ANSI code page, which can break parsing.
-$scriptPath = $MyInvocation.MyCommand.Path
-if ([string]::IsNullOrWhiteSpace($scriptPath)) {
-    throw 'Unable to determine the release script path.'
-}
-
-$scriptDirectory = Split-Path -Parent $scriptPath
+$scriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
 $projectRoot = Split-Path -Parent $scriptDirectory
 . (Join-Path $scriptDirectory 'ReleaseValidation.Common.ps1')
 $config = Import-WibReleaseValidationConfig -ProjectRoot $projectRoot
 
-$versionFile = Join-Path $projectRoot 'VERSION'
 if ([string]::IsNullOrWhiteSpace($Version)) {
-    if (-not (Test-Path -LiteralPath $versionFile)) {
-        throw 'Application VERSION file not found.'
-    }
-    $Version = [IO.File]::ReadAllText($versionFile, [Text.Encoding]::ASCII).Trim()
+    $Version = [IO.File]::ReadAllText((Join-Path $projectRoot 'VERSION'), [Text.Encoding]::ASCII).Trim()
 }
-if ([string]::IsNullOrWhiteSpace($Version)) {
-    throw 'Release version is empty.'
-}
-
-if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
-    $OutputDirectory = Join-Path $projectRoot 'dist'
-}
+if ([string]::IsNullOrWhiteSpace($Version)) { throw 'Release version is empty.' }
+if ([string]::IsNullOrWhiteSpace($OutputDirectory)) { $OutputDirectory = Join-Path $projectRoot 'dist' }
 
 $sourceFiles = @(Get-WibReleaseSourceFiles -ProjectRoot $projectRoot -Config $config -Version $Version)
 $sourceFindings = @(Get-WibReleaseSafetyFindings -Files $sourceFiles -Config $config)
-if ($sourceFindings.Count -gt 0) {
-    $paths = @($sourceFindings | ForEach-Object { $_.path } | Sort-Object -Unique)
-    throw ('Release source material failed safety validation: {0}' -f ($paths -join ', '))
-}
+if ($sourceFindings.Count -gt 0) { throw 'Release source material failed safety validation.' }
 
 $outputDirectoryFull = [IO.Path]::GetFullPath($OutputDirectory)
 New-Item -ItemType Directory -Path $outputDirectoryFull -Force | Out-Null
-
 $archiveName = 'windows-iso-builder-v{0}.zip' -f $Version
 $archivePath = Join-Path $outputDirectoryFull $archiveName
 $hashPath = "$archivePath.sha256"
 $stagingRoot = Join-Path ([IO.Path]::GetTempPath()) ('windows-iso-builder-release-{0}' -f [Guid]::NewGuid().ToString('N'))
 $packageRoot = Join-Path $stagingRoot ('windows-iso-builder-v{0}' -f $Version)
+$guiPublishRoot = Join-Path $stagingRoot 'gui-publish'
 $utf8NoBom = New-Object Text.UTF8Encoding($false)
 
 try {
-    New-Item -ItemType Directory -Path $packageRoot -Force | Out-Null
+    New-Item -ItemType Directory -Path $packageRoot,$guiPublishRoot -Force | Out-Null
+
+    & (Join-Path $scriptDirectory 'Build-Gui.ps1') -OutputDirectory $guiPublishRoot
+    if ($LASTEXITCODE -ne 0) { throw ('GUI build/publish failed with exit code {0}.' -f $LASTEXITCODE) }
 
     foreach ($relativePath in (Expand-WibReleaseEntries -Config $config -Version $Version)) {
         $sourcePath = Join-Path $projectRoot $relativePath
-        if (-not (Test-Path -LiteralPath $sourcePath)) {
-            throw ("Release package file not found: {0}" -f $relativePath)
-        }
+        if (-not (Test-Path -LiteralPath $sourcePath)) { throw ('Release package entry is missing: {0}' -f $relativePath) }
         $destinationPath = Join-Path $packageRoot $relativePath
         if ((Get-Item -LiteralPath $sourcePath).PSIsContainer) {
             New-Item -ItemType Directory -Path (Split-Path -Parent $destinationPath) -Force | Out-Null
@@ -71,27 +55,27 @@ try {
         }
     }
 
+    Copy-Item -Path (Join-Path $guiPublishRoot '*') -Destination $packageRoot -Recurse -Force
+
     $manifest = Get-WibReleaseManifestData -ProjectRoot $projectRoot -ApplicationVersion $Version
-    $manifestPath = Join-Path $packageRoot 'release-manifest.json'
-    [IO.File]::WriteAllText($manifestPath, (($manifest | ConvertTo-Json -Depth 5) + [Environment]::NewLine), $utf8NoBom)
+    $manifest.gui = [ordered]@{ included=$true; runtime='win-x64'; selfContained=$true }
+    [IO.File]::WriteAllText((Join-Path $packageRoot 'release-manifest.json'), (($manifest | ConvertTo-Json -Depth 6) + [Environment]::NewLine), $utf8NoBom)
 
     $packageFiles = @(Get-WibFilesUnderRoot -Root $packageRoot)
     $packageFindings = @(Get-WibReleaseSafetyFindings -Files $packageFiles -Config $config)
-    if ($packageFindings.Count -gt 0) {
-        $paths = @($packageFindings | ForEach-Object { $_.path } | Sort-Object -Unique)
-        throw ('Release staging failed safety validation: {0}' -f ($paths -join ', '))
-    }
-
+    if ($packageFindings.Count -gt 0) { throw 'Release staging failed safety validation.' }
     foreach ($requiredPath in @($config.RequiredPackageFiles)) {
         if (-not (Test-Path -LiteralPath (Join-Path $packageRoot ([string]$requiredPath)))) {
-            throw ("Required release file is missing from staging: {0}" -f $requiredPath)
+            throw ('Required release file is missing from staging: {0}' -f $requiredPath)
         }
     }
 
-    Remove-Item -LiteralPath $archivePath -Force -ErrorAction SilentlyContinue
-    Remove-Item -LiteralPath $hashPath -Force -ErrorAction SilentlyContinue
-    Compress-Archive -LiteralPath $packageRoot -DestinationPath $archivePath -CompressionLevel Optimal
+    $guiExe = Join-Path $packageRoot 'WindowsISOBuilder.exe'
+    & $guiExe --backend-smoke
+    if ($LASTEXITCODE -ne 0) { throw ('Packaged GUI backend smoke failed with exit code {0}.' -f $LASTEXITCODE) }
 
+    Remove-Item -LiteralPath $archivePath,$hashPath -Force -ErrorAction SilentlyContinue
+    Compress-Archive -LiteralPath $packageRoot -DestinationPath $archivePath -CompressionLevel Optimal
     $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $archivePath).Hash
     [IO.File]::WriteAllText($hashPath, "$hash  $archiveName`r`n", $utf8NoBom)
 
