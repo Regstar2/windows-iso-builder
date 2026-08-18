@@ -143,6 +143,7 @@ function Invoke-WibPreflight {
     }
 
     foreach ($tool in @(
+        [pscustomobject]@{ Id='tool.cmd'; Name='cmd.exe'; Required=$true },
         [pscustomobject]@{ Id='tool.dism'; Name='dism.exe'; Required=$true },
         [pscustomobject]@{ Id='tool.expandArchive'; Name='Expand-Archive'; Required=$true },
         [pscustomobject]@{ Id='tool.getFileHash'; Name='Get-FileHash'; Required=$true },
@@ -156,7 +157,7 @@ function Invoke-WibPreflight {
             $checks += New-WibPreflightCheck -Id $tool.Id -Status fail -Severity error -Code 'REQUIRED_COMPONENT_MISSING' -Message ('Required component is missing: {0}' -f $tool.Name) -Data ([ordered]@{ component=$tool.Name })
         }
         else {
-            $checks += New-WibPreflightCheck -Id $tool.Id -Status warning -Severity warning -Code 'REQUIRED_COMPONENT_MISSING' -Message ('Optional verification component is unavailable: {0}' -f $tool.Name) -Data ([ordered]@{ component=$tool.Name })
+            $checks += New-WibPreflightCheck -Id $tool.Id -Status warning -Severity warning -Message ('Optional verification component is unavailable: {0}' -f $tool.Name) -Data ([ordered]@{ component=$tool.Name })
         }
     }
 
