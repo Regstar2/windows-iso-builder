@@ -1,7 +1,8 @@
 ﻿$script:WibBackendContractSchemaVersion = 1
 $script:WibBackendCommands = @(
     'GetVersion', 'SearchBuilds', 'GetRecommendedBuild', 'GetLanguages',
-    'GetEditions', 'CreateBuildPlan', 'ValidateBuildPlan', 'ExecuteBuildPlan'
+    'GetEditions', 'CreateBuildPlan', 'ValidateBuildPlan', 'ExecuteBuildPlan',
+    'RunPreflight', 'CancelBuild'
 )
 
 function Test-WibBackendObject {
