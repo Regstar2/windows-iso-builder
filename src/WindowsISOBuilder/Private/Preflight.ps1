@@ -1,6 +1,14 @@
 ﻿$script:WibMinimumCacheFreeBytes = [int64](40GB)
 $script:WibMinimumOutputFreeBytes = [int64](8GB)
 
+function Test-WibWindowsHost { return ($env:OS -eq 'Windows_NT') }
+function Test-Wib64BitHost { return [Environment]::Is64BitOperatingSystem }
+function Get-WibPowerShellRuntimeVersion { return [version]$PSVersionTable.PSVersion }
+function Test-WibPreflightComponent {
+    param([Parameter(Mandatory = $true)][string]$Name)
+    return ($null -ne (Get-Command $Name -ErrorAction SilentlyContinue))
+}
+
 function New-WibPreflightCheck {
     param(
         [Parameter(Mandatory = $true)][string]$Id,
@@ -112,21 +120,21 @@ function Invoke-WibPreflight {
     Assert-WibPlan -Plan $Plan
     $checks = @()
 
-    if ($env:OS -eq 'Windows_NT') {
+    if (Test-WibWindowsHost) {
         $checks += New-WibPreflightCheck -Id 'host.windows' -Status pass -Severity error -Message 'Supported Windows host.'
     }
     else {
         $checks += New-WibPreflightCheck -Id 'host.windows' -Status fail -Severity error -Code 'UNSUPPORTED_HOST' -Message 'ISO build requires Windows 10 or Windows 11.' -Data ([ordered]@{ os=[string]$env:OS })
     }
 
-    if ([Environment]::Is64BitOperatingSystem) {
+    if (Test-Wib64BitHost) {
         $checks += New-WibPreflightCheck -Id 'host.architecture' -Status pass -Severity error -Message '64-bit operating system.'
     }
     else {
         $checks += New-WibPreflightCheck -Id 'host.architecture' -Status fail -Severity error -Code 'UNSUPPORTED_HOST' -Message 'ISO build requires a 64-bit operating system.'
     }
 
-    $powerShellVersion = [version]$PSVersionTable.PSVersion
+    $powerShellVersion = Get-WibPowerShellRuntimeVersion
     if ($powerShellVersion -ge [version]'5.1') {
         $checks += New-WibPreflightCheck -Id 'host.powershell' -Status pass -Severity error -Message ('Compatible PowerShell {0}.' -f $powerShellVersion) -Data ([ordered]@{ version=[string]$powerShellVersion })
     }
@@ -140,8 +148,9 @@ function Invoke-WibPreflight {
         [pscustomobject]@{ Id='tool.getFileHash'; Name='Get-FileHash'; Required=$true },
         [pscustomobject]@{ Id='tool.mountDiskImage'; Name='Mount-DiskImage'; Required=$false }
     )) {
-        if (Get-Command $tool.Name -ErrorAction SilentlyContinue) {
-            $checks += New-WibPreflightCheck -Id $tool.Id -Status pass -Severity $(if ($tool.Required) { 'error' } else { 'warning' }) -Message ('Component is available: {0}' -f $tool.Name) -Data ([ordered]@{ component=$tool.Name })
+        if (Test-WibPreflightComponent -Name $tool.Name) {
+            $severity = if ($tool.Required) { 'error' } else { 'warning' }
+            $checks += New-WibPreflightCheck -Id $tool.Id -Status pass -Severity $severity -Message ('Component is available: {0}' -f $tool.Name) -Data ([ordered]@{ component=$tool.Name })
         }
         elseif ($tool.Required) {
             $checks += New-WibPreflightCheck -Id $tool.Id -Status fail -Severity error -Code 'REQUIRED_COMPONENT_MISSING' -Message ('Required component is missing: {0}' -f $tool.Name) -Data ([ordered]@{ component=$tool.Name })
@@ -175,8 +184,6 @@ function Invoke-WibPreflight {
             $checks += New-WibPreflightCheck -Id 'network.uupApi' -Status pass -Severity warning -Message $network.Message -Data ([ordered]@{ uri=$network.Uri; statusCode=$network.StatusCode })
         }
         else {
-            # The BuildPlan is already complete, so catalog reachability is useful
-            # diagnostics but does not make the local build environment invalid.
             $checks += New-WibPreflightCheck -Id 'network.uupApi' -Status warning -Severity warning -Code 'NETWORK_ERROR' -Message $network.Message -Data ([ordered]@{ uri=$network.Uri; statusCode=$network.StatusCode })
         }
     }
