@@ -1,6 +1,6 @@
 ﻿@{
     RootModule        = 'WindowsISOBuilder.psm1'
-    ModuleVersion     = '0.2.0'
+    ModuleVersion     = '0.2.1'
     GUID              = 'c4e7ccdc-80c0-4a6e-bd43-3e2ae61c8f59'
     Author            = 'Regstar2'
     CompanyName       = 'Community project'
@@ -11,6 +11,7 @@
         'Start-WibInteractive',
         'Start-WibNonInteractive',
         'Invoke-WibPlanFile',
+        'Invoke-WibBackendRequest',
         'Search-WibBuilds',
         'Get-WibLanguages',
         'Get-WibEditions',

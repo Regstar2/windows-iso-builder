@@ -9,6 +9,12 @@ param(
     [ValidateNotNullOrEmpty()]
     [string]$ResultFile,
 
+    [Parameter(ParameterSetName = 'Plan')]
+    [string]$BackendRequestId,
+
+    [Parameter(ParameterSetName = 'Plan')]
+    [string]$BackendEventFile,
+
     [Parameter(ParameterSetName = 'CommandLine')]
     [switch]$NonInteractive,
 
@@ -61,40 +67,26 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 function Write-WibProcessResultFile {
-    param(
-        [Parameter(Mandatory = $true)][string]$Path,
-        [Parameter(Mandatory = $true)]$Value
-    )
-
+    param([Parameter(Mandatory = $true)][string]$Path, [Parameter(Mandatory = $true)]$Value)
     $directory = Split-Path -Parent $Path
-    if ($directory -and -not (Test-Path -LiteralPath $directory)) {
-        New-Item -ItemType Directory -Path $directory -Force | Out-Null
-    }
-
+    if ($directory -and -not (Test-Path -LiteralPath $directory)) { New-Item -ItemType Directory -Path $directory -Force | Out-Null }
     $temporary = '{0}.{1}.tmp' -f $Path, [Guid]::NewGuid().ToString('N')
-    $json = $Value | ConvertTo-Json -Depth 12
+    $json = $Value | ConvertTo-Json -Depth 20
     [IO.File]::WriteAllText($temporary, $json, (New-Object Text.UTF8Encoding($false)))
     Move-Item -LiteralPath $temporary -Destination $Path -Force
 }
 
 function Start-WibExecutionTranscript {
     param([AllowEmptyString()][string]$RequestedPath)
-
     $path = $RequestedPath
     if ([string]::IsNullOrWhiteSpace($path)) {
         $logsDirectory = Join-Path $PSScriptRoot 'logs'
         $fileName = 'execution-{0}-{1}.log' -f (Get-Date -Format 'yyyyMMdd-HHmmss'), $PID
         $path = Join-Path $logsDirectory $fileName
     }
-    elseif (-not [IO.Path]::IsPathRooted($path)) {
-        $path = Join-Path $PSScriptRoot $path
-    }
-
+    elseif (-not [IO.Path]::IsPathRooted($path)) { $path = Join-Path $PSScriptRoot $path }
     $directory = Split-Path -Parent $path
-    if ($directory -and -not (Test-Path -LiteralPath $directory)) {
-        New-Item -ItemType Directory -Path $directory -Force | Out-Null
-    }
-
+    if ($directory -and -not (Test-Path -LiteralPath $directory)) { New-Item -ItemType Directory -Path $directory -Force | Out-Null }
     $fullPath = [IO.Path]::GetFullPath($path)
     Start-Transcript -LiteralPath $fullPath -Force | Out-Null
     return $fullPath
@@ -107,9 +99,7 @@ try {
     $executionTranscriptStarted = $true
     Write-Host ('Лог выполнения: {0}' -f $executionLogPath) -ForegroundColor DarkGray
 }
-catch {
-    Write-Host ('ПРЕДУПРЕЖДЕНИЕ: не удалось запустить лог выполнения: {0}' -f $_.Exception.Message) -ForegroundColor Yellow
-}
+catch { Write-Host ('ПРЕДУПРЕЖДЕНИЕ: не удалось запустить лог выполнения: {0}' -f $_.Exception.Message) -ForegroundColor Yellow }
 
 $exitCode = 0
 try {
@@ -117,107 +107,69 @@ try {
     Import-Module $modulePath -Force
 
     if ($PSCmdlet.ParameterSetName -eq 'Plan') {
-        $buildResult = Invoke-WibPlanFile -Path $PlanFile
+        $planParameters = @{ Path = $PlanFile }
+        if (-not [string]::IsNullOrWhiteSpace($BackendRequestId)) { $planParameters.BackendRequestId = $BackendRequestId }
+        if (-not [string]::IsNullOrWhiteSpace($BackendEventFile)) { $planParameters.BackendEventFile = $BackendEventFile }
+        $buildResult = Invoke-WibPlanFile @planParameters
 
         if (-not [string]::IsNullOrWhiteSpace($ResultFile)) {
-            $stage = 'completed'
-            $logPath = ''
-            $workDirectory = ''
-            $isoPath = ''
-
+            $stage='completed'; $logPath=''; $workDirectory=''; $isoPath=''; $sha256=''; $metadataPath=''
             if ($null -ne $buildResult) {
-                if ($null -ne $buildResult.PSObject.Properties['Stage']) { $stage = [string]$buildResult.Stage }
-                if ($null -ne $buildResult.PSObject.Properties['LogPath']) { $logPath = [string]$buildResult.LogPath }
-                if ($null -ne $buildResult.PSObject.Properties['WorkDirectory']) { $workDirectory = [string]$buildResult.WorkDirectory }
-                if ($null -ne $buildResult.PSObject.Properties['IsoPath']) { $isoPath = [string]$buildResult.IsoPath }
+                if ($null -ne $buildResult.PSObject.Properties['Stage']) { $stage=[string]$buildResult.Stage }
+                if ($null -ne $buildResult.PSObject.Properties['LogPath']) { $logPath=[string]$buildResult.LogPath }
+                if ($null -ne $buildResult.PSObject.Properties['WorkDirectory']) { $workDirectory=[string]$buildResult.WorkDirectory }
+                if ($null -ne $buildResult.PSObject.Properties['IsoPath']) { $isoPath=[string]$buildResult.IsoPath }
+                if ($null -ne $buildResult.PSObject.Properties['Sha256']) { $sha256=[string]$buildResult.Sha256 }
+                if ($null -ne $buildResult.PSObject.Properties['MetadataPath']) { $metadataPath=[string]$buildResult.MetadataPath }
             }
-
             Write-WibProcessResultFile -Path $ResultFile -Value ([ordered]@{
-                success          = $true
-                stage            = $stage
-                message          = ''
-                stackTrace       = ''
-                logPath          = $logPath
-                executionLogPath = $executionLogPath
-                workDirectory    = $workDirectory
-                isoPath          = $isoPath
+                success=$true; errorCode=''; stage=$stage; message=''; stackTrace=''; logPath=$logPath;
+                executionLogPath=$executionLogPath; workDirectory=$workDirectory; isoPath=$isoPath;
+                sha256=$sha256; metadataPath=$metadataPath
             })
         }
     }
     elseif ($NonInteractive) {
-        if ([string]::IsNullOrWhiteSpace($Search)) {
-            throw 'Для неинтерактивного режима требуется параметр -Search.'
-        }
-
+        if ([string]::IsNullOrWhiteSpace($Search)) { throw 'Для неинтерактивного режима требуется параметр -Search.' }
         $parameters = @{
-            Search              = $Search
-            Architecture        = $Architecture
-            Language            = $Language
-            Editions            = $Editions
-            ImageFormat         = $ImageFormat
-            IncludePreview      = $IncludePreview.IsPresent
-            ForceCatalogRefresh = $ForceCatalogRefresh.IsPresent
-            AddUpdates          = -not $NoUpdates.IsPresent
-            Cleanup             = -not $NoCleanup.IsPresent
-            NetFx3              = $NetFx3.IsPresent
+            Search=$Search; Architecture=$Architecture; Language=$Language; Editions=$Editions; ImageFormat=$ImageFormat;
+            IncludePreview=$IncludePreview.IsPresent; ForceCatalogRefresh=$ForceCatalogRefresh.IsPresent;
+            AddUpdates=-not $NoUpdates.IsPresent; Cleanup=-not $NoCleanup.IsPresent; NetFx3=$NetFx3.IsPresent
         }
         if ($PSBoundParameters.ContainsKey('OutputDirectory')) { $parameters.OutputDirectory = $OutputDirectory }
         if ($PSBoundParameters.ContainsKey('CacheDirectory')) { $parameters.CacheDirectory = $CacheDirectory }
-
         Start-WibNonInteractive @parameters
     }
-    else {
-        Start-WibInteractive -ApplicationRoot $PSScriptRoot
-    }
+    else { Start-WibInteractive -ApplicationRoot $PSScriptRoot }
 }
 catch {
     $failure = $_
     $exitCode = 1
-
     if ($PSCmdlet.ParameterSetName -eq 'Plan' -and -not [string]::IsNullOrWhiteSpace($ResultFile)) {
-        $stage = 'startup'
-        $logPath = ''
-        $workDirectory = ''
-
+        $stage='startup'; $logPath=''; $workDirectory=''; $errorCode='BUILD_FAILED'
         try {
-            if ($failure.Exception.Data.Contains('WibStage')) { $stage = [string]$failure.Exception.Data['WibStage'] }
-            if ($failure.Exception.Data.Contains('WibLogPath')) { $logPath = [string]$failure.Exception.Data['WibLogPath'] }
-            if ($failure.Exception.Data.Contains('WibWorkDirectory')) { $workDirectory = [string]$failure.Exception.Data['WibWorkDirectory'] }
+            if ($failure.Exception.Data.Contains('WibStage')) { $stage=[string]$failure.Exception.Data['WibStage'] }
+            if ($failure.Exception.Data.Contains('WibLogPath')) { $logPath=[string]$failure.Exception.Data['WibLogPath'] }
+            if ($failure.Exception.Data.Contains('WibWorkDirectory')) { $workDirectory=[string]$failure.Exception.Data['WibWorkDirectory'] }
+            if ($failure.Exception.Data.Contains('WibErrorCode')) { $errorCode=[string]$failure.Exception.Data['WibErrorCode'] }
         }
-        catch {
-            # Result serialization should still succeed with fallback values.
-        }
-
+        catch { }
         try {
             Write-WibProcessResultFile -Path $ResultFile -Value ([ordered]@{
-                success          = $false
-                stage            = $stage
-                message          = [string]$failure.Exception.Message
-                stackTrace       = [string]$failure.ScriptStackTrace
-                logPath          = $logPath
-                executionLogPath = $executionLogPath
-                workDirectory    = $workDirectory
-                isoPath          = ''
+                success=$false; errorCode=$errorCode; stage=$stage; message=[string]$failure.Exception.Message;
+                stackTrace=[string]$failure.ScriptStackTrace; logPath=$logPath; executionLogPath=$executionLogPath;
+                workDirectory=$workDirectory; isoPath=''; sha256=''; metadataPath=''
             })
         }
-        catch {
-            Write-Host ('Не удалось записать файл результата повышенного процесса: {0}' -f $_.Exception.Message) -ForegroundColor DarkYellow
-        }
+        catch { Write-Host ('Не удалось записать файл результата повышенного процесса: {0}' -f $_.Exception.Message) -ForegroundColor DarkYellow }
     }
-
     Write-Host ''
     Write-Host ('ОШИБКА: {0}' -f $failure.Exception.Message) -ForegroundColor Red
-    if ($failure.ScriptStackTrace) {
-        Write-Host $failure.ScriptStackTrace -ForegroundColor DarkGray
-    }
+    if ($failure.ScriptStackTrace) { Write-Host $failure.ScriptStackTrace -ForegroundColor DarkGray }
 }
 finally {
-    if (-not [string]::IsNullOrWhiteSpace($executionLogPath)) {
-        Write-Host ('Лог выполнения сохранён: {0}' -f $executionLogPath) -ForegroundColor DarkGray
-    }
-    if ($executionTranscriptStarted) {
-        try { Stop-Transcript | Out-Null } catch { }
-    }
+    if (-not [string]::IsNullOrWhiteSpace($executionLogPath)) { Write-Host ('Лог выполнения сохранён: {0}' -f $executionLogPath) -ForegroundColor DarkGray }
+    if ($executionTranscriptStarted) { try { Stop-Transcript | Out-Null } catch { } }
 }
 
 exit $exitCode

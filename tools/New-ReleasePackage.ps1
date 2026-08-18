@@ -1,7 +1,7 @@
 #requires -Version 5.1
 [CmdletBinding()]
 param(
-    [string]$Version = '0.2.0-alpha.1',
+    [string]$Version = '',
     [string]$OutputDirectory = ''
 )
 
@@ -19,6 +19,16 @@ if ([string]::IsNullOrWhiteSpace($scriptPath)) {
 
 $scriptDirectory = Split-Path -Parent $scriptPath
 $projectRoot = Split-Path -Parent $scriptDirectory
+$versionFile = Join-Path $projectRoot 'VERSION'
+if ([string]::IsNullOrWhiteSpace($Version)) {
+    if (-not (Test-Path -LiteralPath $versionFile)) {
+        throw 'Application VERSION file not found.'
+    }
+    $Version = [IO.File]::ReadAllText($versionFile, [Text.Encoding]::ASCII).Trim()
+}
+if ([string]::IsNullOrWhiteSpace($Version)) {
+    throw 'Release version is empty.'
+}
 
 if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
     $OutputDirectory = Join-Path $projectRoot 'dist'
@@ -33,8 +43,10 @@ $stagingRoot = Join-Path ([IO.Path]::GetTempPath()) ('windows-iso-builder-releas
 $packageRoot = Join-Path $stagingRoot ('windows-iso-builder-v{0}' -f $Version)
 
 $runtimeFiles = @(
+    'VERSION',
     'Start-Builder.cmd',
     'Start-Builder.ps1',
+    'Invoke-WibBackend.ps1',
     'README.md',
     'README_EN.md',
     'LICENSE',
@@ -46,19 +58,19 @@ $runtimeFiles = @(
     'docs\ARCHITECTURE.md',
     'docs\IMPLEMENTATION_STATUS.md',
     'docs\SOURCE_V4_MIGRATION.md',
+    'docs\BACKEND_CONTRACT.md',
+    'docs\BACKEND_CONTRACT_EN.md',
     ('docs\releases\v{0}.md' -f $Version),
     ('docs\releases\v{0}_EN.md' -f $Version)
 )
 
 try {
     New-Item -ItemType Directory -Path $packageRoot -Force | Out-Null
-
     foreach ($relativePath in $runtimeFiles) {
         $sourcePath = Join-Path $projectRoot $relativePath
         if (-not (Test-Path -LiteralPath $sourcePath)) {
             throw "Release package file not found: $relativePath"
         }
-
         $destinationPath = Join-Path $packageRoot $relativePath
         if ((Get-Item -LiteralPath $sourcePath).PSIsContainer) {
             New-Item -ItemType Directory -Path (Split-Path -Parent $destinationPath) -Force | Out-Null
@@ -72,7 +84,6 @@ try {
 
     Remove-Item -LiteralPath $archivePath -Force -ErrorAction SilentlyContinue
     Compress-Archive -LiteralPath $packageRoot -DestinationPath $archivePath -CompressionLevel Optimal
-
     $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $archivePath).Hash
     $hashPath = "$archivePath.sha256"
     [IO.File]::WriteAllText($hashPath, "$hash  $archiveName`r`n", (New-Object Text.UTF8Encoding($false)))

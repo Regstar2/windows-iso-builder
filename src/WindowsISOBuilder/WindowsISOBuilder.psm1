@@ -3,18 +3,32 @@ $ErrorActionPreference = 'Stop'
 
 $script:ModuleRoot = $PSScriptRoot
 $script:ProjectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$script:WibVersion = '0.2.0-alpha.1'
+$versionPath = Join-Path $script:ProjectRoot 'VERSION'
+if (-not (Test-Path -LiteralPath $versionPath)) {
+    throw 'Application VERSION file is missing.'
+}
+$script:WibApplicationVersion = [IO.File]::ReadAllText($versionPath, [Text.Encoding]::ASCII).Trim()
+if ([string]::IsNullOrWhiteSpace($script:WibApplicationVersion)) {
+    throw 'Application VERSION file is empty.'
+}
+# Keep the existing script variable as a compatibility alias for current TUI
+# and metadata code while VERSION remains the single application-version source.
+$script:WibVersion = $script:WibApplicationVersion
 
 $privateFiles = @(
     'Private\Common.ps1',
+    'Private\BackendEvents.ps1',
     'Private\Cache.ps1',
     'Private\UupApi.ps1',
     'Private\Plan.ps1',
     'Private\Selection.ps1',
+    'Private\Recommendation.ps1',
     'Private\Builder.ps1',
     'Private\Elevation.ps1',
     'Private\Application.ps1',
-    'Private\ConsoleProgress.ps1'
+    'Private\ConsoleProgress.ps1',
+    'Private\BackendContract.ps1',
+    'Private\BackendCommands.ps1'
 )
 
 foreach ($relativePath in $privateFiles) {
@@ -34,6 +48,7 @@ Export-ModuleMember -Function @(
     'Start-WibInteractive',
     'Start-WibNonInteractive',
     'Invoke-WibPlanFile',
+    'Invoke-WibBackendRequest',
     'Search-WibBuilds',
     'Get-WibLanguages',
     'Get-WibEditions',

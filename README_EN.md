@@ -6,84 +6,75 @@ An interactive UUP dump client for searching, downloading, and building Windows 
 
 [Русский](README.md) · **English**
 
-[Quick start](#quick-start) ·
-[Documentation](#documentation) ·
-[Limitations](#limitations)
+[Quick start](#quick-start) · [Backend Contract](#backend-contract) · [Documentation](#documentation) · [Limitations](#limitations)
 
 </div>
 
 ## About
 
-Windows ISO Builder guides the user through searching for a Windows build and selecting the architecture, language, editions, and installation-image format. The source code does not contain a fixed release catalog: metadata comes from UUP dump, while Windows payload files are downloaded from Microsoft Windows Update/CDN.
+Windows ISO Builder guides the user through searching for a Windows build and selecting architecture, language, editions, and installation-image format. The source code does not contain a fixed Windows release catalog: metadata comes from UUP dump, while Windows payload files are downloaded from Microsoft Windows Update/CDN.
 
-The technical repository and root-directory name is `windows-iso-builder`. The public product name is Windows ISO Builder.
+The technical repository/root-directory name is `windows-iso-builder`; the public product name is Windows ISO Builder.
 
-The project does not replace UUP dump or implement a separate UUP engine. Its purpose is to turn the manual workflow into one interactive process.
+The project does not replace UUP dump or implement a separate UUP engine. It keeps one PowerShell backend for the existing human workflows and now exposes a stable machine-readable adapter over the same backend.
 
 ## Project status
 
-The current version is **`0.2.0-alpha.1`**.
+The current application version is **`0.2.1-alpha.1`**. The PowerShell module manifest version is `0.2.1`. Backend Contract Schema and BuildPlan Schema are independently versioned and both currently equal `1`.
 
-This is a public alpha: the main workflow is implemented, local automated checks pass, and a real Windows 11 x64 ru-ru end-to-end build has been confirmed through a completed ISO. The project is not presented as a stable release and does not claim that every Windows version, edition, and parameter combination has been manually validated.
+`0.2.1-alpha.1` is an architectural alpha preparing the project for a future GUI. **No GUI is implemented in this release.** Existing TUI/CLI behavior, UUP dump workflow, UAC/elevation, caching, and conversion remain in place; a JSON/NDJSON Backend Contract is added for future frontend clients.
 
-See [implementation status](docs/IMPLEMENTATION_STATUS.md) for the detailed validation matrix.
+See [implementation status](docs/IMPLEMENTATION_STATUS.md) for the validation matrix.
 
 ## Features
 
 - dynamic search by release name, build number, or UUP dump title;
-- quick selection of a recommended stable Windows 11 or Windows 10 x64 build without browsing the catalog and without hardcoding a release/build number;
-- Windows 11 quick mode prefers a mainstream stable `YYH2` release over specialized H1 branches when a suitable H2 release is available;
-- paginated browsing for large result sets, including next, previous, and direct page navigation;
-- no fixed catalog of supported Windows versions in the source code;
-- `x64`, `ARM64`, and `x86` filters, with Preview/Insider results hidden by default;
-- dynamic language and edition lists for the selected build;
+- quick selection of a recommended stable Windows 11 or Windows 10 build without hardcoding a release/build number;
+- Windows 11 quick mode prefers a mainstream stable `YYH2` release over specialized H1 branches when appropriate;
+- paginated catalog browsing;
+- Preview/Insider entries hidden by default;
+- dynamic language and edition metadata;
 - one or multiple editions through the UUP dump converter's virtual-edition mechanism;
-- `install.esd` or `install.wim` output;
+- `install.esd` and `install.wim` output;
 - API, conversion-package, and UUP-file caching;
-- reuse of already downloaded files and normal `aria2` resume behavior for incomplete downloads;
-- a compact download/conversion progress bar instead of continuously printing `aria2` output; full converter output is stored in `converter-*.log`;
-- structured elevated-process results instead of reducing failures to a generic `Exit code: 1`;
+- normal `aria2` resume behavior for incomplete downloads;
+- compact console progress with raw converter output kept in `converter-*.log`;
+- structured elevated-process results;
 - separate execution/elevated/converter/build logs;
-- SHA-256 and JSON metadata for the result;
+- SHA-256 and JSON result metadata;
 - ISO structure validation with `Mount-DiskImage` and DISM;
-- interactive TUI and non-interactive PowerShell mode.
+- interactive TUI and non-interactive PowerShell CLI;
+- **Backend Contract v1** with JSON request/response files, NDJSON events, stable error codes, and a dedicated machine entry point.
 
 ## Quick start
 
-1. Download the source or release ZIP and extract it to a local directory.
+1. Download the source or release ZIP and extract it.
 2. Run `Start-Builder.cmd`.
-3. For the normal workflow choose `Find a build and create ISO`; for a recommended stable release choose `Quick download latest Windows`.
-4. In quick mode choose Windows 11 or Windows 10. The application refreshes the catalog and automatically selects a recommended stable x64 build.
-5. Select language, editions, and image format.
-6. Approve UAC before downloading and conversion begin.
+3. Choose the normal catalog workflow or `Quick download latest Windows`.
+4. Select language, editions, and image format.
+5. Approve UAC before download and conversion begin.
 
 Completed files are written to `output/`. The persistent work cache defaults to `C:\UUP-ISO-Work`.
 
 ## Requirements
 
-- Windows 10 or Windows 11 x64;
+- Windows 10 or Windows 11 x64 for an actual ISO build;
 - Windows PowerShell 5.1 or PowerShell 7;
-- administrator rights during download and conversion;
+- administrator rights during download/conversion;
 - at least 35–50 GB of free disk space;
 - access to UUP dump and Microsoft Windows Update/CDN.
 
 ## Usage
 
-In interactive mode, the program collects all parameters before requesting elevation. The selection can therefore be cancelled or changed before a long-running operation starts.
+Interactive mode collects parameters before requesting elevation. Quick mode uses the same reusable recommendation selector now exposed through the Backend Contract. No concrete Windows release/build number is fixed in production code.
 
-Quick mode skips manual catalog browsing. For Windows 11 or Windows 10 it requests a fresh UUP dump catalog, keeps only stable complete x64 Windows builds, and selects a recommended option dynamically. No concrete release or build number is fixed in production code.
+During `uup_download_windows.cmd`, detailed `aria2`/converter output is not used as an API. One existing parser creates normalized progress state: the console renderer displays it to a human, while an optional structured event sink publishes DTOs when `EventFile` is configured. Raw output remains in `output/logs/converter-*.log`.
 
-For Windows 11, a mainstream stable H2 release is preferred over a specialized H1 release with a larger version number. If no suitable H2 release exists, the application falls back to the best stable complete build and displays a warning.
-
-While `uup_download_windows.cmd` runs, detailed `aria2` and converter lines are no longer continuously printed to the console. The application shows one updating progress bar with the current stage, download percentage, and speed when available. Full raw converter output is stored next to the build log in `output/logs/converter-*.log`.
-
-The catalog distinguishes complete Windows build entries from servicing packages. `.NET`, cumulative, OOBE, and similar servicing records are hidden by default so they cannot be selected accidentally as ISO sources.
-
-A repeated run with the same build, language, and base edition uses the existing work directory. `aria2` verifies downloaded files and uses its normal mechanisms to continue incomplete downloads. A dedicated forced network-interruption test is not a release gate for `0.2.0-alpha.1`.
+Repeated runs with the same build, language, and base edition reuse the existing work directory and normal `aria2` resume behavior.
 
 ## Commands
 
-Non-interactive example:
+The existing non-interactive command remains supported:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Start-Builder.ps1 `
@@ -95,44 +86,67 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Start-Builder.ps1 `
   -ImageFormat ESD
 ```
 
-When matching entries exist, this mode prefers a complete Windows build over cumulative/.NET/OOBE servicing packages. Direct UUID selection is not implemented yet.
+### Backend Contract
+
+`Invoke-WibBackend.ps1` is a separate machine entry point and does not replace `Start-Builder.ps1`. Requests and responses use UTF-8 JSON files; optional stage/progress events use UTF-8 NDJSON.
+
+Safe `GetVersion` example:
+
+```powershell
+@'
+{
+  "schemaVersion": 1,
+  "requestId": "smoke-get-version",
+  "command": "GetVersion",
+  "arguments": {}
+}
+'@ | Set-Content -LiteralPath .\request.json -Encoding UTF8
+
+powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
+  -File .\Invoke-WibBackend.ps1 `
+  -RequestFile .\request.json `
+  -ResponseFile .\response.json `
+  -EventFile .\events.ndjson
+
+Get-Content .\response.json -Raw
+```
+
+Backend Contract v1 commands: `GetVersion`, `SearchBuilds`, `GetRecommendedBuild`, `GetLanguages`, `GetEditions`, `CreateBuildPlan`, `ValidateBuildPlan`, and `ExecuteBuildPlan`. See [docs/BACKEND_CONTRACT_EN.md](docs/BACKEND_CONTRACT_EN.md).
 
 ## Architecture
 
-The PowerShell module separates API access, caching, parameter selection, build-plan creation, and converter execution. See the [architecture document](docs/ARCHITECTURE.md) for details.
+The PowerShell backend remains the source of truth for UUP API access, BuildPlan, elevation, caching, and conversion. Backend Contract is an outer adapter over those functions, not a second backend. See [architecture](docs/ARCHITECTURE.md).
 
 ## Security
 
-The program must not disable antivirus protection, UAC, or the machine-wide PowerShell execution policy. The UUP dump package is executed only after its ZIP structure has been validated and is extracted into a tool-owned work directory.
+The tool does not disable antivirus protection, UAC, or system-wide PowerShell execution policy. Backend requests are untrusted input: commands are restricted to an allowlist, `Invoke-Expression` is not used, and JSON is never executed as code.
 
-Public reports must not contain complete UUP URLs, product keys, tokens, or personal paths. See [SECURITY.md](SECURITY.md) for vulnerability reporting guidance.
+Do not publish complete UUP signed URLs, product keys, access tokens, or personal paths. See [SECURITY.md](SECURITY.md).
 
 ## Troubleshooting
 
-After an error, the program keeps logs and displays their locations. Check:
+Human workflows keep their existing detailed logs. Machine clients receive a stable `error.code`; frontend code must not classify errors by localized `error.message` text.
 
-1. access to UUP dump and Microsoft CDN;
-2. free space on the system and work drives;
-3. whether antivirus software blocked `aria2`, DISM, or the converter;
-4. the run's `build-*.log`, `converter-*.log`, execution log, and elevated-process log.
+Check access to UUP dump/Microsoft CDN, free disk space, and the relevant `build-*.log`, `converter-*.log`, execution log, and elevated log.
 
 ## Build
 
-The project does not require compilation. Run the source through `Start-Builder.cmd` or `Start-Builder.ps1`. The PowerShell module is stored in `src/WindowsISOBuilder/`.
+Compilation is not required. Human entry points are `Start-Builder.cmd` and `Start-Builder.ps1`; the machine entry point is `Invoke-WibBackend.ps1`. The PowerShell module is under `src/WindowsISOBuilder/`.
 
 ## Testing
 
-The project uses **local** Pester tests and PSScriptAnalyzer. GitHub Actions are not part of the verification or release process.
+The project uses **local** Pester tests and PSScriptAnalyzer. GitHub Actions are not part of verification or release.
 
 ```powershell
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-Tests.ps1
 Invoke-ScriptAnalyzer -Path . -Recurse -Settings .\.psscriptanalyzer.psd1
 ```
 
-Local tests validate logic and compatibility but do not replace a real ISO build. For `0.2.0-alpha.1`, a real Windows 11 end-to-end scenario is confirmed; Windows 10 and a complete WIM/ESD manual matrix are not required alpha release gates.
+Backend Contract tests mock catalog/build operations and do not download Windows. Real ISO builds remain separate end-to-end validation.
 
 ## Documentation
 
+- [Backend Contract v1](docs/BACKEND_CONTRACT_EN.md)
 - [Requirements](REQUIREMENTS.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Implementation status](docs/IMPLEMENTATION_STATUS.md)
@@ -143,23 +157,19 @@ Local tests validate logic and compatibility but do not replace a real ISO build
 
 ## Credits
 
-UUP dump supplies the catalog, metadata, and conversion package. That package downloads Windows files from Microsoft Windows Update/CDN.
+UUP dump provides catalog metadata and the conversion package. That package downloads Windows files from Microsoft Windows Update/CDN.
 
-This project is not affiliated with Microsoft, does not distribute completed Windows ISO images, does not activate Windows, and does not bypass licensing.
+The project is not affiliated with Microsoft, does not distribute completed Windows ISO images, does not activate Windows, and does not bypass licensing.
 
 ## Limitations
 
-- `0.2.0-alpha.1` is an early release, not a stable version;
-- a Windows 10 end-to-end build is not part of this alpha's mandatory validation;
-- a dedicated forced network-interruption recovery test was not performed as a release gate;
-- WIM and ESD are supported, but a complete manual matrix of both formats is not a release gate;
-- virtual-edition compatibility depends on the selected base edition and UUP dump converter version;
-- the external API and conversion-package format may change;
-- there is no GUI or automatic application updater;
-- non-interactive mode cannot select a UUID directly yet.
+- `0.2.1-alpha.1` is an early architectural release, not a stable version;
+- GUI/WPF/WinUI, updater, USB/Rufus integration, queue/history/profiles, and a full cancellation subsystem are not implemented;
+- Backend Contract v1 is not an HTTP network API; its transport uses local JSON/NDJSON files and a PowerShell process;
+- complete error taxonomy and expanded preflight checks are deferred;
+- UUP dump API/converter formats can change;
+- a complete real-world matrix of Windows versions, languages, editions, and WIM/ESD combinations is not guaranteed.
 
 ## License
 
-Windows ISO Builder's own code is distributed under the [MIT License](LICENSE).
-
-Windows, UUP dump, and third-party tools remain subject to their own licenses and terms. This repository's MIT License does not grant rights to Microsoft components or third-party files that may be downloaded while the tool is running.
+Windows ISO Builder's own code is distributed under the [MIT License](LICENSE). Windows, UUP dump, and third-party tools remain subject to their own licenses and terms.

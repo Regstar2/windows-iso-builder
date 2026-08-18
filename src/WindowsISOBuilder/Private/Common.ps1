@@ -14,6 +14,69 @@ function Write-WibWarning {
     Write-Warning $Message
 }
 
+function New-WibErrorException {
+    param(
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$Code,
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$Message,
+        [string]$Stage = '',
+        [string]$PublicMessage = '',
+        [string]$LogPath = '',
+        [string]$WorkDirectory = '',
+        [AllowNull()]$Details = $null
+    )
+
+    $exception = New-Object System.Exception($Message)
+    $exception.Data['WibErrorCode'] = $Code
+    if (-not [string]::IsNullOrWhiteSpace($Stage)) {
+        $exception.Data['WibStage'] = $Stage
+    }
+    if (-not [string]::IsNullOrWhiteSpace($PublicMessage)) {
+        $exception.Data['WibPublicMessage'] = $PublicMessage
+    }
+    if (-not [string]::IsNullOrWhiteSpace($LogPath)) {
+        $exception.Data['WibLogPath'] = $LogPath
+    }
+    if (-not [string]::IsNullOrWhiteSpace($WorkDirectory)) {
+        $exception.Data['WibWorkDirectory'] = $WorkDirectory
+    }
+    if ($null -ne $Details) {
+        $exception.Data['WibErrorDetails'] = $Details
+    }
+    return $exception
+}
+
+function Set-WibExceptionMetadata {
+    param(
+        [Parameter(Mandatory = $true)][System.Exception]$Exception,
+        [string]$Code = '',
+        [string]$Stage = '',
+        [string]$PublicMessage = '',
+        [string]$LogPath = '',
+        [string]$WorkDirectory = '',
+        [AllowNull()]$Details = $null
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($Code)) {
+        $Exception.Data['WibErrorCode'] = $Code
+    }
+    if (-not [string]::IsNullOrWhiteSpace($Stage)) {
+        $Exception.Data['WibStage'] = $Stage
+    }
+    if (-not [string]::IsNullOrWhiteSpace($PublicMessage)) {
+        $Exception.Data['WibPublicMessage'] = $PublicMessage
+    }
+    if (-not [string]::IsNullOrWhiteSpace($LogPath)) {
+        $Exception.Data['WibLogPath'] = $LogPath
+    }
+    if (-not [string]::IsNullOrWhiteSpace($WorkDirectory)) {
+        $Exception.Data['WibWorkDirectory'] = $WorkDirectory
+    }
+    if ($null -ne $Details) {
+        $Exception.Data['WibErrorDetails'] = $Details
+    }
+    return $Exception
+}
+
 function Get-WibDefaultOutputDirectory {
     if ($script:ProjectRoot) {
         return (Join-Path $script:ProjectRoot 'output')
@@ -76,11 +139,21 @@ function Get-WibSha256Text {
     }
 }
 
+function ConvertTo-WibJsonText {
+    param(
+        [Parameter(Mandatory = $true)]$Value,
+        [int]$Depth = 20,
+        [switch]$Compress
+    )
+
+    return ($Value | ConvertTo-Json -Depth $Depth -Compress:$Compress)
+}
+
 function Write-WibJsonFile {
     param(
         [Parameter(Mandatory = $true)]$Value,
         [Parameter(Mandatory = $true)][string]$Path,
-        [int]$Depth = 12
+        [int]$Depth = 20
     )
 
     $directory = Split-Path -Parent $Path
@@ -89,7 +162,7 @@ function Write-WibJsonFile {
     }
 
     $temporary = '{0}.{1}.tmp' -f $Path, [Guid]::NewGuid().ToString('N')
-    $json = $Value | ConvertTo-Json -Depth $Depth
+    $json = ConvertTo-WibJsonText -Value $Value -Depth $Depth
     [IO.File]::WriteAllText($temporary, $json, (New-Object Text.UTF8Encoding($false)))
     Move-Item -LiteralPath $temporary -Destination $Path -Force
 }

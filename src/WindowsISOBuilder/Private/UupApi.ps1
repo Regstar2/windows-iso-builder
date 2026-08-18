@@ -12,27 +12,16 @@ function ConvertTo-WibQueryString {
 function Get-WibApiErrorText {
     param($ErrorValue)
 
-    if ($null -eq $ErrorValue) {
-        return ''
-    }
-    if ($ErrorValue -is [string]) {
-        return $ErrorValue
-    }
-    try {
-        return ($ErrorValue | ConvertTo-Json -Compress -Depth 8)
-    }
-    catch {
-        return [string]$ErrorValue
-    }
+    if ($null -eq $ErrorValue) { return '' }
+    if ($ErrorValue -is [string]) { return $ErrorValue }
+    try { return ($ErrorValue | ConvertTo-Json -Compress -Depth 8) }
+    catch { return [string]$ErrorValue }
 }
 
 function ConvertFrom-WibApiErrorBody {
     param([AllowNull()][string]$Body)
 
-    if ([string]::IsNullOrWhiteSpace($Body)) {
-        return ''
-    }
-
+    if ([string]::IsNullOrWhiteSpace($Body)) { return '' }
     try {
         $payload = $Body | ConvertFrom-Json
         if ($null -ne $payload.response -and ($payload.response.PSObject.Properties.Name -contains 'error')) {
@@ -40,10 +29,9 @@ function ConvertFrom-WibApiErrorBody {
         }
     }
     catch {
-        # Preserve a non-JSON response because it can still contain a useful
-        # proxy, CDN or server error message.
+        # Preserve a non-JSON response because it can still contain a useful proxy,
+        # CDN or server error message.
     }
-
     return $Body.Trim()
 }
 
@@ -58,28 +46,21 @@ function Get-WibHttpErrorBody {
                 if ($null -ne $response.Content) {
                     $task = $response.Content.ReadAsStringAsync()
                     $content = $task.GetAwaiter().GetResult()
-                    if (-not [string]::IsNullOrWhiteSpace($content)) {
-                        return $content
-                    }
+                    if (-not [string]::IsNullOrWhiteSpace($content)) { return $content }
                 }
             }
             catch {
                 # Windows PowerShell uses WebResponse instead of HttpResponseMessage.
             }
-
             try {
                 $stream = $response.GetResponseStream()
                 if ($null -ne $stream) {
                     $reader = New-Object IO.StreamReader($stream)
                     try {
                         $content = $reader.ReadToEnd()
-                        if (-not [string]::IsNullOrWhiteSpace($content)) {
-                            return $content
-                        }
+                        if (-not [string]::IsNullOrWhiteSpace($content)) { return $content }
                     }
-                    finally {
-                        $reader.Dispose()
-                    }
+                    finally { $reader.Dispose() }
                 }
             }
             catch {
@@ -112,8 +93,8 @@ function Get-WibHttpStatusCode {
             }
         }
         catch {
-            # Some PowerShell and .NET combinations expose a response object
-            # whose StatusCode cannot be converted. Continue through inner errors.
+            # Some PowerShell and .NET combinations expose a response object whose
+            # StatusCode cannot be converted. Continue through inner errors.
         }
         $current = $current.InnerException
     }
@@ -144,9 +125,7 @@ function Invoke-WibApiRequest {
 
     if (-not $ForceRefresh) {
         $cached = Get-WibCachedValue -Path $cachePath -MaximumAgeHours $CacheHours
-        if ($null -ne $cached) {
-            return $cached
-        }
+        if ($null -ne $cached) { return $cached }
     }
 
     $uri = '{0}/{1}.php?{2}' -f $script:UupApiBaseUri, $Endpoint, $query
@@ -154,22 +133,19 @@ function Invoke-WibApiRequest {
     $lastErrorMessage = ''
     $lastStatusCode = $null
     $lastErrorIsRetryable = $true
+    $lastApiErrorCode = ''
 
     for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
         try {
             $response = Invoke-RestMethod -Method Get -Uri $uri -UseBasicParsing -TimeoutSec 120 -Headers @{
-                'User-Agent' = 'WindowsISOBuilder/0.1 (+https://github.com/Regstar2/windows-iso-builder)'
+                'User-Agent' = ('WindowsISOBuilder/{0} (+https://github.com/Regstar2/windows-iso-builder)' -f $script:WibApplicationVersion)
                 'Accept'     = 'application/json'
             }
 
-            if ($null -eq $response.response) {
-                throw 'Ответ UUP dump API не содержит поле response.'
-            }
+            if ($null -eq $response.response) { throw 'Ответ UUP dump API не содержит поле response.' }
             if ($response.response.PSObject.Properties.Name -contains 'error') {
                 $errorText = Get-WibApiErrorText -ErrorValue $response.response.error
-                if (-not [string]::IsNullOrWhiteSpace($errorText)) {
-                    throw "UUP dump API: $errorText"
-                }
+                if (-not [string]::IsNullOrWhiteSpace($errorText)) { throw "UUP dump API: $errorText" }
             }
 
             Save-WibCachedValue -Value $response -Path $cachePath
@@ -179,18 +155,11 @@ function Invoke-WibApiRequest {
             $lastStatusCode = Get-WibHttpStatusCode -Exception $_.Exception
             $errorBody = Get-WibHttpErrorBody -Exception $_.Exception
             $apiErrorText = ConvertFrom-WibApiErrorBody -Body $errorBody
-            $lastErrorMessage = if ([string]::IsNullOrWhiteSpace($apiErrorText)) {
-                $_.Exception.Message
-            }
-            else {
-                'UUP dump API: {0}' -f $apiErrorText
-            }
+            if (-not [string]::IsNullOrWhiteSpace($apiErrorText)) { $lastApiErrorCode = $apiErrorText }
+            $lastErrorMessage = if ([string]::IsNullOrWhiteSpace($apiErrorText)) { $_.Exception.Message } else { 'UUP dump API: {0}' -f $apiErrorText }
             $lastErrorIsRetryable = Test-WibRetryableHttpStatusCode -StatusCode $lastStatusCode
 
-            if (-not $lastErrorIsRetryable) {
-                break
-            }
-
+            if (-not $lastErrorIsRetryable) { break }
             if ($attempt -lt $Attempts) {
                 $delay = [Math]::Min(5 * $attempt, 20)
                 Write-WibWarning "Запрос $Endpoint не выполнен, попытка $attempt/$Attempts. Повтор через $delay с: $lastErrorMessage"
@@ -207,32 +176,29 @@ function Invoke-WibApiRequest {
         }
     }
 
-    if ($null -ne $lastStatusCode) {
-        throw ('Не удалось выполнить запрос UUP dump API {0} (HTTP {1}): {2}' -f $Endpoint, $lastStatusCode, $lastErrorMessage)
+    $stage = if ($Endpoint -eq 'listid') { 'catalog' } else { 'metadata' }
+    $code = if ($lastErrorIsRetryable) { 'UUP_API_UNAVAILABLE' } else { 'UUP_API_ERROR' }
+    $message = if ($null -ne $lastStatusCode) {
+        'Не удалось выполнить запрос UUP dump API {0} (HTTP {1}): {2}' -f $Endpoint, $lastStatusCode, $lastErrorMessage
     }
-    throw ('Не удалось выполнить запрос UUP dump API {0}: {1}' -f $Endpoint, $lastErrorMessage)
+    else {
+        'Не удалось выполнить запрос UUP dump API {0}: {1}' -f $Endpoint, $lastErrorMessage
+    }
+    $exception = New-WibErrorException -Code $code -Message $message -Stage $stage
+    if (-not [string]::IsNullOrWhiteSpace($lastApiErrorCode)) { $exception.Data['WibUupApiError'] = $lastApiErrorCode }
+    throw $exception
 }
 
 function ConvertFrom-WibBuildCollection {
     param($Builds)
 
-    if ($null -eq $Builds) {
-        return @()
-    }
-
-    if ($Builds -is [System.Array]) {
-        return @($Builds)
-    }
-
-    if ($Builds -is [System.Collections.IEnumerable] -and -not ($Builds -is [string]) -and -not ($Builds -is [pscustomobject])) {
-        return @($Builds)
-    }
+    if ($null -eq $Builds) { return @() }
+    if ($Builds -is [System.Array]) { return @($Builds) }
+    if ($Builds -is [System.Collections.IEnumerable] -and -not ($Builds -is [string]) -and -not ($Builds -is [pscustomobject])) { return @($Builds) }
 
     $properties = @($Builds.PSObject.Properties)
     $looksLikeSingleBuild = ($properties.Name -contains 'title') -and ($properties.Name -contains 'build')
-    if ($looksLikeSingleBuild) {
-        return @($Builds)
-    }
+    if ($looksLikeSingleBuild) { return @($Builds) }
 
     return @($properties | ForEach-Object {
         $value = $_.Value
@@ -278,10 +244,7 @@ function Test-WibBuildMatchesSearch {
     $requestedProduct = Get-WibRequestedProduct -Search $normalized
     if (-not [string]::IsNullOrWhiteSpace($requestedProduct)) {
         $actualProduct = Get-WibProductLabel -Title $Title
-        if ($actualProduct -ne $requestedProduct) {
-            return $false
-        }
-
+        if ($actualProduct -ne $requestedProduct) { return $false }
         switch ($requestedProduct) {
             'Windows 10' { $normalized = [regex]::Replace($normalized, '(?i)\bWindows\s+10\b', ' ') }
             'Windows 11' { $normalized = [regex]::Replace($normalized, '(?i)\bWindows\s+11\b', ' ') }
@@ -290,15 +253,10 @@ function Test-WibBuildMatchesSearch {
     }
 
     $remainingTerms = @(($normalized -replace '\s+', ' ').Trim() -split ' ' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-    if ($remainingTerms.Count -eq 0) {
-        return $true
-    }
-
+    if ($remainingTerms.Count -eq 0) { return $true }
     $searchableText = '{0} {1}' -f $Title, $Build
     foreach ($term in $remainingTerms) {
-        if ($searchableText.IndexOf($term, [StringComparison]::OrdinalIgnoreCase) -lt 0) {
-            return $false
-        }
+        if ($searchableText.IndexOf($term, [StringComparison]::OrdinalIgnoreCase) -lt 0) { return $false }
     }
     return $true
 }
@@ -306,24 +264,12 @@ function Test-WibBuildMatchesSearch {
 function Get-WibVersionLabel {
     param([Parameter(Mandatory = $true)][string]$Title)
 
-    # Prefer an explicit Windows release label. Do not infer a release from the
-    # numeric OS build because development builds can have a larger build number
-    # than a newer generally available release (for example 19564 vs 19045).
     $versionMatch = [regex]::Match($Title, '(?i)\bversion\s+(?<version>\d{2}H[12]|\d{4})\b')
-    if ($versionMatch.Success) {
-        return $versionMatch.Groups['version'].Value.ToUpperInvariant()
-    }
-
+    if ($versionMatch.Success) { return $versionMatch.Groups['version'].Value.ToUpperInvariant() }
     $halfMatch = [regex]::Match($Title, '(?i)\b(?<version>\d{2}H[12])\b')
-    if ($halfMatch.Success) {
-        return $halfMatch.Groups['version'].Value.ToUpperInvariant()
-    }
-
+    if ($halfMatch.Success) { return $halfMatch.Groups['version'].Value.ToUpperInvariant() }
     $serverYearMatch = [regex]::Match($Title, '(?i)\bWindows\s+Server\s+(?<version>20\d{2})\b')
-    if ($serverYearMatch.Success) {
-        return $serverYearMatch.Groups['version'].Value
-    }
-
+    if ($serverYearMatch.Success) { return $serverYearMatch.Groups['version'].Value }
     return ''
 }
 
@@ -343,45 +289,40 @@ function Search-WibBuilds {
         $api = Invoke-WibApiRequest -Endpoint 'listid' -Parameters @{ search = $apiSearch; sortByDate = 1 } -CacheDirectory $cache -CacheHours 6 -ForceRefresh:$ForceRefresh
     }
     catch {
-        if ($_.Exception.Message -match 'SEARCH_NO_RESULTS') {
-            return @()
-        }
+        $apiCode = ''
+        try { if ($_.Exception.Data.Contains('WibUupApiError')) { $apiCode = [string]$_.Exception.Data['WibUupApiError'] } } catch { }
+        if ($apiCode -eq 'SEARCH_NO_RESULTS' -or $_.Exception.Message -match 'SEARCH_NO_RESULTS') { return @() }
         throw
     }
     $items = ConvertFrom-WibBuildCollection -Builds $api.response.builds
 
     $result = foreach ($item in $items) {
         if ($null -eq $item) { continue }
-
         $title = [string]$item.title
         $arch = [string]$item.arch
         $build = [string]$item.build
         $uuid = [string]$item.uuid
         $createdSeconds = 0L
-        if ($item.PSObject.Properties.Name -contains 'created') {
-            [long]::TryParse([string]$item.created, [ref]$createdSeconds) | Out-Null
-        }
+        if ($item.PSObject.Properties.Name -contains 'created') { [long]::TryParse([string]$item.created, [ref]$createdSeconds) | Out-Null }
         $isPreview = Test-WibPreviewTitle -Title $title
-
         if ($Architecture -ne 'all' -and $arch -ne $Architecture) { continue }
         if (-not $IncludePreview -and $isPreview) { continue }
         if (-not (Test-WibBuildMatchesSearch -Search $apiSearch -Title $title -Build $build)) { continue }
 
         [pscustomobject]@{
-            Uuid         = $uuid
-            Title        = $title
-            Product      = Get-WibProductLabel -Title $title
+            Uuid = $uuid
+            Title = $title
+            Product = Get-WibProductLabel -Title $title
             VersionLabel = Get-WibVersionLabel -Title $title
-            Build        = $build
+            Build = $build
             BuildVersion = ConvertTo-WibVersion -Build $build
             Architecture = $arch
-            EntryType    = Get-WibBuildEntryType -Title $title
-            Created      = $createdSeconds
-            CreatedAt    = if ($createdSeconds -gt 0) { Get-WibUnixDate -Seconds $createdSeconds } else { $null }
-            IsPreview    = $isPreview
+            EntryType = Get-WibBuildEntryType -Title $title
+            Created = $createdSeconds
+            CreatedAt = if ($createdSeconds -gt 0) { Get-WibUnixDate -Seconds $createdSeconds } else { $null }
+            IsPreview = $isPreview
         }
     }
-
     return @($result | Sort-Object -Property @{ Expression = 'BuildVersion'; Descending = $true }, @{ Expression = 'Created'; Descending = $true })
 }
 
@@ -397,10 +338,7 @@ function Get-WibLanguages {
     $api = Invoke-WibApiRequest -Endpoint 'listlangs' -Parameters @{ id = $UpdateId } -CacheDirectory $cache -CacheHours 24 -ForceRefresh:$ForceRefresh
     $fancy = $api.response.langFancyNames
     if ($null -eq $fancy) { return @() }
-
-    return @($fancy.PSObject.Properties | ForEach-Object {
-        [pscustomobject]@{ Code = $_.Name; Name = [string]$_.Value }
-    } | Sort-Object Code)
+    return @($fancy.PSObject.Properties | ForEach-Object { [pscustomobject]@{ Code = $_.Name; Name = [string]$_.Value } } | Sort-Object Code)
 }
 
 function Get-WibEditions {
@@ -416,8 +354,5 @@ function Get-WibEditions {
     $api = Invoke-WibApiRequest -Endpoint 'listeditions' -Parameters @{ id = $UpdateId; lang = $Language } -CacheDirectory $cache -CacheHours 24 -ForceRefresh:$ForceRefresh
     $fancy = $api.response.editionFancyNames
     if ($null -eq $fancy) { return @() }
-
-    return @($fancy.PSObject.Properties | ForEach-Object {
-        [pscustomobject]@{ Code = $_.Name; Name = [string]$_.Value }
-    } | Sort-Object Code)
+    return @($fancy.PSObject.Properties | ForEach-Object { [pscustomobject]@{ Code = $_.Name; Name = [string]$_.Value } } | Sort-Object Code)
 }

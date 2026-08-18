@@ -2,7 +2,45 @@
 
 ## Unreleased
 
-Пока нет изменений после `0.2.0-alpha.1`.
+Пока нет изменений после `0.2.1-alpha.1`.
+
+## 0.2.1-alpha.1 — 2026-08-18
+
+### Added
+
+- Backend Contract Schema v1 как отдельный машиночитаемый слой над существующим PowerShell backend;
+- ASCII-only `Invoke-WibBackend.ps1` для Windows PowerShell 5.1 и PowerShell 7;
+- UTF-8 JSON request/response transport с атомарной записью final response;
+- optional UTF-8 NDJSON event stream со `stage`, `progress`, `completed`, `failed` и extensible `warning`/`info` events;
+- stable structured error codes: `INVALID_REQUEST`, `UNSUPPORTED_SCHEMA`, `INVALID_COMMAND`, `INVALID_ARGUMENT`, `BUILD_NOT_FOUND`, `LANGUAGE_NOT_FOUND`, `EDITION_NOT_FOUND`, `UUP_API_ERROR`, `UUP_API_UNAVAILABLE`, `INVALID_BUILD_PLAN`, `ELEVATION_FAILED`, `BUILD_FAILED`, `INTERNAL_ERROR`;
+- Backend Contract commands `GetVersion`, `SearchBuilds`, `GetRecommendedBuild`, `GetLanguages`, `GetEditions`, `CreateBuildPlan`, `ValidateBuildPlan`, `ExecuteBuildPlan`;
+- controlled camelCase DTO conversion for builds, languages, editions, build plans, build results, errors and events;
+- Backend Contract/Event Pester tests using mocks instead of real Windows downloads;
+- `docs/BACKEND_CONTRACT.md` and `docs/BACKEND_CONTRACT_EN.md`;
+- release notes for `0.2.1-alpha.1`.
+
+### Changed
+
+- ApplicationVersion is centralized in root `VERSION`; UI, metadata, Backend Contract and HTTP User-Agent now use the same runtime source;
+- module manifest version raised to `0.2.1`; ApplicationVersion remains independently versioned as `0.2.1-alpha.1`;
+- BuildPlan schema version is explicitly independent and remains `1`;
+- quick-mode recommendation logic moved into a reusable service used by both TUI and Backend Contract without hardcoded Windows release/build numbers;
+- converter output parsing now produces normalized progress state consumed by the existing console renderer and the optional structured event sink; no second aria2 parser was added;
+- existing elevated plan/result protocol can forward Backend Contract request/event context while preserving the same build/elevation workflow;
+- UUP API/package User-Agent no longer contains the stale manually maintained `WindowsISOBuilder/0.1` value;
+- release packaging reads its default version from `VERSION` and includes the machine entry point and Backend Contract documentation.
+
+### Compatibility
+
+- existing `Start-Builder.cmd`, `Start-Builder.ps1`, interactive TUI, non-interactive CLI, quick mode, UAC/elevation, console progress, logs, caching and resume behavior are preserved by design;
+- Windows PowerShell 5.1 remains a required target; PowerShell 7 is also supported;
+- no GUI, WPF, WinUI, C# rewrite, updater, USB/Rufus integration, queue/history/profiles, full cancellation subsystem, custom UUP downloader/converter, or GitHub Actions were added.
+
+### Validation status
+
+- Backend Contract tests are designed to run without downloading Windows by mocking external/build operations;
+- release verification still requires the complete local Pester suite, PSScriptAnalyzer and `GetVersion` smoke tests in Windows PowerShell 5.1 and, when available, PowerShell 7;
+- previous real Windows 11 end-to-end build validation belongs to the preserved build pipeline and does not replace current-version automated verification.
 
 ## 0.2.0-alpha.1 — 2026-08-17
 
