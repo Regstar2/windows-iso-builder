@@ -42,10 +42,26 @@ Describe 'v0.2.2 reliability edge cases' {
         }
 
         It 'recognizes Windows ERROR_CANCELLED numerically instead of parsing text' {
-            $exception = New-Object ComponentModel.Win32Exception(1223)
+            $exception = New-Object ComponentModel.Win32Exception -ArgumentList 1223
             Test-WibElevationCancelledException -Exception $exception | Should -BeTrue
             $source = (Get-Command Test-WibElevationCancelledException -ErrorAction Stop).Definition
             $source | Should -Not -Match 'Message.*match|match.*Message'
+        }
+
+        It 'does not overwrite or delete a foreign file that collides with a marker name' {
+            $target = 'foreign-collision'
+            $path = Get-WibCancellationControlPath -RequestId $target -CacheDirectory $TestDrive
+            New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force | Out-Null
+            [IO.File]::WriteAllText($path, 'user-data', (New-Object Text.UTF8Encoding($false)))
+
+            try { Save-WibCancellationRequest -TargetRequestId $target -CacheDirectory $TestDrive -Confirm:$false | Out-Null; throw 'expected' }
+            catch { $_.Exception.Data['WibErrorCode'] | Should -Be 'PATH_NOT_WRITABLE' }
+            [IO.File]::ReadAllText($path) | Should -Be 'user-data'
+
+            Initialize-WibCancellationContext -RequestId $target -CacheDirectory $TestDrive | Out-Null
+            Test-WibCancellationRequested | Should -BeFalse
+            Reset-WibCancellationContext -RemoveControlFile -Confirm:$false
+            Test-Path -LiteralPath $path | Should -BeTrue
         }
     }
 }

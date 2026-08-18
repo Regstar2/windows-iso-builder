@@ -11,10 +11,14 @@ Describe 'Managed process cancellation Windows smoke' {
             $powerShell = Get-WibPowerShellExecutable
             $foreign = Start-Process -FilePath $powerShell -ArgumentList '-NoLogo -NoProfile -Command "Start-Sleep -Seconds 30"' -PassThru
             $markerJob = Start-Job -ScriptBlock {
-                param($Path)
+                param($Path, $RequestHash)
                 Start-Sleep -Milliseconds 800
-                [IO.File]::WriteAllText($Path, '{}', (New-Object Text.UTF8Encoding($false)))
-            } -ArgumentList $context.ControlPath
+                $payload = [ordered]@{
+                    kind='windows-iso-builder-cancel'; schemaVersion=1; requestHash=$RequestHash;
+                    requestedAt=(Get-Date).ToUniversalTime().ToString('o')
+                } | ConvertTo-Json
+                [IO.File]::WriteAllText($Path, $payload, (New-Object Text.UTF8Encoding($false)))
+            } -ArgumentList $context.ControlPath, $context.RequestHash
             try {
                 try {
                     Invoke-WibManagedProcess -FilePath $powerShell -ArgumentList '-NoLogo -NoProfile -Command "Start-Sleep -Seconds 30"' -WorkingDirectory $TestDrive -Stage 'convert' | Out-Null

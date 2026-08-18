@@ -1,9 +1,9 @@
 ﻿$script:WibCancellationContext = [pscustomobject]@{
-    Enabled       = $false
-    RequestId     = ''
-    RequestHash   = ''
+    Enabled        = $false
+    RequestId      = ''
+    RequestHash    = ''
     CacheDirectory = ''
-    ControlPath   = ''
+    ControlPath    = ''
 }
 
 function Get-WibCancellationRequestHash {
@@ -36,6 +36,24 @@ function Get-WibCancellationControlPath {
     return (Get-WibCancellationControlPathFromHash -RequestHash $hash -CacheDirectory $CacheDirectory)
 }
 
+function Test-WibCancellationControlFile {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][ValidatePattern('^[a-fA-F0-9]{64}$')][string]$RequestHash
+    )
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $false }
+    try {
+        $marker = Read-WibJsonFile -Path $Path
+        if ($null -eq $marker) { return $false }
+        if ($null -eq $marker.PSObject.Properties['kind'] -or [string]$marker.kind -ne 'windows-iso-builder-cancel') { return $false }
+        if ($null -eq $marker.PSObject.Properties['schemaVersion'] -or [int]$marker.schemaVersion -ne 1) { return $false }
+        if ($null -eq $marker.PSObject.Properties['requestHash']) { return $false }
+        return ([string]::Equals([string]$marker.requestHash, $RequestHash, [StringComparison]::OrdinalIgnoreCase))
+    }
+    catch { return $false }
+}
+
 function Initialize-WibCancellationContext {
     [CmdletBinding(DefaultParameterSetName = 'RequestId')]
     param(
@@ -48,8 +66,8 @@ function Initialize-WibCancellationContext {
     $hash = if ($PSCmdlet.ParameterSetName -eq 'RequestId') { Get-WibCancellationRequestHash -RequestId $RequestId } else { $RequestHash.ToLowerInvariant() }
     $controlPath = Get-WibCancellationControlPathFromHash -RequestHash $hash -CacheDirectory $cache
 
-    # Never delete an existing marker here. CancelBuild may win the race and
-    # create it before ExecuteBuildPlan finishes initializing its worker.
+    # Never delete an existing valid marker here. CancelBuild may win the race
+    # and create it before ExecuteBuildPlan finishes initializing its worker.
     $script:WibCancellationContext = [pscustomobject]@{
         Enabled        = $true
         RequestId      = if ($PSCmdlet.ParameterSetName -eq 'RequestId') { $RequestId } else { '' }
@@ -70,7 +88,8 @@ function Reset-WibCancellationContext {
 
     $context = $script:WibCancellationContext
     if ($RemoveControlFile -and $context.Enabled -and -not [string]::IsNullOrWhiteSpace([string]$context.ControlPath)) {
-        if ($PSCmdlet.ShouldProcess([string]$context.ControlPath, 'Remove consumed cancellation marker')) {
+        $isOwnedMarker = Test-WibCancellationControlFile -Path ([string]$context.ControlPath) -RequestHash ([string]$context.RequestHash)
+        if ($isOwnedMarker -and $PSCmdlet.ShouldProcess([string]$context.ControlPath, 'Remove consumed cancellation marker')) {
             Remove-Item -LiteralPath ([string]$context.ControlPath) -Force -ErrorAction SilentlyContinue
         }
     }
@@ -89,17 +108,59 @@ function Save-WibCancellationRequest {
     $hash = Get-WibCancellationRequestHash -RequestId $TargetRequestId
     $path = Get-WibCancellationControlPathFromHash -RequestHash $hash -CacheDirectory $CacheDirectory
     $directory = Split-Path -Parent $path
+    $requested = $false
+
     if ($PSCmdlet.ShouldProcess($path, 'Write cancellation request')) {
-        if (-not (Test-Path -LiteralPath $directory)) {
-            New-Item -ItemType Directory -Path $directory -Force | Out-Null
+        try {
+            if (-not (Test-Path -LiteralPath $directory)) {
+                New-Item -ItemType Directory -Path $directory -Force | Out-Null
+            }
+
+            if (Test-Path -LiteralPath $path) {
+                if (-not (Test-WibCancellationControlFile -Path $path -RequestHash $hash)) {
+                    throw (New-WibErrorException -Code 'PATH_NOT_WRITABLE' -Message 'Cancellation control path is occupied by a file that is not owned by Windows ISO Builder.' -Stage 'startup' -PublicMessage 'Cancellation control path is not safe to use.' -Details ([ordered]@{ path=$path }))
+                }
+                $requested = $true
+            }
+            else {
+                $payload = [ordered]@{
+                    kind = 'windows-iso-builder-cancel'
+                    schemaVersion = 1
+                    requestHash = $hash
+                    requestedAt = (Get-Date).ToUniversalTime().ToString('o')
+                }
+                $json = ConvertTo-WibJsonText -Value $payload -Depth 6
+                $bytes = (New-Object Text.UTF8Encoding($false)).GetBytes($json)
+                $stream = $null
+                try {
+                    $stream = [IO.File]::Open($path, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::Read)
+                    $stream.Write($bytes, 0, $bytes.Length)
+                    $stream.Flush()
+                }
+                catch [IO.IOException] {
+                    # Another CancelBuild may have won the CreateNew race. It is
+                    # safe only when the existing file is a valid marker for the
+                    # same target hash; never overwrite an unrelated user file.
+                    if (-not (Test-WibCancellationControlFile -Path $path -RequestHash $hash)) { throw }
+                }
+                finally {
+                    if ($null -ne $stream) { $stream.Dispose() }
+                }
+                if (-not (Test-WibCancellationControlFile -Path $path -RequestHash $hash)) {
+                    throw (New-WibErrorException -Code 'PATH_NOT_WRITABLE' -Message 'Cancellation marker could not be created safely.' -Stage 'startup' -PublicMessage 'Cancellation marker could not be created.' -Details ([ordered]@{ path=$path }))
+                }
+                $requested = $true
+            }
         }
-        Write-WibJsonFile -Path $path -Depth 6 -Value ([ordered]@{
-            schemaVersion = 1
-            requestHash = $hash
-            requestedAt = (Get-Date).ToUniversalTime().ToString('o')
-        })
+        catch {
+            $knownCode = ''
+            try { if ($_.Exception.Data.Contains('WibErrorCode')) { $knownCode = [string]$_.Exception.Data['WibErrorCode'] } } catch { }
+            if (-not [string]::IsNullOrWhiteSpace($knownCode)) { throw }
+            throw (New-WibErrorException -Code 'PATH_NOT_WRITABLE' -Message ('Unable to create cancellation control marker: {0}' -f $_.Exception.Message) -Stage 'startup' -PublicMessage 'Cancellation control path is not writable.' -Details ([ordered]@{ path=$path }))
+        }
     }
-    return [pscustomobject]@{ Requested=$true; TargetRequestId=$TargetRequestId; ControlPath=$path }
+
+    return [pscustomobject]@{ Requested=$requested; TargetRequestId=$TargetRequestId; ControlPath=$path }
 }
 
 function Test-WibCancellationRequested {
@@ -107,7 +168,7 @@ function Test-WibCancellationRequested {
     if (-not $context.Enabled -or [string]::IsNullOrWhiteSpace([string]$context.ControlPath)) {
         return $false
     }
-    return (Test-Path -LiteralPath ([string]$context.ControlPath))
+    return (Test-WibCancellationControlFile -Path ([string]$context.ControlPath) -RequestHash ([string]$context.RequestHash))
 }
 
 function New-WibCancellationException {
