@@ -23,8 +23,9 @@ Describe 'Release package validation' {
         Test-Path -LiteralPath $script:zipPath -PathType Leaf | Should -BeTrue
         Test-Path -LiteralPath $script:checksumPath -PathType Leaf | Should -BeTrue
         $checksumText = [IO.File]::ReadAllText($script:checksumPath, [Text.Encoding]::UTF8)
-        $checksumText | Should -Match '^([A-Fa-f0-9]{64})\s+'
-        $expectedHash = $matches[1].ToUpperInvariant()
+        $checksumMatch = [regex]::Match($checksumText, '^([A-Fa-f0-9]{64})\s+')
+        $checksumMatch.Success | Should -BeTrue
+        $expectedHash = $checksumMatch.Groups[1].Value.ToUpperInvariant()
         (Get-FileHash -LiteralPath $script:zipPath -Algorithm SHA256).Hash.ToUpperInvariant() | Should -Be $expectedHash
 
         Add-Type -AssemblyName System.IO.Compression.FileSystem
