@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Windows;
-using System.Windows.Forms;
 using System.Windows.Input;
+using Microsoft.Win32;
 using WindowsISOBuilder.Gui.ViewModels;
 
 namespace WindowsISOBuilder.Gui;
@@ -28,15 +28,15 @@ public partial class MainWindow : Window
 
     private void Browse_Click(object sender, RoutedEventArgs e)
     {
-        using var dialog = new FolderBrowserDialog
+        var dialog = new OpenFolderDialog
         {
-            Description = "Каталог для ISO",
-            UseDescriptionForTitle = true,
-            SelectedPath = ViewModel.OutputDirectory
+            InitialDirectory = ViewModel.OutputDirectory,
+            Multiselect = false
         };
-        if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+
+        if (dialog.ShowDialog(this) == true)
         {
-            ViewModel.OutputDirectory = dialog.SelectedPath;
+            ViewModel.OutputDirectory = dialog.FolderName;
         }
     }
 
