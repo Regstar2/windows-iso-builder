@@ -138,7 +138,7 @@ function Get-WibReleaseSafetyFindings {
     )
     $privateKeyPattern = '-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----'
     $credentialAssignmentPattern = '(?im)\b(?:access[_-]?token|client[_-]?secret)\b\s*[:=]\s*["''][^"'']{8,}["'']'
-    $personalPathPattern = '(?i)C:\\Users\\(?!Example(?:\\|$)|<[^>]+>(?:\\|$))[^\\\r\n]+'
+    $personalPathPattern = '(?i)C:\\Users\\(?!(?:Example|<[^>]+>|\.\.\.)(?:\\|\s|$))[^\\\r\n]+'
 
     foreach ($file in @($Files)) {
         $relativePath = [string]$file.RelativePath
