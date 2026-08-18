@@ -70,6 +70,32 @@ function Get-WibBackendString {
     return $text
 }
 
+function Get-WibBackendTimestamp {
+    param(
+        [Parameter(Mandatory = $true)]$Object,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [string]$Default = '',
+        [string]$Code = 'INVALID_ARGUMENT',
+        [string]$Stage = 'plan'
+    )
+
+    if (-not (Test-WibBackendProperty -Object $Object -Name $Name)) {
+        return $Default
+    }
+
+    $value = Get-WibBackendProperty -Object $Object -Name $Name
+    if ($value -is [datetime]) {
+        return ([datetime]$value).ToUniversalTime().ToString('o')
+    }
+    if ($value -is [string]) {
+        $text = ([string]$value).Trim()
+        if ([string]::IsNullOrWhiteSpace($text)) { return $Default }
+        return $text
+    }
+
+    Throw-WibBackendError -Code $Code -Message ("Argument '{0}' must be a string or date-time." -f $Name) -Stage $Stage
+}
+
 function Get-WibBackendBoolean {
     param($Object, [string]$Name, [bool]$Default, [string]$Code = 'INVALID_ARGUMENT', [string]$Stage = 'startup')
     if (-not (Test-WibBackendProperty -Object $Object -Name $Name)) { return $Default }
@@ -188,10 +214,13 @@ function ConvertFrom-WibBuildDto {
 
 function ConvertTo-WibBuildPlanDto {
     param($Plan)
+    $createdAt = Get-WibBackendProperty $Plan 'CreatedAt'
+    if ($createdAt -is [datetime]) { $createdAt = ([datetime]$createdAt).ToUniversalTime().ToString('o') }
+    elseif ($null -ne $createdAt) { $createdAt = [string]$createdAt }
     return [pscustomobject][ordered]@{
         schemaVersion = [int](Get-WibBackendProperty $Plan 'SchemaVersion')
         applicationVersion = [string](Get-WibBackendProperty $Plan 'ApplicationVersion')
-        createdAt = [string](Get-WibBackendProperty $Plan 'CreatedAt')
+        createdAt = $createdAt
         build = ConvertTo-WibBuildDto (Get-WibBackendProperty $Plan 'Build')
         language = [string](Get-WibBackendProperty $Plan 'Language')
         editions = @((Get-WibBackendProperty $Plan 'Editions'))
@@ -225,7 +254,7 @@ function ConvertFrom-WibBuildPlanDto {
     return [pscustomobject][ordered]@{
         SchemaVersion = [int]$schema
         ApplicationVersion = Get-WibBackendString $Plan 'applicationVersion' $script:WibApplicationVersion -Code $code -Stage 'plan'
-        CreatedAt = Get-WibBackendString $Plan 'createdAt' (Get-Date).ToString('o') -Code $code -Stage 'plan'
+        CreatedAt = Get-WibBackendTimestamp $Plan 'createdAt' (Get-Date).ToUniversalTime().ToString('o') -Code $code -Stage 'plan'
         Build = $build
         Language = $language
         Editions = @($editions)
