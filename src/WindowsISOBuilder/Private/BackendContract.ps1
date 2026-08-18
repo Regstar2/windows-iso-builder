@@ -133,7 +133,7 @@ function Get-WibBackendStringArray {
     }
     $result = @($result | Select-Object -Unique)
     if ($result.Count -eq 0) { Throw-WibBackendError -Code $Code -Message ("Argument '{0}' must not be empty." -f $Name) -Stage $Stage }
-    return $result
+    return ,$result
 }
 
 function Resolve-WibBackendPath {
