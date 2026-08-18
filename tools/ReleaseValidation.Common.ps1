@@ -138,9 +138,10 @@ function Get-WibReleaseSafetyFindings {
     )
     $privateKeyPattern = '-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----'
     $credentialAssignmentPattern = '(?im)\b(?:access[_-]?token|client[_-]?secret)\b\s*[:=]\s*["''][^"'']{8,}["'']'
-    # Ignore obvious documentation placeholders immediately after C:\Users\.
-    # Anything else is treated as a potentially personal absolute path.
-    $personalPathPattern = '(?i)C:\\Users\\(?!(?:Example|<[^>]+>|\.\.\.))[^\\\r\n]+'
+    # Build the Windows user-profile path expression from fragments so the
+    # safety scanner does not match its own implementation text.
+    $personalPathPrefix = 'C:' + '\\Users\\'
+    $personalPathPattern = '(?i)' + $personalPathPrefix + '(?!(?:Example|<[^>]+>|\.\.\.))[^\\\r\n]+'
 
     foreach ($file in @($Files)) {
         $relativePath = [string]$file.RelativePath
