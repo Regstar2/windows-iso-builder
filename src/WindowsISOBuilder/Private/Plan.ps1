@@ -88,7 +88,7 @@ function Read-WibPlan {
     param([Parameter(Mandatory = $true)][string]$Path)
     $plan = Read-WibJsonFile -Path $Path
     if ($null -eq $plan) {
-        throw (New-WibErrorException -Code 'INVALID_BUILD_PLAN' -Message "Файл плана не найден: $Path" -Stage 'plan')
+        throw (New-WibErrorException -Code 'INVALID_BUILD_PLAN' -Message "Файл плана не найден: $Path" -Stage 'startup')
     }
     Assert-WibPlan -Plan $plan
     return $plan
