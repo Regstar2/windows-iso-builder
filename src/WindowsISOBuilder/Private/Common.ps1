@@ -149,6 +149,19 @@ function ConvertTo-WibJsonText {
     return ($Value | ConvertTo-Json -Depth $Depth -Compress:$Compress)
 }
 
+function Resolve-WibFileSystemPath {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $expanded = [Environment]::ExpandEnvironmentVariables($Path)
+    try {
+        $providerPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($expanded)
+        return [IO.Path]::GetFullPath($providerPath)
+    }
+    catch {
+        return [IO.Path]::GetFullPath($expanded)
+    }
+}
+
 function Write-WibJsonFile {
     param(
         [Parameter(Mandatory = $true)]$Value,
@@ -156,20 +169,25 @@ function Write-WibJsonFile {
         [int]$Depth = 20
     )
 
-    $directory = Split-Path -Parent $Path
-    if ($directory -and -not (Test-Path -LiteralPath $directory)) {
-        New-Item -ItemType Directory -Path $directory -Force | Out-Null
+    # System.IO APIs do not understand PowerShell provider paths such as
+    # TestDrive:\. Resolve them first while keeping normal/8.3 filesystem paths
+    # out of the PowerShell provider move implementation that previously failed
+    # for a Cyrillic user profile represented through its short DOS alias.
+    $targetPath = Resolve-WibFileSystemPath -Path $Path
+    $directory = Split-Path -Parent $targetPath
+    if ($directory -and -not [IO.Directory]::Exists($directory)) {
+        [IO.Directory]::CreateDirectory($directory) | Out-Null
     }
 
-    $temporary = '{0}.{1}.tmp' -f $Path, [Guid]::NewGuid().ToString('N')
+    $temporary = '{0}.{1}.tmp' -f $targetPath, [Guid]::NewGuid().ToString('N')
     $json = ConvertTo-WibJsonText -Value $Value -Depth $Depth
     try {
         [IO.File]::WriteAllText($temporary, $json, (New-Object Text.UTF8Encoding($false)))
-        if ([IO.File]::Exists($Path)) {
-            [IO.File]::Replace($temporary, $Path, $null)
+        if ([IO.File]::Exists($targetPath)) {
+            [IO.File]::Replace($temporary, $targetPath, $null)
         }
         else {
-            [IO.File]::Move($temporary, $Path)
+            [IO.File]::Move($temporary, $targetPath)
         }
     }
     finally {
