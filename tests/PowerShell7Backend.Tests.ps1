@@ -9,6 +9,7 @@ Describe 'PowerShell 7 Backend Contract compatibility' {
         }
 
         $projectRoot = Split-Path -Parent $PSScriptRoot
+        $expectedApplicationVersion = [IO.File]::ReadAllText((Join-Path $projectRoot 'VERSION'), [Text.Encoding]::ASCII).Trim()
         $entryScript = Join-Path $projectRoot 'Invoke-WibBackend.ps1'
         $smokeRoot = Join-Path ([IO.Path]::GetTempPath()) ('wib-ps7-test-' + [Guid]::NewGuid().ToString('N'))
         $cache = Join-Path $smokeRoot 'cache'
@@ -36,13 +37,13 @@ Describe 'PowerShell 7 Backend Contract compatibility' {
             }
             $version = $versionText | ConvertFrom-Json
             $version.success | Should -BeTrue
-            $version.applicationVersion | Should -Be '0.2.2-alpha.1'
+            $version.applicationVersion | Should -Be $expectedApplicationVersion
 
             $preflightRequest = Join-Path $smokeRoot 'preflight-request.json'
             $preflightResponse = Join-Path $smokeRoot 'preflight-response.json'
             $plan = [ordered]@{
                 schemaVersion = 1
-                applicationVersion = '0.2.2-alpha.1'
+                applicationVersion = $expectedApplicationVersion
                 createdAt = (Get-Date).ToUniversalTime().ToString('o')
                 build = [ordered]@{
                     uuid = '00000000-0000-0000-0000-000000000000'

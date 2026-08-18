@@ -2,10 +2,10 @@
 
 ## Текущая версия
 
-`0.2.2-alpha.1` — второй архитектурный release перед GUI.
+`0.2.3-alpha.1` — последний backend-focused validation release перед GUI.
 
-- ApplicationVersion: `0.2.2-alpha.1`;
-- ModuleVersion: `0.2.2`;
+- ApplicationVersion: `0.2.3-alpha.1`;
+- ModuleVersion: `0.2.3`;
 - Backend Contract SchemaVersion: `1`;
 - BuildPlan SchemaVersion: `1`.
 
@@ -19,89 +19,118 @@ GUI намеренно отсутствует.
 - TUI, non-interactive CLI and quick mode;
 - BuildPlan Schema v1;
 - WIM/ESD and virtual editions;
-- existing UAC/elevation JSON plan/result protocol;
+- UAC/elevation JSON plan/result protocol;
 - API/package/UUP cache and aria2 resume;
 - compact console progress and converter/build/elevated/execution logs;
 - SHA-256, result metadata and ISO validation;
 - Backend Contract v1 JSON request/response and NDJSON events;
 - controlled DTOs and requestId propagation;
+- reusable preflight, structured errors and cooperative cancellation;
+- managed PID-rooted process-tree termination;
 - Windows PowerShell 5.1 / PowerShell 7 compatible control code;
-- local Pester/PSScriptAnalyzer workflow without GitHub Actions.
+- local validation workflow without GitHub Actions.
 
-## Реализовано в `0.2.2-alpha.1`
+## Реализовано в `0.2.3-alpha.1`
 
-- reusable `Invoke-WibPreflight` engine;
-- Backend command `RunPreflight`;
-- aggregated structured preflight report;
-- host/PowerShell/tool/path/write/disk checks;
-- optional official UUP dump API online check;
-- warning-vs-fatal semantics;
-- local preflight before UAC;
-- authoritative re-check in the build worker;
-- centralized 40 GiB cache/work and 8 GiB output minimums;
-- expanded structured error taxonomy and controlled `error.details`;
-- source-level error classification without localized message parsing;
-- cooperative cancellation helpers and cancellable retry delays;
-- Backend command `CancelBuild`;
-- SHA-256-derived cancellation control path;
-- cancel-before-worker race preservation;
-- runtime cancellation forwarding through elevation;
-- managed UUP child process execution with PID-rooted tree termination;
-- `BUILD_CANCELLED` and numeric `ELEVATION_CANCELLED` handling;
-- distinct cancelled job state and `cancelled` event;
-- cache/work preservation after cancel so aria2 resume remains possible;
-- mandatory mock-based reliability tests plus optional Windows dummy process-tree smoke test.
+| Элемент | Статус |
+|---|---|
+| Unified release validation workflow | Implemented / Automated-ready |
+| Machine-readable validation report | Implemented / Automated-ready |
+| Backend Contract v1 semantic regression | Implemented / Automated-ready |
+| Baseline command regression | Implemented / Automated-ready |
+| Required success/error envelope regression | Implemented / Automated-ready |
+| Build/Preflight/BuildResult/Event DTO regression | Implemented / Automated-ready |
+| Controlled structured-error failure injection | Implemented / Automated-ready |
+| BuildPlan v1 fixture + round-trip/Validate regression | Implemented / Automated-ready |
+| Centralized release allowlist/denylist | Implemented / Automated-ready |
+| Generated `release-manifest.json` | Implemented / Automated-ready |
+| ZIP checksum/open/content validation | Implemented / Automated-ready |
+| Extracted-package module/backend smoke | Implemented / Automated-ready |
+| Source-checkout leakage guard | Implemented / Automated-ready |
+| Current tracked-tree obvious-secret/personal-path scan | Implemented / Automated-ready |
+| Release-package safety scan | Implemented / Automated-ready |
+| Validation matrix RU/EN | Implemented |
+| GUI integration boundary/freeze | Documented |
+
+`Automated-ready` означает, что code/tests существуют и должны запускаться локальным PowerShell validation entry point. Это не равно фактическому PASS в среде, где PowerShell tests не были выполнены.
 
 ## Backend Contract v1 commands
 
 `GetVersion`, `SearchBuilds`, `GetRecommendedBuild`, `GetLanguages`, `GetEditions`, `CreateBuildPlan`, `ValidateBuildPlan`, `ExecuteBuildPlan`, `RunPreflight`, `CancelBuild`.
 
-## Compatibility guarantees
+После `v0.2.3` этот command set, required envelope/DTO fields и BuildPlan Schema v1 являются baseline первого GUI. Additive optional fields остаются допустимыми. Breaking change требует SchemaVersion 2.
 
-- SchemaVersion stays `1`;
-- BuildPlan Schema stays `1`;
-- new commands/error codes/optional properties are additive;
-- BuildPlan does not acquire cancellation/event fields;
-- existing public TUI/CLI entry points remain;
-- converter output still passes through the existing normalized progress parser;
-- cache key/resume behavior remains based on build/language/source edition, not request id.
+## Validation status vocabulary
 
-## Validation requirements for this branch/release
+Используются статусы:
 
-Must be executed on Windows before release:
+- **Automated** — проверяется validation workflow;
+- **Manual** — требует действия владельца;
+- **Confirmed** — фактически выполнено и подтверждено;
+- **Not run** — не выполнялось;
+- **Not required** — не является gate этой версии;
+- **Skipped** — optional check недоступен в текущей среде.
 
-```powershell
-powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-Tests.ps1
+Подробная матрица: `docs/VALIDATION_MATRIX.md`.
 
-$issues = @(Invoke-ScriptAnalyzer `
-  -Path . `
-  -Recurse `
-  -Settings .\.psscriptanalyzer.psd1)
-```
+## Реальный E2E baseline
 
-Also required: `GetVersion`, `RunPreflight`, controlled cancellation smoke through `Invoke-WibBackend.ps1`, and equivalent safe smokes in `pwsh` when available.
+| Scenario | Status | Comment |
+|---|---|---|
+| Windows 11 x64 ru-RU Core + Professional ESD | Confirmed baseline | ранее фактически завершён до ISO на сохранённом pipeline; не выдаётся за новый v0.2.3 run |
+| Windows 10 x64 Professional ESD | Not run | требуется отдельная реальная ручная сборка |
+| Windows 11 x64 single-edition WIM | Not run | требуется отдельная реальная ручная сборка |
+| ARM64/x86 full matrix | Not required | вне pre-GUI baseline |
+| multi-GB cancel/resume E2E | Not required | existing controlled/mocked cancellation coverage достаточна для этого release |
 
-## Не реализовано намеренно
+## Release package validation
+
+Package validation считается отдельным от source validation и проверяет:
+
+- ZIP существует/открывается;
+- SHA-256 checksum совпадает;
+- logical file set соответствует central allowlist;
+- denied/generated files отсутствуют;
+- `release-manifest.json` соответствует VERSION/module/schema versions;
+- package распаковывается в Temp;
+- `Start-Builder.ps1` синтаксически валиден;
+- `WindowsISOBuilder` импортируется из extract root, а не source checkout;
+- packaged Backend `GetVersion` и offline `RunPreflight` работают;
+- package safety scan не находит obvious secrets/personal paths.
+
+## Validation tool policy
+
+`tools/Invoke-ReleaseValidation.ps1` по умолчанию выполняет Quick safe validation. `-Full` добавляет package smoke, strict analyzer requirement, PS7 smoke when available и controlled process-tree smoke.
+
+Ни один обычный mode не скачивает UUP set, не собирает реальный ISO и не требует UAC.
+
+`validation-result.json` — generated developer artifact и игнорируется Git.
+
+## Намеренно не реализовано
 
 - GUI;
 - WPF/WinUI;
 - C# rewrite;
-- installer/updater;
-- queue;
-- history;
-- profiles;
+- installer/MSIX/updater;
+- queue/history/profiles;
 - USB writer/Rufus integration;
-- auto-download updates;
 - dynamic disk estimator;
+- driver injection/customization/debloat/TPM bypass/activation;
 - custom UUP API/downloader/converter;
-- GitHub Actions;
-- full Windows 10/11 E2E matrix.
+- GitHub Actions.
 
 ## Известные ограничения
 
-- Backend Contract transport remains local process + JSON/NDJSON files;
-- online preflight only checks UUP dump API reachability and does not validate Microsoft CDN or download a UUP set;
-- `Mount-DiskImage` absence limits deep post-build validation but is non-fatal;
-- task-tree termination relies on Windows `taskkill /T /F` for PS5.1-compatible descendant cleanup;
-- an unconsumed cancellation marker can remain if `CancelBuild` targets an operation that is never started; request ids are required to be unique;
-- full real Windows matrix remains a later validation release task.
+- Backend Contract transport остаётся local process + JSON/NDJSON files;
+- external UUP dump API/conversion package может измениться;
+- safety scan проверяет текущие tracked files/package, но не Git history;
+- real Windows 10 E2E и real Windows 11 WIM baseline остаются `Not run`, пока владелец не выполнит их фактически;
+- package/full validation требует Windows PowerShell 5.1 и локальных Pester/PSScriptAnalyzer dependencies согласно выбранному mode.
+
+## Backend ready for GUI
+
+**YES — как интерфейсный/архитектурный baseline.**
+
+GUI должен опираться на `Invoke-WibBackend.ps1`, Backend Contract Schema v1, BuildPlan Schema v1, `RunPreflight`, `ExecuteBuildPlan`, `CancelBuild`, `requestId`, NDJSON events и structured error codes.
+
+Перед merge/release владелец всё равно должен фактически выполнить локальный Windows validation workflow; отсутствие этого запуска не является причиной перепроектировать backend, но является release-validation gate.

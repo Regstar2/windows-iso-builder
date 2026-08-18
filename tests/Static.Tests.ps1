@@ -70,7 +70,8 @@ Describe 'Repository safety rules' {
     }
 
     It 'keeps generated output and cache out of Git' {
-        $gitignore = Get-Content -LiteralPath (Join-Path $script:RepositoryRoot '.gitignore') -Raw
+        $gitignore = Get-Content -LiteralPath (Join-Path $script:RepositoryRoot '.gitignore') -Raw -Encoding UTF8
+        $gitignore = $gitignore -replace "`r`n?", "`n"
         $gitignore | Should -Match '(?m)^output/$'
         $gitignore | Should -Match '(?m)^\.private/$'
         $gitignore | Should -Match '(?m)^/AGENTS\.md$'

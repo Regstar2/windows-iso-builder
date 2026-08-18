@@ -2,7 +2,42 @@
 
 ## Unreleased
 
-Пока нет изменений после `0.2.2-alpha.1`.
+Пока нет изменений после `0.2.3-alpha.1`.
+
+## 0.2.3-alpha.1 — 2026-08-18
+
+### Added
+
+- unified release validation tool;
+- structured validation report;
+- release package smoke;
+- Backend Contract compatibility regression tests;
+- BuildPlan v1 fixture/regression;
+- release manifest;
+- validation matrix;
+- release tree/package safety scan.
+
+### Changed
+
+- release packaging is self-validated;
+- source validation and package validation are explicitly separate;
+- backend integration boundary is frozen as GUI baseline;
+- validation claims are separated from implementation claims.
+
+### Compatibility
+
+- Backend Contract SchemaVersion `1`;
+- BuildPlan SchemaVersion `1`;
+- TUI/CLI unchanged;
+- PS5.1/PS7 support unchanged.
+
+### Validation status
+
+- automated/controlled validation implementation is complete in the branch;
+- Windows 10 real E2E: **NOT RUN**;
+- Windows 11 single-edition WIM real E2E: **NOT RUN**;
+- Windows 11 x64 ru-RU Core + Professional ESD remains a previously confirmed baseline and is not represented as a new v0.2.3 run;
+- exact current execution results must come from the local Windows validation workflow and must never be simulated.
 
 ## 0.2.2-alpha.1 — 2026-08-18
 
