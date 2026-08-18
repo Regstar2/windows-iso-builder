@@ -1,4 +1,5 @@
 output/
+dist/
 .private/
 *.iso
 *.wim
@@ -7,6 +8,7 @@ output/
 *.log
 *.zip
 *.aria2
+validation-result*.json
 TestResults/
 .vscode/
 .idea/

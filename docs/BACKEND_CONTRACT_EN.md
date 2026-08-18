@@ -2,18 +2,18 @@
 
 ## Purpose
 
-Backend Contract is a stable machine-readable adapter over the existing Windows ISO Builder PowerShell backend. It is intended for future frontend/GUI automation and does not depend on `Write-Host`, `Write-Progress`, transcripts, localized exception text, or raw converter output.
+Backend Contract is the stable machine-readable adapter over the existing Windows ISO Builder PowerShell backend. It is intended for automation and the future GUI and does not depend on `Write-Host`, `Write-Progress`, transcripts, localized exception text, or raw converter output.
 
 Transport remains local: UTF-8 JSON request/response files, optional UTF-8 NDJSON events, and a separate PowerShell process. There is no HTTP/RPC server.
 
 ## Versions
 
-- ApplicationVersion: `0.2.2-alpha.1`;
-- ModuleVersion: `0.2.2`;
+- ApplicationVersion: `0.2.3-alpha.1`;
+- ModuleVersion: `0.2.3`;
 - Backend Contract SchemaVersion: `1`;
 - BuildPlan SchemaVersion: `1`.
 
-`0.2.2-alpha.1` is a backward-compatible Schema v1 extension. New commands, error codes, optional properties, and event types do not require Schema v2. Breaking changes do.
+`0.2.3-alpha.1` establishes Schema v1 as the baseline for the first GUI. Additive commands, error codes, event types, and optional properties remain compatible within v1. Removing/renaming required fields or commands, or changing their semantics, requires SchemaVersion 2.
 
 ## Entry point
 
@@ -38,117 +38,120 @@ powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
 }
 ```
 
-`schemaVersion` is required and currently `1`; `requestId` is a required non-empty string returned unchanged; `command` is allowlisted; `arguments` is a required object. Requests are untrusted input and JSON is never executed as code.
+Required fields are integer `schemaVersion`, non-empty `requestId`, allowlisted `command`, and object `arguments`. Requests are untrusted input; JSON never selects or executes a PowerShell function by name.
 
-## Commands
+## Baseline commands
 
-Schema v1 supports `GetVersion`, `SearchBuilds`, `GetRecommendedBuild`, `GetLanguages`, `GetEditions`, `CreateBuildPlan`, `ValidateBuildPlan`, `ExecuteBuildPlan`, `RunPreflight`, and `CancelBuild`.
+Schema v1 baseline after `v0.2.3`:
 
-Existing catalog/plan commands retain their v1 arguments and controlled DTOs. `ValidateBuildPlan` returns `INVALID_BUILD_PLAN` for invalid plan data. `ExecuteBuildPlan` reuses `Invoke-WibBuildPlan` and the existing elevation/build pipeline.
+`GetVersion`, `SearchBuilds`, `GetRecommendedBuild`, `GetLanguages`, `GetEditions`, `CreateBuildPlan`, `ValidateBuildPlan`, `ExecuteBuildPlan`, `RunPreflight`, `CancelBuild`.
+
+None of these commands may disappear from v1. Semantic regression tests protect this baseline.
+
+## GetVersion
+
+```json
+{
+  "applicationVersion": "0.2.3-alpha.1",
+  "contractSchemaVersion": 1,
+  "buildPlanSchemaVersion": 1
+}
+```
+
+## Catalog and plan commands
+
+`SearchBuilds` requires `search`; architecture/preview/refresh/cache fields are optional.
+
+`GetRecommendedBuild` requires `product` and supports optional architecture/refresh/cache fields.
+
+`GetLanguages` requires `updateId`. `GetEditions` requires `updateId` and `language`.
+
+`CreateBuildPlan` accepts the controlled build DTO plus language, editions, image format, build options, and output/cache paths. It reuses `New-WibBuildPlan`.
+
+`ValidateBuildPlan` maps malformed plans to `INVALID_BUILD_PLAN`.
+
+`ExecuteBuildPlan` reuses `Invoke-WibBuildPlan`, the existing preflight/elevation/build pipeline, and runtime cancellation context.
+
+## Build DTO baseline
+
+Required v1 fields: `uuid`, `title`, `product`, `versionLabel`, `build`, `architecture`, `entryType`, `createdAt`, `isPreview`. Clients must tolerate additional optional fields.
+
+## BuildPlan v1
+
+BuildPlan SchemaVersion remains `1`. Required semantic data covers schema/application version, build, language, editions, source/virtual editions, image format, options, output/cache paths, and the remove-work option.
+
+`tests/fixtures/build-plan-v1.json` protects read/validate/round-trip compatibility. Runtime `requestId`, event path, and cancellation state deliberately remain outside the persistent BuildPlan.
 
 ## RunPreflight
 
-```json
-{
-  "schemaVersion": 1,
-  "requestId": "preflight-123",
-  "command": "RunPreflight",
-  "arguments": {
-    "buildPlan": { "schemaVersion": 1 },
-    "onlineChecks": false
-  }
-}
-```
+`buildPlan` is required; `onlineChecks` defaults to `false`.
 
-`buildPlan` is required. `onlineChecks` defaults to `false`.
+Malformed BuildPlan is a contract failure (`success=false`, `INVALID_BUILD_PLAN`). A valid plan in an environment that is not ready returns `success=true`, `data.ready=false`.
 
-A malformed BuildPlan is a contract failure (`success=false`, `INVALID_BUILD_PLAN`). A valid plan in an environment that is not ready returns `success=true`, `data.ready=false` plus all independent checks.
+Preflight data retains required `ready` and `checks`. Each check retains `id`, `status`, `severity`, `code`, `message`, and `data`. New check ids are additive.
 
-Check `status` values: `pass`, `warning`, `fail`, `skipped`. Severity values: `info`, `warning`, `error`.
-
-Current stable check ids:
-
-`host.windows`, `host.architecture`, `host.powershell`, `tool.cmd`, `tool.dism`, `tool.expandArchive`, `tool.getFileHash`, `tool.mountDiskImage`, `path.cache`, `path.output`, `path.cacheWritable`, `path.outputWritable`, `disk.cache`, `disk.output`, `network.uupApi`.
-
-Fatal `fail` + `severity=error` makes `ready=false`. Warnings do not block the build. Missing `Mount-DiskImage` is a warning because ISO creation can still complete with reduced deep verification.
-
-Disk checks return numeric `availableBytes` and `requiredBytes`. `onlineChecks=false` performs no network request. `onlineChecks=true` performs a bounded reachability check against the official UUP dump API only and does not download Windows/UUP data.
+`onlineChecks=false` performs no network request. `onlineChecks=true` only performs bounded UUP dump API reachability and does not download Windows/UUP data.
 
 ## CancelBuild
 
-```json
-{
-  "schemaVersion": 1,
-  "requestId": "cancel-command-123",
-  "command": "CancelBuild",
-  "arguments": {
-    "targetRequestId": "build-request-456",
-    "cacheDirectory": "C:\\UUP-ISO-Work"
-  }
-}
-```
+`CancelBuild` accepts `targetRequestId` and `cacheDirectory`; response data retains `requested` and `targetRequestId`.
 
-Response data:
+`requested=true` only acknowledges that cancellation was requested. Actual termination is confirmed by the target operation response/event.
 
-```json
-{
-  "requested": true,
-  "targetRequestId": "build-request-456"
-}
-```
+The control filename is derived from SHA-256 of the target request id, never from the raw id. Managed process termination targets only the owned PID tree and never kills by process name.
 
-The cancel command has its own request id. `requested=true` means only that the cancellation request was accepted; it does not mean the target build has already stopped. Actual termination is confirmed by the target operation's final response/event.
+## Success envelope
 
-## Cancellation lifecycle
-
-1. Client creates a unique `requestId` for `ExecuteBuildPlan`.
-2. Backend derives `SHA-256(UTF8(requestId))`.
-3. Control path is `<cache>\control\<hash>.cancel.json`.
-4. `CancelBuild` creates a validated Windows ISO Builder marker with `CreateNew` semantics.
-5. Existing valid markers are preserved during worker initialization, so early cancellation is not lost.
-6. Parent/elevated worker poll centralized cancellation helpers.
-7. Managed UUP runner polls during long execution and terminates only the process tree rooted at its own PID.
-8. Target operation finishes with `success=false`, `BUILD_CANCELLED`, and a `cancelled` event.
-9. Parent removes only a validated owned marker; cache/work data remains.
-
-The raw request id is never used as a filename. A colliding unrelated user file is neither overwritten nor deleted. `ExecuteBuildPlan.requestId` must be unique per operation.
-
-BuildPlan does not contain request/event/cancellation fields; those belong to runtime ExecutionContext.
+Required fields: `schemaVersion`, `requestId`, `command`, `success`, `applicationVersion`, `data`. Additional optional fields are allowed.
 
 ## Error envelope
 
-A failed response contains `code`, human-readable `message`, normalized `stage`, optional controlled `details`, and optional `logPath`.
+Required top-level fields: `schemaVersion`, `requestId`, `command`, `success`, `applicationVersion`, `error`.
 
-Controlled details may include path, available/required bytes, component, exit code, target request id, or failed check ids. Exception objects, tokens, signed UUP URLs, product keys, and arbitrary internal metadata are excluded.
+Error DTO retains `code`, `message`, `stage`, `details`, and `logPath`. `details` is controlled and may be null. Exception objects, tokens, signed UUP URLs, product keys, and arbitrary internal graphs are excluded.
 
-Existing error codes remain valid:
+Existing v1 error codes remain valid, including `INVALID_REQUEST`, `UNSUPPORTED_SCHEMA`, `INVALID_COMMAND`, `INVALID_ARGUMENT`, catalog/metadata errors, `INVALID_BUILD_PLAN`, elevation/build failures, preflight errors, package/download/converter/DISM/ISO errors, `ELEVATION_CANCELLED`, and `BUILD_CANCELLED`.
 
-`INVALID_REQUEST`, `UNSUPPORTED_SCHEMA`, `INVALID_COMMAND`, `INVALID_ARGUMENT`, `BUILD_NOT_FOUND`, `LANGUAGE_NOT_FOUND`, `EDITION_NOT_FOUND`, `UUP_API_ERROR`, `UUP_API_UNAVAILABLE`, `INVALID_BUILD_PLAN`, `ELEVATION_FAILED`, `BUILD_FAILED`, `INTERNAL_ERROR`.
+Clients classify by `code`, never localized `message`, and treat unknown future v1 codes as generic failures.
 
-Added in `0.2.2-alpha.1`:
+## BuildResult baseline
 
-`UNSUPPORTED_HOST`, `REQUIRED_COMPONENT_MISSING`, `PATH_NOT_WRITABLE`, `DISK_SPACE_LOW`, `NETWORK_ERROR`, `UUP_PACKAGE_DOWNLOAD_FAILED`, `UUP_PACKAGE_INVALID`, `DOWNLOAD_FAILED`, `CONVERTER_FAILED`, `DISM_FAILED`, `ISO_NOT_FOUND`, `ISO_VALIDATION_FAILED`, `ELEVATION_CANCELLED`, `BUILD_CANCELLED`.
-
-Clients classify by `code`, not localized message text, and treat unknown future v1 codes as generic failures.
+Required semantic fields: `stage`, `isoPath`, `sha256`, `logPath`, `executionLogPath`, `workDirectory`, `metadataPath`. New optional fields are additive.
 
 ## Events
 
-Each NDJSON event contains schema version, target request id, monotonic sequence, UTC timestamp, type, normalized stage, message, and progress object.
+Each NDJSON event retains `schemaVersion`, `requestId`, monotonic `sequence`, UTC `timestamp`, `type`, normalized `stage`, `message`, and `progress`.
 
-Event types are `stage`, `progress`, `completed`, `failed`, `cancelled`, `warning`, `info`. `cancelled` is an additive Schema v1 event type; v1 clients must ignore unknown event types and unknown optional properties.
+Progress retains `percent`, `detailPercent`, `speedText`, and `speedBytesPerSecond`.
 
-Cancel-command events use the cancel-command request id. Target build events retain the target build request id. A cancellation event carries the real stage where cancellation was observed.
+Event types include `stage`, `progress`, `completed`, `failed`, `cancelled`, `warning`, and `info`. Unknown future v1 types/optional fields must be ignored safely by clients.
 
-## Elevation behavior
+## GUI integration boundary
 
-Local preflight runs before UAC. Fatal local checks prevent UAC from opening. The elevated worker repeats authoritative preflight.
+The first GUI must use only the public machine boundary:
 
-Cancellation runtime context is forwarded separately from BuildPlan through the existing plan/result boundary. UAC refusal is mapped to `ELEVATION_CANCELLED` only from reliable numeric Win32 information, never message parsing.
+- `Invoke-WibBackend.ps1`;
+- Backend Contract Schema v1;
+- BuildPlan Schema v1;
+- `RunPreflight`;
+- `ExecuteBuildPlan`;
+- `CancelBuild`;
+- `requestId`;
+- NDJSON events;
+- structured error codes.
 
-## Compatibility policy
+The GUI must not call private PowerShell functions, parse `Write-Host`, parse aria2/converter output, classify localized error messages, or duplicate preflight/cancellation implementation.
 
-Schema v1 clients must tolerate new optional fields, commands they do not call, error codes, event types, and preflight check ids. Removing/renaming required fields or changing their semantics requires a new schema version.
+## Contract regression policy
+
+Tests compare the contract semantically rather than byte-for-byte JSON. They protect required baseline fields/commands while allowing additive optional evolution.
+
+Fixtures are intentionally small: a v1 GetVersion request and a BuildPlan v1 fixture. A large brittle snapshot corpus is not required.
+
+## Release validation is not Contract Schema
+
+`validation-result.json` and `release-manifest.json` are developer/release tooling formats. They are not Backend Contract messages and do not change Contract SchemaVersion.
 
 ## Security
 
-Explicit allowlist dispatch, no eval/`Invoke-Expression`, normalized paths, SHA-256-derived cancellation filenames, validated marker ownership, no process-name kill, owned-PID process tree termination, and data-only best-effort event transport.
+Explicit allowlist dispatch, no eval/`Invoke-Expression`, controlled normalized paths, SHA-256-derived cancellation filenames, owned-PID process-tree termination, data-only event transport, and controlled DTOs without secrets/internal object graphs.

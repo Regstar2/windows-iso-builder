@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "applicationVersion": "0.2.3-alpha.1",
+  "createdAt": "2026-08-18T00:00:00.0000000Z",
+  "build": {
+    "uuid": "00000000-0000-0000-0000-000000000001",
+    "title": "Windows 11 validation fixture",
+    "product": "Windows 11",
+    "versionLabel": "fixture",
+    "build": "0.0",
+    "architecture": "amd64",
+    "entryType": "Windows",
+    "createdAt": "2026-08-18T00:00:00.0000000Z",
+    "isPreview": false
+  },
+  "language": "ru-ru",
+  "editions": [
+    "Professional"
+  ],
+  "sourceEdition": "Professional",
+  "virtualEditions": [],
+  "imageFormat": "ESD",
+  "addUpdates": true,
+  "cleanup": true,
+  "netFx3": false,
+  "outputDirectory": "C:\\UUP-ISO-Work\\validation-output",
+  "cacheDirectory": "C:\\UUP-ISO-Work\\validation-cache",
+  "removeWorkAfterSuccess": false
+}

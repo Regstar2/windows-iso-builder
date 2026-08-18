@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "requestId": "fixture-get-version-v1",
+  "command": "GetVersion",
+  "arguments": {}
+}
