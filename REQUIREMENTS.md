@@ -2,117 +2,141 @@
 
 ## Назначение
 
-Windows ISO Builder — интерактивный клиент UUP dump, который позволяет найти нужную сборку Windows, выбрать архитектуру, язык и редакции, а затем получить готовый ISO без ручной работы с сайтом и конвертером.
+Windows ISO Builder — PowerShell-клиент UUP dump для интерактивной и автоматизированной сборки Windows ISO. Каталог Windows остаётся динамическим; собственный UUP downloader/converter не разрабатывается.
 
-Ценность проекта состоит в пользовательском сценарии и надёжности. Собственный UUP-движок не разрабатывается. Начиная с `0.2.1-alpha.1` тот же PowerShell backend также предоставляет версионированный машиночитаемый Backend Contract для будущих frontend-клиентов.
+Версия `0.2.2-alpha.1` укрепляет Backend Contract v1 перед будущим GUI: добавляет reusable preflight, расширенную error taxonomy и cooperative cancellation без изменения SchemaVersion.
 
-## Обязательные требования основного backend
+## Версионирование
 
-1. Каталог сборок загружается динамически во время выполнения.
-2. Версии Windows и ссылки на них не перечисляются в исходном коде.
-3. Поиск принимает названия выпусков и номера сборок, например `22H2`, `19045`, `22621`.
-4. Отображаются название, номер сборки, архитектура, дата и UUID.
-5. Preview/Insider-сборки отделяются от стабильных.
-6. Языки и редакции запрашиваются для конкретного UUID.
-7. Пользователь может выбрать одну или несколько редакций.
-8. Поддерживаются `install.wim` и `install.esd`.
-9. Полный цикл выполняется одной программой: пакет, загрузка UUP, конвертация, ISO, проверка, SHA-256.
-10. Пользователь не редактирует `ConvertConfig.ini` и не вводит SKU вручную.
-11. API-ответы, пакет конвертации и UUP-файлы кешируются.
-12. Повторный запуск переиспользует уже загруженные файлы и штатные возможности `aria2` для продолжения незавершённых загрузок.
-13. До крупной загрузки проверяются ОС, компоненты и свободное место.
-14. Ошибка содержит этап, причину, путь к логу и сохранённому рабочему каталогу, когда эти данные доступны.
-15. Сторонний конвертер запускается в коротком ASCII-пути; пользовательские пути с пробелами и кириллицей не должны ломать управляющую часть приложения.
-16. Для каждого ISO создаются SHA-256 и JSON-метаданные.
-17. Проверяются `boot.wim`, `install.wim` или `install.esd` и список образов, когда системные команды доступны.
-18. Документация явно указывает зависимость от UUP dump и Microsoft CDN.
+- ApplicationVersion: `0.2.2-alpha.1`, единый source of truth — `VERSION`;
+- ModuleVersion: `0.2.2`;
+- Backend Contract SchemaVersion: `1`;
+- BuildPlan SchemaVersion: `1`.
 
-## Backend Contract v1
+Новые команды, error codes и optional properties должны оставаться backward-compatible расширением Backend Contract v1. Cancellation — runtime concern и не требует BuildPlan Schema v2.
 
-Backend Contract — отдельный слой над существующим PowerShell backend. Он не заменяет TUI/CLI и не дублирует UUP, BuildPlan, elevation или converter workflow.
+## Сохранённые требования backend
 
-Обязательные свойства версии `0.2.1-alpha.1`:
+1. Каталог builds/languages/editions загружается динамически с UUP dump.
+2. Production code не содержит hardcoded Windows release catalog.
+3. TUI, CLI, quick mode, WIM/ESD, virtual editions, caching/resume и elevation остаются совместимыми.
+4. Console progress и structured progress используют один converter parser.
+5. BuildPlan описывает, **что** собирать; runtime ExecutionContext описывает, **как** контролировать конкретный запуск.
+6. Backend Contract не парсит `Write-Host`, transcript, localized Exception.Message или raw aria2 output для классификации ошибок.
 
-- отдельная entry point `Invoke-WibBackend.ps1`;
-- Windows PowerShell 5.1 и PowerShell 7 compatibility;
-- request/response через UTF-8 JSON-файлы;
-- optional event stream через UTF-8 NDJSON;
-- атомарная запись response;
-- `schemaVersion`, `requestId`, `command`, `arguments` во входном envelope;
-- `success` как обязательный boolean;
-- `data` для успеха и `error` для ошибки;
-- стабильные machine-oriented `error.code`, не зависящие от локализованного текста;
-- только явный allowlist команд, без `Invoke-Expression`, eval и dynamic arbitrary dispatch;
-- контролируемые DTO с английскими camelCase property names;
-- reuse существующих `Search-WibBuilds`, `Get-WibLanguages`, `Get-WibEditions`, `New-WibBuildPlan`, `Assert-WibPlan`, `Invoke-WibBuildPlan` и quick-mode recommendation logic;
-- structured progress строится тем же parser, который обслуживает console progress, без второго aria2 parser;
-- event I/O является best-effort telemetry и не должно ломать саму сборку;
-- Backend Contract request рассматривается как недоверенный вход.
+## Preflight
 
-Backend Contract SchemaVersion `1`, BuildPlan SchemaVersion `1` и ApplicationVersion — независимые сущности. Breaking change Backend Contract требует нового schema version; обычное изменение ApplicationVersion не меняет contract schema автоматически.
+Один reusable engine `Invoke-WibPreflight` используется Backend Contract и build workflow.
 
-## Обязательные команды Backend Contract v1
+Local checks минимум:
 
-- `GetVersion`;
-- `SearchBuilds`;
-- `GetRecommendedBuild`;
-- `GetLanguages`;
-- `GetEditions`;
-- `CreateBuildPlan`;
-- `ValidateBuildPlan`;
-- `ExecuteBuildPlan`.
+- Windows host;
+- 64-bit OS;
+- PowerShell 5.1+;
+- `cmd.exe`;
+- `dism.exe`;
+- `Expand-Archive`;
+- `Get-FileHash`;
+- optional `Mount-DiskImage` как warning;
+- cache/output path preparation and write probe;
+- cache/work >= 40 GiB;
+- output >= 8 GiB.
 
-Минимальные error codes: `INVALID_REQUEST`, `UNSUPPORTED_SCHEMA`, `INVALID_COMMAND`, `INVALID_ARGUMENT`, `BUILD_NOT_FOUND`, `LANGUAGE_NOT_FOUND`, `EDITION_NOT_FOUND`, `UUP_API_ERROR`, `UUP_API_UNAVAILABLE`, `INVALID_BUILD_PLAN`, `ELEVATION_FAILED`, `BUILD_FAILED`, `INTERNAL_ERROR`.
+Пороговые значения хранятся централизованно. Disk report содержит `availableBytes` и `requiredBytes`.
 
-## Надёжность и безопасность
+`RunPreflight` агрегирует независимые проверки. Fatal checks задают `ready=false`; warnings не блокируют build. Неготовое environment возвращается как `success=true`, `data.ready=false`.
 
-- повышение прав выполняется только для стадии сборки;
-- программа не меняет глобальную Execution Policy;
-- программа не отключает UAC или антивирус;
-- удаляются только собственные каталоги кеша;
-- сетевые запросы имеют таймаут, повторные попытки и fallback на устаревший кеш;
-- готовые ISO не удаляются при очистке кеша;
-- внешние ошибки не маскируются сообщением только `Exit code: 1`;
-- подробный вывод конвертера сохраняется в логах, даже если в интерактивной консоли показывается компактный прогресс;
-- machine API не возвращает signed UUP download URLs, product keys, access tokens или произвольные exception object graphs;
-- frontend не должен парсить `Write-Host`, `Write-Progress`, transcript, локализованный текст или raw aria2 output.
+При `onlineChecks=true` выполняется ограниченная по timeout проверка официального UUP dump API без скачивания UUP set. При `onlineChecks=false` сетевой запрос не выполняется.
 
-## Обратная совместимость
+Перед UAC выполняется local non-privileged preflight. Elevated worker повторяет критические проверки через тот же engine непосредственно перед build.
 
-Версия `0.2.1-alpha.1` должна сохранять работоспособность:
+## Structured errors
 
-- `Start-Builder.cmd`;
-- `Start-Builder.ps1`;
-- `Start-WibInteractive`;
-- `Start-WibNonInteractive`;
-- `Search-WibBuilds`;
-- `Get-WibLanguages`;
-- `Get-WibEditions`;
-- `New-WibBuildPlan`;
-- `Invoke-WibBuildPlan`;
-- quick mode;
-- UAC/elevation;
-- console progress;
-- существующих логов, кеша и resume behavior.
+Существующий PS5.1-compatible metadata mechanism (`Exception.Data` / `New-WibErrorException`) остаётся источником structured classification. Error code назначается в месте возникновения failure, а не по тексту сообщения.
 
-## Критерии публичной alpha-версии
+Taxonomy сохраняет прежние codes и дополнительно включает:
 
-Перед выпуском публичной alpha должны проходить актуальные локальные Pester-тесты и не должно быть блокирующих PSScriptAnalyzer проблем. Реальная end-to-end проверка ISO остаётся отдельной проверкой и не заменяется Backend Contract tests.
+`UNSUPPORTED_HOST`, `REQUIRED_COMPONENT_MISSING`, `PATH_NOT_WRITABLE`, `DISK_SPACE_LOW`, `NETWORK_ERROR`, `UUP_PACKAGE_DOWNLOAD_FAILED`, `UUP_PACKAGE_INVALID`, `DOWNLOAD_FAILED`, `CONVERTER_FAILED`, `DISM_FAILED`, `ISO_NOT_FOUND`, `ISO_VALIDATION_FAILED`, `ELEVATION_CANCELLED`, `BUILD_CANCELLED`.
 
-Для `0.2.1-alpha.1` contract tests не должны скачивать Windows: сетевые и build-команды мокируются. Отдельно проверяются JSON envelopes, DTO, error mapping, allowlist, event sequence/progress, PS5.1-safe standalone entry point и regression текущего console progress.
+`error.details` может содержать только controlled scalar/DTO data, например path, bytes, component, exitCode и targetRequestId. Exception object, tokens, signed download URLs, secrets и product keys не сериализуются.
 
-GitHub Actions не являются release gate проекта.
+## Cancellation
 
-## Не входит в `0.2.1-alpha.1`
+- `ExecuteBuildPlan.requestId` — публичный operation id;
+- request id должен быть уникальным для конкретной operation;
+- `CancelBuild` принимает `targetRequestId` и `cacheDirectory`;
+- control filename строится по SHA-256 request id и не допускает path traversal;
+- marker создаётся с `CreateNew`, имеет проверяемый owned format и не перезаписывает colliding user file;
+- cleanup удаляет только валидный marker для ожидаемого request hash;
+- pre-existing valid marker не удаляется при initialization, поэтому cancel-before-worker race не теряется;
+- cancellation context не добавляется в permanent BuildPlan fields;
+- cancellation checks выполняются перед/после preflight, перед UAC, на download/retry/extraction/converter/verify boundaries и перед final success;
+- retry delays являются cancellable и не используют busy loop;
+- cancellation проходит через existing elevated plan/result boundary;
+- final cancellation возвращает `BUILD_CANCELLED` с фактической normalized stage;
+- state.json различает `cancelled` и `failed`;
+- cancellation не удаляет UUP cache/work data и не запрещает aria2 resume.
 
-- GUI, WPF, WinUI или C# rewrite;
-- собственный Windows Update/UUP downloader или converter;
-- updater;
-- запись USB/Rufus integration;
-- очередь, profiles, history и cache GUI;
-- полный cancellation subsystem;
-- полный preflight следующей версии;
-- полный taxonomy всех возможных ошибок;
-- GitHub Actions;
-- распространение готовых ISO Windows;
-- активация Windows или обход лицензирования.
+## Managed child process
+
+Длительный UUP batch запускается через managed runner, который:
+
+- знает PID созданного им root process;
+- читает stdout/stderr и сохраняет существующую progress/logging семантику;
+- опрашивает central cancellation context;
+- при cancellation завершает только process tree этого PID;
+- на Windows использует `taskkill.exe /PID <pid> /T /F` как PS5.1-compatible tree termination mechanism;
+- никогда не использует `/IM`, `Get-Process aria2`, `Get-Process dism` или другой kill-by-name;
+- закрывает process/stream handles и удаляет только свои temporary redirection files.
+
+## Backend Contract v1 commands
+
+`GetVersion`, `SearchBuilds`, `GetRecommendedBuild`, `GetLanguages`, `GetEditions`, `CreateBuildPlan`, `ValidateBuildPlan`, `ExecuteBuildPlan`, `RunPreflight`, `CancelBuild`.
+
+`CancelBuild` acknowledgement означает только принятие запроса отмены. Остановка target build подтверждается final target response/event.
+
+## Security
+
+- request/cancellation input считается недоверенным;
+- dispatch — explicit allowlist;
+- нет eval/`Invoke-Expression`;
+- request id не используется как raw filesystem path;
+- CancelBuild не выбирает arbitrary filename и не перезаписывает/удаляет foreign collision;
+- preflight probe создаётся через unique `CreateNew` file и удаляется;
+- process termination применяется только к PID собственного runner;
+- machine DTO не содержит secrets или arbitrary internal object graphs.
+
+## Compatibility
+
+Обязательна совместимость:
+
+- Windows PowerShell 5.1 и PowerShell 7;
+- `Start-Builder.cmd`, `Start-Builder.ps1`;
+- TUI, non-interactive CLI и quick mode;
+- текущие public module functions;
+- BuildPlan Schema v1;
+- existing JSON elevated plan/result protocol;
+- console progress, converter/build/elevated/execution logs;
+- cache/resume;
+- WIM/ESD и virtual editions.
+
+Standalone `Invoke-WibBackend.ps1` остаётся ASCII-only.
+
+## Validation
+
+Release gate выполняется локально, без GitHub Actions:
+
+```powershell
+powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-Tests.ps1
+
+$issues = @(Invoke-ScriptAnalyzer `
+  -Path . `
+  -Recurse `
+  -Settings .\.psscriptanalyzer.psd1)
+```
+
+Backend/preflight/cancellation tests не должны скачивать Windows. Process-tree integration используется как optional controlled Windows smoke test с dummy process.
+
+## Не входит в `0.2.2-alpha.1`
+
+GUI, WPF, WinUI, C#, installer, updater, queue, history, profiles, USB writer, Rufus integration, auto-update download, dynamic disk estimator, custom UUP API/downloader/converter, GitHub Actions и full Windows 10/11 E2E matrix.

@@ -8,9 +8,11 @@ if (-not (Get-Module -ListAvailable -Name Pester)) {
 }
 
 $previousRepositoryRoot = $env:WIB_REPOSITORY_ROOT
+$failedCount = 0
 try {
     $env:WIB_REPOSITORY_ROOT = Split-Path -Parent $PSScriptRoot
-    Invoke-Pester -Path $PSScriptRoot -Output Detailed
+    $result = Invoke-Pester -Path $PSScriptRoot -Output Detailed -PassThru
+    $failedCount = [int]$result.FailedCount
 }
 finally {
     if ($null -eq $previousRepositoryRoot) {
@@ -20,3 +22,10 @@ finally {
         $env:WIB_REPOSITORY_ROOT = $previousRepositoryRoot
     }
 }
+
+if ($failedCount -gt 0) {
+    Write-Error ("Pester tests failed: {0}." -f $failedCount)
+    exit 1
+}
+
+exit 0

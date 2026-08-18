@@ -2,7 +2,47 @@
 
 ## Unreleased
 
-Пока нет изменений после `0.2.1-alpha.1`.
+Пока нет изменений после `0.2.2-alpha.1`.
+
+## 0.2.2-alpha.1 — 2026-08-18
+
+### Added
+
+- Backend command `RunPreflight` и reusable aggregated preflight engine;
+- structured preflight report со stable check ids, status/severity/code и machine-readable disk/path data;
+- optional bounded official UUP dump API reachability check;
+- Backend command `CancelBuild` и SHA-256-based runtime cancellation control;
+- cooperative cancellation helpers, cancellable retry delays и runtime forwarding через elevation boundary;
+- `cancelled` Backend Contract event и отдельное cancelled job state;
+- extended structured error taxonomy, включая `UNSUPPORTED_HOST`, `REQUIRED_COMPONENT_MISSING`, `PATH_NOT_WRITABLE`, `DISK_SPACE_LOW`, `NETWORK_ERROR`, `UUP_PACKAGE_DOWNLOAD_FAILED`, `UUP_PACKAGE_INVALID`, `DOWNLOAD_FAILED`, `CONVERTER_FAILED`, `DISM_FAILED`, `ISO_NOT_FOUND`, `ISO_VALIDATION_FAILED`, `ELEVATION_CANCELLED`, `BUILD_CANCELLED`;
+- managed child-process runner с PID-rooted process-tree cancellation;
+- reliability/cancellation Pester tests и opt-in controlled Windows process-tree smoke test.
+
+### Changed
+
+- local preflight выполняется до UAC, поэтому fatal environment failure больше не открывает elevation prompt;
+- elevated worker повторяет critical preflight через тот же reusable engine;
+- прежние assert-style host/disk/tool checks сведены к общему preflight source of truth;
+- retry delays поддерживают cancellation вместо blind `Start-Sleep`;
+- `uup_download_windows.cmd` выполняется через managed root process с сохранением existing compact progress и `converter-*.log`;
+- UUP/converter process tree может быть остановлен без kill-by-name и без orphan aria2/converter descendants;
+- elevated result protocol передаёт optional structured error details;
+- cancellation сохраняет UUP cache/work data и aria2 resume state.
+
+### Compatibility
+
+- Backend Contract SchemaVersion остаётся `1`;
+- BuildPlan SchemaVersion остаётся `1`;
+- ApplicationVersion — `0.2.2-alpha.1`, ModuleVersion — `0.2.2`;
+- TUI/CLI, quick mode, WIM/ESD, virtual editions, cache/resume, progress и logs остаются совместимыми;
+- Windows PowerShell 5.1 и PowerShell 7 остаются целевыми runtime;
+- GUI, WPF/WinUI, C#, updater, queue/history/profiles, USB/Rufus, dynamic disk estimator и GitHub Actions не добавлены.
+
+### Validation status
+
+- reliability tests разработаны без реальной загрузки Windows;
+- process-tree integration smoke является opt-in и использует controlled dummy PowerShell process;
+- перед release требуется локально выполнить полный Pester suite, PSScriptAnalyzer, Backend `GetVersion`/`RunPreflight` и controlled cancellation smokes в Windows PowerShell 5.1 и, если доступен, PowerShell 7.
 
 ## 0.2.1-alpha.1 — 2026-08-18
 

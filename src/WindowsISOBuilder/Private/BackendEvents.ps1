@@ -128,7 +128,7 @@ function ConvertTo-WibContractStage {
 function Publish-WibEvent {
     param(
         [Parameter(Mandatory = $true)]
-        [ValidateSet('stage', 'progress', 'completed', 'failed', 'warning', 'info')]
+        [ValidateSet('stage', 'progress', 'completed', 'failed', 'cancelled', 'warning', 'info')]
         [string]$Type,
         [string]$Stage = 'startup',
         [string]$Message = '',

@@ -15,6 +15,12 @@ param(
     [Parameter(ParameterSetName = 'Plan')]
     [string]$BackendEventFile,
 
+    [Parameter(ParameterSetName = 'Plan')]
+    [string]$CancellationRequestHash,
+
+    [Parameter(ParameterSetName = 'Plan')]
+    [string]$CancellationCacheDirectory,
+
     [Parameter(ParameterSetName = 'CommandLine')]
     [switch]$NonInteractive,
 
@@ -71,7 +77,7 @@ function Write-WibProcessResultFile {
     $directory = Split-Path -Parent $Path
     if ($directory -and -not (Test-Path -LiteralPath $directory)) { New-Item -ItemType Directory -Path $directory -Force | Out-Null }
     $temporary = '{0}.{1}.tmp' -f $Path, [Guid]::NewGuid().ToString('N')
-    $json = $Value | ConvertTo-Json -Depth 20
+    $json = $Value | ConvertTo-Json -Depth 30
     [IO.File]::WriteAllText($temporary, $json, (New-Object Text.UTF8Encoding($false)))
     Move-Item -LiteralPath $temporary -Destination $Path -Force
 }
@@ -110,6 +116,8 @@ try {
         $planParameters = @{ Path = $PlanFile }
         if (-not [string]::IsNullOrWhiteSpace($BackendRequestId)) { $planParameters.BackendRequestId = $BackendRequestId }
         if (-not [string]::IsNullOrWhiteSpace($BackendEventFile)) { $planParameters.BackendEventFile = $BackendEventFile }
+        if (-not [string]::IsNullOrWhiteSpace($CancellationRequestHash)) { $planParameters.CancellationRequestHash = $CancellationRequestHash }
+        if (-not [string]::IsNullOrWhiteSpace($CancellationCacheDirectory)) { $planParameters.CancellationCacheDirectory = $CancellationCacheDirectory }
         $buildResult = Invoke-WibPlanFile @planParameters
 
         if (-not [string]::IsNullOrWhiteSpace($ResultFile)) {
@@ -123,7 +131,7 @@ try {
                 if ($null -ne $buildResult.PSObject.Properties['MetadataPath']) { $metadataPath=[string]$buildResult.MetadataPath }
             }
             Write-WibProcessResultFile -Path $ResultFile -Value ([ordered]@{
-                success=$true; errorCode=''; stage=$stage; message=''; stackTrace=''; logPath=$logPath;
+                success=$true; errorCode=''; errorDetails=$null; stage=$stage; message=''; stackTrace=''; logPath=$logPath;
                 executionLogPath=$executionLogPath; workDirectory=$workDirectory; isoPath=$isoPath;
                 sha256=$sha256; metadataPath=$metadataPath
             })
@@ -145,27 +153,37 @@ try {
 catch {
     $failure = $_
     $exitCode = 1
+    $errorCode = 'BUILD_FAILED'
+    $publicMessage = [string]$failure.Exception.Message
     if ($PSCmdlet.ParameterSetName -eq 'Plan' -and -not [string]::IsNullOrWhiteSpace($ResultFile)) {
-        $stage='startup'; $logPath=''; $workDirectory=''; $errorCode='BUILD_FAILED'
+        $stage='startup'; $logPath=''; $workDirectory=''; $errorDetails=$null
         try {
             if ($failure.Exception.Data.Contains('WibStage')) { $stage=[string]$failure.Exception.Data['WibStage'] }
             if ($failure.Exception.Data.Contains('WibLogPath')) { $logPath=[string]$failure.Exception.Data['WibLogPath'] }
             if ($failure.Exception.Data.Contains('WibWorkDirectory')) { $workDirectory=[string]$failure.Exception.Data['WibWorkDirectory'] }
             if ($failure.Exception.Data.Contains('WibErrorCode')) { $errorCode=[string]$failure.Exception.Data['WibErrorCode'] }
+            if ($failure.Exception.Data.Contains('WibErrorDetails')) { $errorDetails=$failure.Exception.Data['WibErrorDetails'] }
+            if ($failure.Exception.Data.Contains('WibPublicMessage')) { $publicMessage=[string]$failure.Exception.Data['WibPublicMessage'] }
         }
         catch { }
         try {
             Write-WibProcessResultFile -Path $ResultFile -Value ([ordered]@{
-                success=$false; errorCode=$errorCode; stage=$stage; message=[string]$failure.Exception.Message;
-                stackTrace=[string]$failure.ScriptStackTrace; logPath=$logPath; executionLogPath=$executionLogPath;
-                workDirectory=$workDirectory; isoPath=''; sha256=''; metadataPath=''
+                success=$false; errorCode=$errorCode; errorDetails=$errorDetails; stage=$stage; message=$publicMessage;
+                stackTrace=if ($errorCode -eq 'BUILD_CANCELLED') { '' } else { [string]$failure.ScriptStackTrace };
+                logPath=$logPath; executionLogPath=$executionLogPath; workDirectory=$workDirectory;
+                isoPath=''; sha256=''; metadataPath=''
             })
         }
         catch { Write-Host ('Не удалось записать файл результата повышенного процесса: {0}' -f $_.Exception.Message) -ForegroundColor DarkYellow }
     }
     Write-Host ''
-    Write-Host ('ОШИБКА: {0}' -f $failure.Exception.Message) -ForegroundColor Red
-    if ($failure.ScriptStackTrace) { Write-Host $failure.ScriptStackTrace -ForegroundColor DarkGray }
+    if ($errorCode -eq 'BUILD_CANCELLED') {
+        Write-Host ('ОТМЕНЕНО: {0}' -f $publicMessage) -ForegroundColor Yellow
+    }
+    else {
+        Write-Host ('ОШИБКА: {0}' -f $publicMessage) -ForegroundColor Red
+        if ($failure.ScriptStackTrace) { Write-Host $failure.ScriptStackTrace -ForegroundColor DarkGray }
+    }
 }
 finally {
     if (-not [string]::IsNullOrWhiteSpace($executionLogPath)) { Write-Host ('Лог выполнения сохранён: {0}' -f $executionLogPath) -ForegroundColor DarkGray }

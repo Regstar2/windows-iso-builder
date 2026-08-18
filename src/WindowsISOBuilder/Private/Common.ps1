@@ -149,6 +149,19 @@ function ConvertTo-WibJsonText {
     return ($Value | ConvertTo-Json -Depth $Depth -Compress:$Compress)
 }
 
+function Resolve-WibFileSystemPath {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $expanded = [Environment]::ExpandEnvironmentVariables($Path)
+    try {
+        $providerPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($expanded)
+        return [IO.Path]::GetFullPath($providerPath)
+    }
+    catch {
+        return [IO.Path]::GetFullPath($expanded)
+    }
+}
+
 function Write-WibJsonFile {
     param(
         [Parameter(Mandatory = $true)]$Value,
@@ -156,15 +169,40 @@ function Write-WibJsonFile {
         [int]$Depth = 20
     )
 
-    $directory = Split-Path -Parent $Path
-    if ($directory -and -not (Test-Path -LiteralPath $directory)) {
-        New-Item -ItemType Directory -Path $directory -Force | Out-Null
+    # System.IO APIs do not understand PowerShell provider paths such as
+    # TestDrive:\. Resolve them first while keeping normal/8.3 filesystem paths
+    # out of the PowerShell provider move implementation that previously failed
+    # for a Cyrillic user profile represented through its short DOS alias.
+    $targetPath = Resolve-WibFileSystemPath -Path $Path
+    $directory = Split-Path -Parent $targetPath
+    if ($directory -and -not [IO.Directory]::Exists($directory)) {
+        [IO.Directory]::CreateDirectory($directory) | Out-Null
     }
 
-    $temporary = '{0}.{1}.tmp' -f $Path, [Guid]::NewGuid().ToString('N')
+    $operationId = [Guid]::NewGuid().ToString('N')
+    $temporary = '{0}.{1}.tmp' -f $targetPath, $operationId
+    $backup = '{0}.{1}.bak' -f $targetPath, $operationId
     $json = ConvertTo-WibJsonText -Value $Value -Depth $Depth
-    [IO.File]::WriteAllText($temporary, $json, (New-Object Text.UTF8Encoding($false)))
-    Move-Item -LiteralPath $temporary -Destination $Path -Force
+    try {
+        [IO.File]::WriteAllText($temporary, $json, (New-Object Text.UTF8Encoding($false)))
+        if ([IO.File]::Exists($targetPath)) {
+            # Windows PowerShell 5.1 / .NET Framework does not reliably accept
+            # a null backup path for File.Replace. A same-directory backup keeps
+            # the replacement atomic and is deleted immediately afterwards.
+            [IO.File]::Replace($temporary, $targetPath, $backup)
+        }
+        else {
+            [IO.File]::Move($temporary, $targetPath)
+        }
+    }
+    finally {
+        if ([IO.File]::Exists($temporary)) {
+            [IO.File]::Delete($temporary)
+        }
+        if ([IO.File]::Exists($backup)) {
+            [IO.File]::Delete($backup)
+        }
+    }
 }
 
 function Read-WibJsonFile {
@@ -255,11 +293,14 @@ function Get-WibDirectorySizeBytes {
     if (-not (Test-Path -LiteralPath $Path)) {
         return [int64]0
     }
-    $measure = Get-ChildItem -LiteralPath $Path -File -Recurse -Force -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum
-    if ($null -eq $measure.Sum) {
-        return [int64]0
+
+    [int64]$totalBytes = 0
+    foreach ($file in @(Get-ChildItem -LiteralPath $Path -File -Recurse -Force -ErrorAction SilentlyContinue)) {
+        if ($null -ne $file -and $null -ne $file.PSObject.Properties['Length']) {
+            $totalBytes += [int64]$file.Length
+        }
     }
-    return [int64]$measure.Sum
+    return $totalBytes
 }
 
 function Get-WibUnixDate {

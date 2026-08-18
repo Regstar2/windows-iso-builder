@@ -10,7 +10,7 @@ Describe 'Backend Contract v1' {
                 EntryType='Windows'; CreatedAt=[datetime]'2026-08-01T00:00:00Z'; Created=1L; IsPreview=$false
             }
             $script:testPlan = [pscustomobject][ordered]@{
-                SchemaVersion=1; ApplicationVersion='0.2.1-alpha.1'; CreatedAt='2026-08-18T00:00:00Z';
+                SchemaVersion=1; ApplicationVersion='0.2.2-alpha.1'; CreatedAt='2026-08-18T00:00:00Z';
                 Build=[pscustomobject]@{ Uuid='update-1'; Title='Windows 11, version 25H2 (26200.1)'; Product='Windows 11'; VersionLabel='25H2'; Build='26200.1'; Architecture='amd64'; IsPreview=$false };
                 Language='ru-ru'; Editions=@('Core','Professional'); SourceEdition='Core'; VirtualEditions=@('Professional');
                 ImageFormat='ESD'; AddUpdates=$true; Cleanup=$true; NetFx3=$false;
@@ -23,8 +23,8 @@ Describe 'Backend Contract v1' {
             $response = Invoke-WibBackendRequestObject $request
             $response.success | Should -BeTrue
             $response.requestId | Should -Be 'get-version'
-            $response.applicationVersion | Should -Be '0.2.1-alpha.1'
-            $response.data.applicationVersion | Should -Be '0.2.1-alpha.1'
+            $response.applicationVersion | Should -Be '0.2.2-alpha.1'
+            $response.data.applicationVersion | Should -Be '0.2.2-alpha.1'
             $response.data.contractSchemaVersion | Should -Be 1
             $response.data.buildPlanSchemaVersion | Should -Be 1
         }
@@ -175,7 +175,7 @@ Describe 'Backend Contract static security regressions' {
         $source = (Get-Content -LiteralPath $contractPath -Raw -Encoding UTF8) + (Get-Content -LiteralPath $commandsPath -Raw -Encoding UTF8)
         $source | Should -Not -Match '(?i)Invoke-Expression'
         $source | Should -Match 'switch\s*\(\$Command\)'
-        foreach ($command in @('GetVersion','SearchBuilds','GetRecommendedBuild','GetLanguages','GetEditions','CreateBuildPlan','ValidateBuildPlan','ExecuteBuildPlan')) {
+        foreach ($command in @('GetVersion','SearchBuilds','GetRecommendedBuild','GetLanguages','GetEditions','CreateBuildPlan','ValidateBuildPlan','ExecuteBuildPlan','RunPreflight','CancelBuild')) {
             $source | Should -Match ([regex]::Escape("'$command'"))
         }
     }

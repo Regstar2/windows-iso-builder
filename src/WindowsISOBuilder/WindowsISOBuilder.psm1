@@ -17,12 +17,14 @@ $script:WibVersion = $script:WibApplicationVersion
 
 $privateFiles = @(
     'Private\Common.ps1',
+    'Private\ExecutionControl.ps1',
     'Private\BackendEvents.ps1',
     'Private\Cache.ps1',
     'Private\UupApi.ps1',
     'Private\Plan.ps1',
     'Private\Selection.ps1',
     'Private\Recommendation.ps1',
+    'Private\Preflight.ps1',
     'Private\Builder.ps1',
     'Private\Elevation.ps1',
     'Private\Application.ps1',

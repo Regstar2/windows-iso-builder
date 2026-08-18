@@ -2,18 +2,18 @@
 
 ## Purpose
 
-Backend Contract is a stable machine-readable layer over the existing Windows ISO Builder PowerShell backend. It is intended for future GUI/frontend clients and automation that must not depend on `Write-Host`, localized messages, `Write-Progress`, transcripts, or raw `aria2`/converter output.
+Backend Contract is a stable machine-readable adapter over the existing Windows ISO Builder PowerShell backend. It is intended for future frontend/GUI automation and does not depend on `Write-Host`, `Write-Progress`, transcripts, localized exception text, or raw converter output.
 
-The contract does **not** replace `Start-Builder.ps1`, does not implement a second UUP workflow, and is not an HTTP API. The current transport uses local JSON/NDJSON files and a separate PowerShell process.
+Transport remains local: UTF-8 JSON request/response files, optional UTF-8 NDJSON events, and a separate PowerShell process. There is no HTTP/RPC server.
 
 ## Versions
 
-- ApplicationVersion: `0.2.1-alpha.1`;
+- ApplicationVersion: `0.2.2-alpha.1`;
+- ModuleVersion: `0.2.2`;
 - Backend Contract SchemaVersion: `1`;
-- BuildPlan SchemaVersion: `1`;
-- PowerShell module manifest: `0.2.1`.
+- BuildPlan SchemaVersion: `1`.
 
-These versions are independent. Changing ApplicationVersion does not automatically change the Backend Contract schema.
+`0.2.2-alpha.1` is a backward-compatible Schema v1 extension. New commands, error codes, optional properties, and event types do not require Schema v2. Breaking changes do.
 
 ## Entry point
 
@@ -25,31 +25,7 @@ powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
   -EventFile <events.ndjson>
 ```
 
-`-EventFile` is optional. `Invoke-WibBackend.ps1` is ASCII-only and targets Windows PowerShell 5.1 compatibility.
-
-## Transport
-
-### RequestFile
-
-- UTF-8 JSON;
-- one request object;
-- backend treats the contents as untrusted input.
-
-### ResponseFile
-
-- UTF-8 JSON;
-- one final response object;
-- written atomically through a temporary file next to the destination followed by replacement/move;
-- a partially serialized response is not a valid result.
-
-### EventFile
-
-- UTF-8 NDJSON / JSON Lines;
-- one JSON event per line;
-- optional best-effort telemetry;
-- event-write failure must not convert an otherwise valid build into a failure.
-
-Human console output is not part of the protocol.
+`-EventFile` is optional. `Invoke-WibBackend.ps1` remains ASCII-only for Windows PowerShell 5.1.
 
 ## Request envelope
 
@@ -62,491 +38,117 @@ Human console output is not part of the protocol.
 }
 ```
 
-### `schemaVersion`
-
-Required integer. The current implementation supports only `1`.
-
-### `requestId`
-
-Required non-empty string. The backend returns it unchanged in the response and in every event for that request.
-
-### `command`
-
-Required string from the allowlist:
-
-- `GetVersion`;
-- `SearchBuilds`;
-- `GetRecommendedBuild`;
-- `GetLanguages`;
-- `GetEditions`;
-- `CreateBuildPlan`;
-- `ValidateBuildPlan`;
-- `ExecuteBuildPlan`.
-
-Arbitrary PowerShell function names, script paths, or code execution are not supported.
-
-### `arguments`
-
-Required object. Commands without parameters use `{}`.
-
-## Success response envelope
-
-```json
-{
-  "schemaVersion": 1,
-  "requestId": "client-generated-id",
-  "command": "GetVersion",
-  "success": true,
-  "applicationVersion": "0.2.1-alpha.1",
-  "data": {}
-}
-```
-
-`success` is always boolean. When `success=true`, `data` is present.
-
-## Error response envelope
-
-```json
-{
-  "schemaVersion": 1,
-  "requestId": "client-generated-id",
-  "command": "SearchBuilds",
-  "success": false,
-  "applicationVersion": "0.2.1-alpha.1",
-  "error": {
-    "code": "UUP_API_UNAVAILABLE",
-    "message": "...",
-    "stage": "catalog",
-    "details": null,
-    "logPath": null
-  }
-}
-```
-
-When `success=false`, `error` is present.
-
-- `error.code` is a stable machine-oriented identifier;
-- `error.message` is human-readable and may currently be Russian because the project's human UI is Russian;
-- `error.stage` is a normalized contract stage;
-- `error.details` contains optional structured details;
-- `error.logPath` contains an optional build-log path.
-
-Frontend code must not classify errors by parsing `message`.
-
-## Error codes v1
-
-Minimum set:
-
-- `INVALID_REQUEST` — missing or malformed request envelope;
-- `UNSUPPORTED_SCHEMA` — unsupported Backend Contract schemaVersion;
-- `INVALID_COMMAND` — command is not in the allowlist;
-- `INVALID_ARGUMENT` — command argument has an invalid type/value;
-- `BUILD_NOT_FOUND` — required build/recommendation is unavailable;
-- `LANGUAGE_NOT_FOUND` — no language metadata is available;
-- `EDITION_NOT_FOUND` — no edition metadata is available;
-- `UUP_API_ERROR` — non-retryable/application-level UUP API failure;
-- `UUP_API_UNAVAILABLE` — UUP API remains unavailable after retry/cache fallback;
-- `INVALID_BUILD_PLAN` — BuildPlan validation failed;
-- `ELEVATION_FAILED` — elevated worker could not be started or did not return a valid result;
-- `BUILD_FAILED` — build/conversion workflow failed;
-- `INTERNAL_ERROR` — unexpected backend failure not covered by a more specific code.
-
-New `error.code` values may be added within schema v1. Clients must treat unknown codes as generic failures while preserving the code value for diagnostics.
-
-## Build DTO
-
-```json
-{
-  "uuid": "...",
-  "title": "Windows 11, version 25H2 (...) ",
-  "product": "Windows 11",
-  "versionLabel": "25H2",
-  "build": "26200.1234",
-  "architecture": "amd64",
-  "entryType": "Windows",
-  "createdAt": "2026-08-01T00:00:00.0000000Z",
-  "isPreview": false
-}
-```
-
-The DTO intentionally excludes internal sorting/version helpers and PowerShell metadata.
-
-## Language DTO
-
-```json
-{
-  "code": "ru-ru",
-  "name": "Russian"
-}
-```
-
-## Edition DTO
-
-```json
-{
-  "code": "Professional",
-  "name": "Windows Pro"
-}
-```
+`schemaVersion` is required and currently `1`; `requestId` is a required non-empty string returned unchanged; `command` is allowlisted; `arguments` is a required object. Requests are untrusted input and JSON is never executed as code.
 
 ## Commands
 
-### GetVersion
+Schema v1 supports `GetVersion`, `SearchBuilds`, `GetRecommendedBuild`, `GetLanguages`, `GetEditions`, `CreateBuildPlan`, `ValidateBuildPlan`, `ExecuteBuildPlan`, `RunPreflight`, and `CancelBuild`.
 
-Arguments:
+Existing catalog/plan commands retain their v1 arguments and controlled DTOs. `ValidateBuildPlan` returns `INVALID_BUILD_PLAN` for invalid plan data. `ExecuteBuildPlan` reuses `Invoke-WibBuildPlan` and the existing elevation/build pipeline.
 
-```json
-{}
-```
-
-Response `data`:
+## RunPreflight
 
 ```json
 {
-  "applicationVersion": "0.2.1-alpha.1",
-  "contractSchemaVersion": 1,
-  "buildPlanSchemaVersion": 1
-}
-```
-
-### SearchBuilds
-
-Arguments:
-
-```json
-{
-  "search": "Windows 11 25H2",
-  "architecture": "amd64",
-  "includePreview": false,
-  "forceRefresh": false,
-  "cacheDirectory": "C:\\UUP-ISO-Work"
-}
-```
-
-`search` is required. `architecture` supports `amd64`, `arm64`, `x86`, and `all`; other fields are optional.
-
-Response:
-
-```json
-{
-  "builds": [
-    {
-      "uuid": "...",
-      "title": "...",
-      "product": "Windows 11",
-      "versionLabel": "25H2",
-      "build": "...",
-      "architecture": "amd64",
-      "entryType": "Windows",
-      "createdAt": "...",
-      "isPreview": false
-    }
-  ]
-}
-```
-
-No search matches is a successful result with `builds: []`.
-
-### GetRecommendedBuild
-
-Arguments:
-
-```json
-{
-  "product": "Windows 11",
-  "architecture": "amd64",
-  "forceRefresh": true,
-  "cacheDirectory": "C:\\UUP-ISO-Work"
-}
-```
-
-`product` is `Windows 11` or `Windows 10`. The command uses the same dynamic quick-mode recommendation logic as the TUI; no release/build number is hardcoded.
-
-Response:
-
-```json
-{
-  "build": { "uuid": "..." }
-}
-```
-
-The full object follows the build DTO above.
-
-### GetLanguages
-
-Arguments:
-
-```json
-{
-  "updateId": "...",
-  "forceRefresh": false,
-  "cacheDirectory": "C:\\UUP-ISO-Work"
-}
-```
-
-Response:
-
-```json
-{
-  "languages": [
-    { "code": "ru-ru", "name": "Russian" }
-  ]
-}
-```
-
-### GetEditions
-
-Arguments:
-
-```json
-{
-  "updateId": "...",
-  "language": "ru-ru",
-  "forceRefresh": false,
-  "cacheDirectory": "C:\\UUP-ISO-Work"
-}
-```
-
-`language` must match the `xx-xx` pattern.
-
-Response:
-
-```json
-{
-  "editions": [
-    { "code": "Professional", "name": "Windows Pro" }
-  ]
-}
-```
-
-### CreateBuildPlan
-
-Arguments:
-
-```json
-{
-  "build": {
-    "uuid": "...",
-    "title": "...",
-    "product": "Windows 11",
-    "versionLabel": "25H2",
-    "build": "...",
-    "architecture": "amd64",
-    "entryType": "Windows",
-    "createdAt": "...",
-    "isPreview": false
-  },
-  "language": "ru-ru",
-  "editions": ["Core", "Professional"],
-  "imageFormat": "ESD",
-  "addUpdates": true,
-  "cleanup": true,
-  "netFx3": false,
-  "outputDirectory": "C:\\output",
-  "cacheDirectory": "C:\\UUP-ISO-Work"
-}
-```
-
-The command delegates to the existing `New-WibBuildPlan`; no parallel plan structure exists.
-
-Response:
-
-```json
-{
-  "plan": {
-    "schemaVersion": 1,
-    "applicationVersion": "0.2.1-alpha.1",
-    "createdAt": "...",
-    "build": {},
-    "language": "ru-ru",
-    "editions": ["Core", "Professional"],
-    "sourceEdition": "Core",
-    "virtualEditions": ["Professional"],
-    "imageFormat": "ESD",
-    "addUpdates": true,
-    "cleanup": true,
-    "netFx3": false,
-    "outputDirectory": "C:\\output",
-    "cacheDirectory": "C:\\UUP-ISO-Work",
-    "removeWorkAfterSuccess": false
+  "schemaVersion": 1,
+  "requestId": "preflight-123",
+  "command": "RunPreflight",
+  "arguments": {
+    "buildPlan": { "schemaVersion": 1 },
+    "onlineChecks": false
   }
 }
 ```
 
-### ValidateBuildPlan
+`buildPlan` is required. `onlineChecks` defaults to `false`.
 
-Arguments:
+A malformed BuildPlan is a contract failure (`success=false`, `INVALID_BUILD_PLAN`). A valid plan in an environment that is not ready returns `success=true`, `data.ready=false` plus all independent checks.
 
-```json
-{
-  "plan": { "schemaVersion": 1 }
-}
-```
+Check `status` values: `pass`, `warning`, `fail`, `skipped`. Severity values: `info`, `warning`, `error`.
 
-The complete plan follows the DTO above.
+Current stable check ids:
 
-Success:
+`host.windows`, `host.architecture`, `host.powershell`, `tool.cmd`, `tool.dism`, `tool.expandArchive`, `tool.getFileHash`, `tool.mountDiskImage`, `path.cache`, `path.output`, `path.cacheWritable`, `path.outputWritable`, `disk.cache`, `disk.output`, `network.uupApi`.
 
-```json
-{
-  "valid": true
-}
-```
+Fatal `fail` + `severity=error` makes `ready=false`. Warnings do not block the build. Missing `Mount-DiskImage` is a warning because ISO creation can still complete with reduced deep verification.
 
-An invalid plan returns `success=false` with `error.code=INVALID_BUILD_PLAN`.
+Disk checks return numeric `availableBytes` and `requiredBytes`. `onlineChecks=false` performs no network request. `onlineChecks=true` performs a bounded reachability check against the official UUP dump API only and does not download Windows/UUP data.
 
-### ExecuteBuildPlan
-
-Arguments:
+## CancelBuild
 
 ```json
 {
-  "plan": { "schemaVersion": 1 }
+  "schemaVersion": 1,
+  "requestId": "cancel-command-123",
+  "command": "CancelBuild",
+  "arguments": {
+    "targetRequestId": "build-request-456",
+    "cacheDirectory": "C:\\UUP-ISO-Work"
+  }
 }
 ```
 
-The command delegates to the existing `Invoke-WibBuildPlan`, including the current UAC/elevation/conversion workflow.
-
-Success `data`:
+Response data:
 
 ```json
 {
-  "stage": "completed",
-  "isoPath": "C:\\output\\Windows.iso",
-  "sha256": "...",
-  "logPath": "C:\\output\\logs\\build-....log",
-  "executionLogPath": "C:\\project\\logs\\elevated-....log",
-  "workDirectory": "C:\\UUP-ISO-Work\\work\\...",
-  "metadataPath": "C:\\output\\Windows.iso.json"
+  "requested": true,
+  "targetRequestId": "build-request-456"
 }
 ```
 
-Some path/hash fields can be empty when the underlying workflow did not reach the stage that creates them.
+The cancel command has its own request id. `requested=true` means only that the cancellation request was accepted; it does not mean the target build has already stopped. Actual termination is confirmed by the target operation's final response/event.
+
+## Cancellation lifecycle
+
+1. Client creates a unique `requestId` for `ExecuteBuildPlan`.
+2. Backend derives `SHA-256(UTF8(requestId))`.
+3. Control path is `<cache>\control\<hash>.cancel.json`.
+4. `CancelBuild` creates a validated Windows ISO Builder marker with `CreateNew` semantics.
+5. Existing valid markers are preserved during worker initialization, so early cancellation is not lost.
+6. Parent/elevated worker poll centralized cancellation helpers.
+7. Managed UUP runner polls during long execution and terminates only the process tree rooted at its own PID.
+8. Target operation finishes with `success=false`, `BUILD_CANCELLED`, and a `cancelled` event.
+9. Parent removes only a validated owned marker; cache/work data remains.
+
+The raw request id is never used as a filename. A colliding unrelated user file is neither overwritten nor deleted. `ExecuteBuildPlan.requestId` must be unique per operation.
+
+BuildPlan does not contain request/event/cancellation fields; those belong to runtime ExecutionContext.
+
+## Error envelope
+
+A failed response contains `code`, human-readable `message`, normalized `stage`, optional controlled `details`, and optional `logPath`.
+
+Controlled details may include path, available/required bytes, component, exit code, target request id, or failed check ids. Exception objects, tokens, signed UUP URLs, product keys, and arbitrary internal metadata are excluded.
+
+Existing error codes remain valid:
+
+`INVALID_REQUEST`, `UNSUPPORTED_SCHEMA`, `INVALID_COMMAND`, `INVALID_ARGUMENT`, `BUILD_NOT_FOUND`, `LANGUAGE_NOT_FOUND`, `EDITION_NOT_FOUND`, `UUP_API_ERROR`, `UUP_API_UNAVAILABLE`, `INVALID_BUILD_PLAN`, `ELEVATION_FAILED`, `BUILD_FAILED`, `INTERNAL_ERROR`.
+
+Added in `0.2.2-alpha.1`:
+
+`UNSUPPORTED_HOST`, `REQUIRED_COMPONENT_MISSING`, `PATH_NOT_WRITABLE`, `DISK_SPACE_LOW`, `NETWORK_ERROR`, `UUP_PACKAGE_DOWNLOAD_FAILED`, `UUP_PACKAGE_INVALID`, `DOWNLOAD_FAILED`, `CONVERTER_FAILED`, `DISM_FAILED`, `ISO_NOT_FOUND`, `ISO_VALIDATION_FAILED`, `ELEVATION_CANCELLED`, `BUILD_CANCELLED`.
+
+Clients classify by `code`, not localized message text, and treat unknown future v1 codes as generic failures.
 
 ## Events
 
-One `EventFile` line:
+Each NDJSON event contains schema version, target request id, monotonic sequence, UTC timestamp, type, normalized stage, message, and progress object.
 
-```json
-{
-  "schemaVersion": 1,
-  "requestId": "request-1",
-  "sequence": 1,
-  "timestamp": "2026-08-18T05:30:00.0000000Z",
-  "type": "progress",
-  "stage": "download",
-  "message": "Downloading Windows files",
-  "progress": {
-    "percent": 24,
-    "detailPercent": 15,
-    "speedText": "31MiB",
-    "speedBytesPerSecond": 32505856
-  }
-}
-```
+Event types are `stage`, `progress`, `completed`, `failed`, `cancelled`, `warning`, `info`. `cancelled` is an additive Schema v1 event type; v1 clients must ignore unknown event types and unknown optional properties.
 
-### Event types
+Cancel-command events use the cancel-command request id. Target build events retain the target build request id. A cancellation event carries the real stage where cancellation was observed.
 
-Required:
+## Elevation behavior
 
-- `stage`;
-- `progress`;
-- `completed`;
-- `failed`.
+Local preflight runs before UAC. Fatal local checks prevent UAC from opening. The elevated worker repeats authoritative preflight.
 
-Schema v1 also permits `warning` and `info`.
-
-### Sequence
-
-- starts at `1` for a new EventFile/request;
-- increases monotonically;
-- an elevated child continues the sequence in the same file;
-- all events for the request carry the same `requestId`.
-
-### Timestamp
-
-UTC ISO-8601 string.
-
-### Contract stages
-
-Restricted vocabulary:
-
-- `startup`;
-- `catalog`;
-- `metadata`;
-- `plan`;
-- `preflight`;
-- `download`;
-- `convert`;
-- `verify`;
-- `completed`;
-- `failed`.
-
-Internal stages are explicitly mapped into this vocabulary. For example, `downloading-package` maps to `metadata`, `downloading-uup-and-converting` to `download`, and `validating` to `verify`.
-
-### Progress object
-
-- `percent`: overall progress `0..100` or `null`;
-- `detailPercent`: detail/download progress `0..100` or `null`;
-- `speedText`: parser-friendly human speed string or `null`;
-- `speedBytesPerSecond`: parsed integer bytes/s or `null`.
-
-Overall progress never decreases. Speed parsing and event I/O are best effort and cannot be the reason for a build failure.
-
-## GetVersion smoke request
-
-`request.json`:
-
-```json
-{
-  "schemaVersion": 1,
-  "requestId": "smoke-get-version",
-  "command": "GetVersion",
-  "arguments": {}
-}
-```
-
-Expected `response.json` structure:
-
-```json
-{
-  "schemaVersion": 1,
-  "requestId": "smoke-get-version",
-  "command": "GetVersion",
-  "success": true,
-  "applicationVersion": "0.2.1-alpha.1",
-  "data": {
-    "applicationVersion": "0.2.1-alpha.1",
-    "contractSchemaVersion": 1,
-    "buildPlanSchemaVersion": 1
-  }
-}
-```
-
-JSON formatting and whitespace are not part of the contract.
-
-## Security model
-
-- request content is untrusted input;
-- command dispatch uses an explicit allowlist;
-- no `Invoke-Expression`/eval;
-- JSON is never interpreted as PowerShell code;
-- enum/language/path values are validated before core calls;
-- frontend clients do not receive arbitrary Exception object graphs;
-- Backend Contract must not expose signed UUP download URLs, product keys, tokens, or other secrets;
-- existing UAC/security policy remains unchanged.
+Cancellation runtime context is forwarded separately from BuildPlan through the existing plan/result boundary. UAC refusal is mapped to `ELEVATION_CANCELLED` only from reliable numeric Win32 information, never message parsing.
 
 ## Compatibility policy
 
-Backend Contract Schema v1 guarantees:
+Schema v1 clients must tolerate new optional fields, commands they do not call, error codes, event types, and preflight check ids. Removing/renaming required fields or changing their semantics requires a new schema version.
 
-- existing properties keep their meaning;
-- required properties are not removed;
-- new optional properties may be added;
-- new commands may be added;
-- new `error.code` values may be added;
-- clients must ignore unknown optional fields.
+## Security
 
-A breaking contract change requires `schemaVersion = 2`.
-
-ApplicationVersion does not automatically affect the contract schema.
+Explicit allowlist dispatch, no eval/`Invoke-Expression`, normalized paths, SHA-256-derived cancellation filenames, validated marker ownership, no process-name kill, owned-PID process tree termination, and data-only best-effort event transport.

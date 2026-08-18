@@ -21,7 +21,8 @@ function Get-WibExecutionContext {
                 [datetime]::TryParse([string]$state.updatedAt, [ref]$updatedAt) | Out-Null
             }
             if ($updatedAt -ge $StartedAt.AddSeconds(-2)) {
-                if ($null -ne $state.PSObject.Properties['failedStage'] -and -not [string]::IsNullOrWhiteSpace([string]$state.failedStage)) { $stage = [string]$state.failedStage }
+                if ($null -ne $state.PSObject.Properties['cancelledStage'] -and -not [string]::IsNullOrWhiteSpace([string]$state.cancelledStage)) { $stage = [string]$state.cancelledStage }
+                elseif ($null -ne $state.PSObject.Properties['failedStage'] -and -not [string]::IsNullOrWhiteSpace([string]$state.failedStage)) { $stage = [string]$state.failedStage }
                 elseif ($null -ne $state.PSObject.Properties['stage'] -and -not [string]::IsNullOrWhiteSpace([string]$state.stage)) { $stage = [string]$state.stage }
             }
         }
@@ -43,8 +44,6 @@ function Get-WibExecutionContext {
     return [pscustomobject]@{ Stage=$stage; LogPath=$logPath; WorkDirectory=$workDirectory }
 }
 
-# Preserve the previous concrete stage and publish contract stages from the
-# existing job-state transitions. Event publishing is best-effort and non-fatal.
 function Save-WibJobState {
     param(
         [Parameter(Mandatory = $true)][string]$Path,
@@ -53,25 +52,31 @@ function Save-WibJobState {
         [string]$Message = ''
     )
 
-    $failedStage = ''
-    if ($Stage -eq 'failed' -and (Test-Path -LiteralPath $Path)) {
+    $previousStage = ''
+    if ($Stage -in @('failed','cancelled') -and (Test-Path -LiteralPath $Path)) {
         try {
             $previous = Read-WibJsonFile -Path $Path
             if ($null -ne $previous -and $null -ne $previous.PSObject.Properties['stage']) {
-                $previousStage = [string]$previous.stage
-                if (-not [string]::IsNullOrWhiteSpace($previousStage) -and $previousStage -ne 'failed') { $failedStage = $previousStage }
+                $candidate = [string]$previous.stage
+                if (-not [string]::IsNullOrWhiteSpace($candidate) -and $candidate -notin @('failed','cancelled','completed')) { $previousStage = $candidate }
             }
         }
         catch { }
     }
 
     $payload = [ordered]@{ stage=$Stage; updatedAt=(Get-Date).ToString('o'); message=$Message; plan=$Plan }
-    if (-not [string]::IsNullOrWhiteSpace($failedStage)) { $payload['failedStage'] = $failedStage }
+    if ($Stage -eq 'failed' -and $previousStage) { $payload.failedStage = $previousStage }
+    if ($Stage -eq 'cancelled') {
+        $payload.cancelRequested = $true
+        $payload.cancelled = $true
+        $payload.cancelledAt = (Get-Date).ToUniversalTime().ToString('o')
+        if ($previousStage) { $payload.cancelledStage = $previousStage }
+    }
     Write-WibJsonFile -Path $Path -Depth 20 -Value $payload
 
-    if ($Stage -notin @('failed', 'completed')) {
+    if ($Stage -notin @('failed','completed','cancelled')) {
         $contractStage = ConvertTo-WibContractStage -Stage $Stage
-        Publish-WibEvent -Type 'stage' -Stage $contractStage -Message ("Build stage: {0}" -f $contractStage) | Out-Null
+        Publish-WibEvent -Type 'stage' -Stage $contractStage -Message ('Build stage: {0}' -f $contractStage) | Out-Null
     }
 }
 
@@ -95,7 +100,7 @@ function Invoke-WibBuildPlanCore {
         $context = [pscustomobject]@{ Stage='preflight'; LogPath=''; WorkDirectory='' }
         try { $context = Get-WibExecutionContext -Plan $Plan -StartedAt $startedAt } catch { }
         try { if (-not $failure.Exception.Data.Contains('WibErrorCode')) { $failure.Exception.Data['WibErrorCode'] = 'BUILD_FAILED' } } catch { }
-        try { $failure.Exception.Data['WibStage'] = [string]$context.Stage } catch { }
+        try { if (-not $failure.Exception.Data.Contains('WibStage')) { $failure.Exception.Data['WibStage'] = [string]$context.Stage } } catch { }
         try { $failure.Exception.Data['WibLogPath'] = [string]$context.LogPath } catch { }
         try { $failure.Exception.Data['WibWorkDirectory'] = [string]$context.WorkDirectory } catch { }
         throw $failure
@@ -137,14 +142,26 @@ function New-WibElevationException {
         [string]$Stage = 'preflight',
         [string]$LogPath = '',
         [string]$ExecutionLogPath = '',
-        [string]$WorkDirectory = ''
+        [string]$WorkDirectory = '',
+        [AllowNull()]$Details = $null
     )
-    $exception = New-WibErrorException -Code $Code -Message $Message -Stage $Stage -PublicMessage $PublicMessage -LogPath $LogPath -WorkDirectory $WorkDirectory
+    $exception = New-WibErrorException -Code $Code -Message $Message -Stage $Stage -PublicMessage $PublicMessage -LogPath $LogPath -WorkDirectory $WorkDirectory -Details $Details
     if ($ExecutionLogPath) { $exception.Data['WibExecutionLogPath'] = $ExecutionLogPath }
     return $exception
 }
 
-# Extends the existing elevated plan/result protocol with optional event context.
+function Test-WibElevationCancelledException {
+    param([Parameter(Mandatory = $true)]$Exception)
+
+    $current = $Exception
+    while ($null -ne $current) {
+        try { if ($current.NativeErrorCode -eq 1223) { return $true } } catch { }
+        try { if ([int]$current.HResult -eq -2147023673) { return $true } } catch { }
+        $current = $current.InnerException
+    }
+    return $false
+}
+
 function Start-WibElevatedPlan {
     param([Parameter(Mandatory = $true)]$Plan)
 
@@ -170,7 +187,12 @@ function Start-WibElevatedPlan {
     if ($eventContext.Enabled -and $eventContext.RequestId -and $eventContext.FilePath) {
         $arguments += @('-BackendRequestId',(Quote-WibCommandArgument $eventContext.RequestId),'-BackendEventFile',(Quote-WibCommandArgument $eventContext.FilePath))
     }
+    $cancelContext = Get-WibCancellationContext
+    if ($cancelContext.Enabled -and $cancelContext.RequestHash -and $cancelContext.CacheDirectory) {
+        $arguments += @('-CancellationRequestHash',(Quote-WibCommandArgument $cancelContext.RequestHash),'-CancellationCacheDirectory',(Quote-WibCommandArgument $cancelContext.CacheDirectory))
+    }
 
+    Assert-WibNotCancelled -Stage 'preflight'
     Write-Host 'Для загрузки и конвертации UUP требуются права администратора. Открывается UAC...' -ForegroundColor Yellow
     Write-Host ('Лог повышенного процесса: {0}' -f $elevatedExecutionLogPath) -ForegroundColor DarkGray
     try {
@@ -178,8 +200,11 @@ function Start-WibElevatedPlan {
             $process = Start-Process -FilePath (Get-WibPowerShellExecutable) -Verb RunAs -Wait -PassThru -ArgumentList $arguments
         }
         catch {
-            $publicMessage = "Не удалось запустить сборку с правами администратора: $($_.Exception.Message)"
-            $fullMessage = "$publicMessage. Лог выполнения: $elevatedExecutionLogPath"
+            if (Test-WibElevationCancelledException -Exception $_.Exception) {
+                throw (New-WibElevationException 'ELEVATION_CANCELLED' 'UAC elevation was cancelled by the user.' 'Повышение прав отменено пользователем.' 'preflight' '' $elevatedExecutionLogPath '')
+            }
+            $publicMessage = 'Не удалось запустить сборку с правами администратора.'
+            $fullMessage = '{0} {1}. Лог выполнения: {2}' -f $publicMessage, $_.Exception.Message, $elevatedExecutionLogPath
             throw (New-WibElevationException 'ELEVATION_FAILED' $fullMessage $publicMessage 'preflight' '' $elevatedExecutionLogPath '')
         }
         Sync-WibEventSequenceFromFile
@@ -188,12 +213,12 @@ function Start-WibElevatedPlan {
         if (Test-Path -LiteralPath $resultPath) {
             try { $result = Read-WibJsonFile -Path $resultPath }
             catch {
-                $message = "Повышенный процесс завершился с кодом $($process.ExitCode), но файл результата повреждён: $resultPath. $($_.Exception.Message). Лог выполнения: $elevatedExecutionLogPath"
+                $message = 'Повышенный процесс завершился с кодом {0}, но файл результата повреждён: {1}. Лог выполнения: {2}' -f $process.ExitCode, $resultPath, $elevatedExecutionLogPath
                 throw (New-WibElevationException 'ELEVATION_FAILED' $message 'Elevated result file is invalid.' 'preflight' '' $elevatedExecutionLogPath '')
             }
         }
         if ($null -eq $result) {
-            $message = "Повышенный процесс завершился с кодом $($process.ExitCode), но не создал файл результата: $resultPath. Лог выполнения: $elevatedExecutionLogPath"
+            $message = 'Повышенный процесс завершился с кодом {0}, но не создал файл результата: {1}. Лог выполнения: {2}' -f $process.ExitCode, $resultPath, $elevatedExecutionLogPath
             throw (New-WibElevationException 'ELEVATION_FAILED' $message 'Elevated process did not return a result.' 'preflight' '' $elevatedExecutionLogPath '')
         }
 
@@ -207,7 +232,9 @@ function Start-WibElevatedPlan {
             if ([string]::IsNullOrWhiteSpace($stage)) { $stage = 'preflight' }
             $publicMessage = Get-WibResultPropertyText $result 'message'
             if ([string]::IsNullOrWhiteSpace($publicMessage)) { $publicMessage = 'Elevated build failed.' }
-            throw (New-WibElevationException $errorCode $fullMessage $publicMessage $stage (Get-WibResultPropertyText $result 'logPath') (Get-WibResultPropertyText $result 'executionLogPath') (Get-WibResultPropertyText $result 'workDirectory'))
+            $details = $null
+            if ($null -ne $result.PSObject.Properties['errorDetails']) { $details = $result.errorDetails }
+            throw (New-WibElevationException $errorCode $fullMessage $publicMessage $stage (Get-WibResultPropertyText $result 'logPath') (Get-WibResultPropertyText $result 'executionLogPath') (Get-WibResultPropertyText $result 'workDirectory') $details)
         }
         return $result
     }
@@ -218,24 +245,31 @@ function Start-WibElevatedPlan {
     }
 }
 
-# The child process uses the same BuildPlan executor and only appends events to
-# the parent's EventFile. This is not a second elevation protocol.
 function Invoke-WibPlanFile {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)][string]$Path,
         [string]$BackendRequestId = '',
-        [string]$BackendEventFile = ''
+        [string]$BackendEventFile = '',
+        [string]$CancellationRequestHash = '',
+        [string]$CancellationCacheDirectory = ''
     )
     $ownsEventSink = $false
+    $ownsCancellationContext = $false
     try {
         if ($BackendRequestId -and $BackendEventFile) {
             $ownsEventSink = Initialize-WibEventSink -RequestId $BackendRequestId -EventFile $BackendEventFile -Append
         }
+        if ($CancellationRequestHash -and $CancellationCacheDirectory) {
+            Initialize-WibCancellationContext -RequestHash $CancellationRequestHash -CacheDirectory $CancellationCacheDirectory | Out-Null
+            $ownsCancellationContext = $true
+        }
+        Assert-WibNotCancelled -Stage 'preflight'
         $plan = Read-WibPlan -Path $Path
         return Invoke-WibBuildPlan -Plan $plan
     }
     finally {
+        if ($ownsCancellationContext) { Reset-WibCancellationContext }
         if ($ownsEventSink) { Reset-WibEventSink }
     }
 }

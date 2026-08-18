@@ -14,11 +14,34 @@
     }
 }
 
+function ConvertTo-WibBackendErrorDetailsDto {
+    param([AllowNull()]$Exception, [string]$Code, [string]$WorkDirectory = '', [string]$ExecutionLogPath = '')
+
+    $details = [ordered]@{}
+    $source = $null
+    if ($null -ne $Exception) {
+        try {
+            if ($Exception.Data.Contains('WibErrorDetails')) { $source = $Exception.Data['WibErrorDetails'] }
+        }
+        catch { }
+    }
+
+    foreach ($name in @('path','availableBytes','requiredBytes','component','exitCode','targetRequestId','failedCheckIds','statusCode','uri','attempts','actualBytes','minimumBytes')) {
+        if ($null -ne $source -and (Test-WibBackendProperty -Object $source -Name $name)) {
+            $details[$name] = Get-WibBackendProperty -Object $source -Name $name
+        }
+    }
+    if ($WorkDirectory) { $details.workDirectory = $WorkDirectory }
+    if ($ExecutionLogPath) { $details.executionLogPath = $ExecutionLogPath }
+    if ($details.Count -eq 0) { return $null }
+    return [pscustomobject]$details
+}
+
 function ConvertTo-WibBackendErrorDto {
     param($Failure, [string]$Command)
     $exception = if ($Failure -is [System.Management.Automation.ErrorRecord]) { $Failure.Exception } else { $Failure }
-    $code = if ($Command -eq 'ExecuteBuildPlan') { 'BUILD_FAILED' } elseif ($Command -eq 'ValidateBuildPlan') { 'INVALID_BUILD_PLAN' } else { 'INTERNAL_ERROR' }
-    $stage = if ($Command -in @('SearchBuilds','GetRecommendedBuild')) { 'catalog' } elseif ($Command -in @('GetLanguages','GetEditions')) { 'metadata' } elseif ($Command -in @('CreateBuildPlan','ValidateBuildPlan')) { 'plan' } else { 'startup' }
+    $code = if ($Command -eq 'ExecuteBuildPlan') { 'BUILD_FAILED' } elseif ($Command -in @('ValidateBuildPlan','RunPreflight')) { 'INVALID_BUILD_PLAN' } else { 'INTERNAL_ERROR' }
+    $stage = if ($Command -in @('SearchBuilds','GetRecommendedBuild')) { 'catalog' } elseif ($Command -in @('GetLanguages','GetEditions')) { 'metadata' } elseif ($Command -in @('CreateBuildPlan','ValidateBuildPlan')) { 'plan' } elseif ($Command -eq 'RunPreflight') { 'preflight' } else { 'startup' }
     $message = if ($null -eq $exception) { 'Backend operation failed.' } else { [string]$exception.Message }
     $logPath = ''; $workDirectory = ''; $executionLogPath = ''
     if ($null -ne $exception) {
@@ -31,18 +54,11 @@ function ConvertTo-WibBackendErrorDto {
             if ($exception.Data.Contains('WibExecutionLogPath')) { $executionLogPath = [string]$exception.Data['WibExecutionLogPath'] }
         } catch { }
     }
-    $details = $null
-    if ($workDirectory -or $executionLogPath) {
-        $details = [pscustomobject][ordered]@{
-            workDirectory = if ($workDirectory) { $workDirectory } else { $null }
-            executionLogPath = if ($executionLogPath) { $executionLogPath } else { $null }
-        }
-    }
     return [pscustomobject][ordered]@{
         code = $code
         message = $message
         stage = $stage
-        details = $details
+        details = ConvertTo-WibBackendErrorDetailsDto -Exception $exception -Code $code -WorkDirectory $workDirectory -ExecutionLogPath $executionLogPath
         logPath = if ($logPath) { $logPath } else { $null }
     }
 }
@@ -61,7 +77,7 @@ function New-WibBackendResponse {
 }
 
 function Invoke-WibBackendCommand {
-    param([string]$Command, $Arguments)
+    param([string]$Command, $Arguments, [string]$RequestId = '')
     switch ($Command) {
         'GetVersion' {
             return [pscustomobject][ordered]@{
@@ -132,17 +148,58 @@ function Invoke-WibBackendCommand {
             Assert-WibPlan $plan
             return [pscustomobject][ordered]@{ valid = $true }
         }
+        'RunPreflight' {
+            Publish-WibEvent stage preflight 'Running preflight checks' | Out-Null
+            if (-not (Test-WibBackendProperty -Object $Arguments -Name 'buildPlan')) {
+                Throw-WibBackendError 'INVALID_BUILD_PLAN' "Argument 'buildPlan' is required." 'preflight'
+            }
+            $plan = ConvertFrom-WibBuildPlanDto (Get-WibBackendProperty $Arguments 'buildPlan')
+            Assert-WibPlan $plan
+            $onlineChecks = Get-WibBackendBoolean $Arguments 'onlineChecks' $false 'INVALID_ARGUMENT' 'preflight'
+            return Invoke-WibPreflight -Plan $plan -OnlineChecks:$onlineChecks
+        }
+        'CancelBuild' {
+            $targetRequestId = Get-WibBackendString $Arguments 'targetRequestId' '' -Required -Code 'INVALID_ARGUMENT' -Stage 'startup'
+            $cacheDirectory = Get-WibBackendPath $Arguments 'cacheDirectory' '' -Required -Code 'INVALID_ARGUMENT' -Stage 'startup'
+            $request = Save-WibCancellationRequest -TargetRequestId $targetRequestId -CacheDirectory $cacheDirectory -Confirm:$false
+            return [pscustomobject][ordered]@{
+                requested = [bool]$request.Requested
+                targetRequestId = [string]$request.TargetRequestId
+            }
+        }
         'ExecuteBuildPlan' {
             Publish-WibEvent stage plan 'Preparing build plan' | Out-Null
             $plan = ConvertFrom-WibBuildPlanDto (Get-WibBackendProperty $Arguments 'plan')
             Assert-WibPlan $plan
-            Publish-WibEvent stage preflight 'Starting build' | Out-Null
-            try { $result = Invoke-WibBuildPlan $plan }
-            catch {
-                if (-not $_.Exception.Data.Contains('WibErrorCode')) { $_.Exception.Data['WibErrorCode'] = 'BUILD_FAILED' }
-                throw
+            Initialize-WibCancellationContext -RequestId $RequestId -CacheDirectory ([string]$plan.CacheDirectory) | Out-Null
+            try {
+                Assert-WibNotCancelled -Stage 'preflight'
+                Publish-WibEvent stage preflight 'Starting build' | Out-Null
+                try { $result = Invoke-WibBuildPlan $plan }
+                catch {
+                    if (-not $_.Exception.Data.Contains('WibErrorCode')) { $_.Exception.Data['WibErrorCode'] = 'BUILD_FAILED' }
+                    if ([string]$_.Exception.Data['WibErrorCode'] -eq 'BUILD_CANCELLED') {
+                        $details = [ordered]@{ targetRequestId=$RequestId }
+                        try {
+                            if ($_.Exception.Data.Contains('WibErrorDetails') -and $null -ne $_.Exception.Data['WibErrorDetails']) {
+                                foreach ($name in @('path','availableBytes','requiredBytes','component','exitCode','failedCheckIds')) {
+                                    if (Test-WibBackendProperty -Object $_.Exception.Data['WibErrorDetails'] -Name $name) {
+                                        $details[$name] = Get-WibBackendProperty -Object $_.Exception.Data['WibErrorDetails'] -Name $name
+                                    }
+                                }
+                            }
+                        }
+                        catch { }
+                        $_.Exception.Data['WibErrorDetails'] = $details
+                    }
+                    throw
+                }
+                Assert-WibNotCancelled -Stage 'verify'
+                return ConvertTo-WibBuildResultDto $result
             }
-            return ConvertTo-WibBuildResultDto $result
+            finally {
+                Reset-WibCancellationContext -RemoveControlFile -Confirm:$false
+            }
         }
         default { Throw-WibBackendError 'INVALID_COMMAND' ("Unknown backend command: {0}" -f $Command) 'startup' }
     }
@@ -159,7 +216,7 @@ function Invoke-WibBackendRequestObject {
     if ($script:WibBackendCommands -notcontains $command) { Throw-WibBackendError 'INVALID_COMMAND' ("Unknown backend command: {0}" -f $command) 'startup' }
     $arguments = Get-WibBackendProperty $Request 'arguments'
     if (-not (Test-WibBackendObject $arguments)) { Throw-WibBackendError 'INVALID_REQUEST' 'arguments is required and must be an object.' 'startup' }
-    return New-WibBackendResponse $requestId $command $true (Invoke-WibBackendCommand $command $arguments)
+    return New-WibBackendResponse $requestId $command $true (Invoke-WibBackendCommand $command $arguments $requestId)
 }
 
 function Invoke-WibBackendRequest {
@@ -196,7 +253,12 @@ function Invoke-WibBackendRequest {
         $response = New-WibBackendResponse $requestId $command $false $error
         if ($events) {
             Sync-WibEventSequenceFromFile
-            Publish-WibEvent failed $error.stage $error.message | Out-Null
+            if ($error.code -eq 'BUILD_CANCELLED') {
+                Publish-WibEvent cancelled $error.stage $error.message | Out-Null
+            }
+            else {
+                Publish-WibEvent failed $error.stage $error.message | Out-Null
+            }
         }
     }
     finally {

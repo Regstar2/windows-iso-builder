@@ -122,6 +122,11 @@ function Stop-WibConverterProgress {
     $script:WibConverterEventStage = ''
 }
 
+function Get-WibConverterCurrentStage {
+    if (-not [string]::IsNullOrWhiteSpace($script:WibConverterEventStage)) { return $script:WibConverterEventStage }
+    return 'download'
+}
+
 function Update-WibConverterProgressFromLine {
     param([AllowEmptyString()][string]$Line)
 
@@ -165,7 +170,7 @@ function Write-Host {
             Invoke-WibNativeWriteHost -Object $Object -Separator $Separator -ForegroundColor $foreground -BackgroundColor $background -NoNewline:$NoNewline
             return
         }
-        if ($script:WibConverterProgressActive -and $trimmed -match '^ОШИБКА СБОРКИ:') {
+        if ($script:WibConverterProgressActive -and ($trimmed -match '^ОШИБКА СБОРКИ:' -or $trimmed -match '^СБОРКА ОТМЕНЕНА:')) {
             Write-WibConverterDetailLine -Line $text
             Stop-WibConverterProgress
             Invoke-WibNativeWriteHost -Object $Object -Separator $Separator -ForegroundColor $foreground -BackgroundColor $background -NoNewline:$NoNewline
