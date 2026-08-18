@@ -41,6 +41,17 @@ Describe 'v0.2.2 reliability edge cases' {
             $source | Should -Match 'Assert-WibNotCancelled -Stage ''verify'''
         }
 
+        It 'checks cancellation before emitting the final ExecuteBuildPlan success DTO' {
+            $source = (Get-Command Invoke-WibBackendCommand -ErrorAction Stop).Definition
+            $executeStart = $source.IndexOf("'ExecuteBuildPlan'")
+            $executeSource = $source.Substring($executeStart)
+            $invokeIndex = $executeSource.IndexOf('Invoke-WibBuildPlan')
+            $finalCheckIndex = $executeSource.IndexOf("Assert-WibNotCancelled -Stage 'verify'", $invokeIndex)
+            $returnIndex = $executeSource.IndexOf('return ConvertTo-WibBuildResultDto', $invokeIndex)
+            $finalCheckIndex | Should -BeGreaterThan $invokeIndex
+            $returnIndex | Should -BeGreaterThan $finalCheckIndex
+        }
+
         It 'recognizes Windows ERROR_CANCELLED numerically instead of parsing text' {
             $exception = New-Object ComponentModel.Win32Exception -ArgumentList 1223
             Test-WibElevationCancelledException -Exception $exception | Should -BeTrue

@@ -194,6 +194,7 @@ function Invoke-WibBackendCommand {
                     }
                     throw
                 }
+                Assert-WibNotCancelled -Stage 'verify'
                 return ConvertTo-WibBuildResultDto $result
             }
             finally {
