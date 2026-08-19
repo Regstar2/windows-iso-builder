@@ -1,4 +1,4 @@
-﻿<div align="center">
+<div align="center">
 
 # Windows ISO Builder
 
@@ -37,13 +37,14 @@ GUI и PowerShell-клиент UUP dump для поиска, загрузки и
 
 - Quick Mode с backend-командой `GetRecommendedBuild`;
 - Catalog Mode с `SearchBuilds`, Preview и display-фильтром служебных записей;
+- явное применение выбранной каталожной сборки без запуска metadata-запросов по одиночному клику;
 - динамические languages/editions из backend без встроенных списков;
 - multi-edition выбор;
 - ESD/WIM и базовые converter options;
 - `CreateBuildPlan` + `RunPreflight`;
 - asynchronous `ExecuteBuildPlan` и NDJSON progress/events;
 - cooperative `CancelBuild` без GUI-side kill процессов;
-- обработку `ELEVATION_CANCELLED`/`BUILD_CANCELLED` и других structured error codes;
+- обработку стабильных backend error codes для preflight/download/converter/DISM/ISO/elevation/cancellation;
 - success screen с ISO, SHA-256, журналом и открытием папки;
 - GUI log в `%LOCALAPPDATA%\WindowsISOBuilder\logs`.
 
@@ -91,7 +92,7 @@ PowerShell backend остаётся единственным владельце�
 
 GUI не импортирует `WindowsISOBuilder.psm1`, не вызывает private functions, не парсит `Write-Host`, transcript, aria2/converter output и не классифицирует ошибку по локализованному `message`.
 
-Совместимость GUI определяется `contractSchemaVersion == 1`, а не совпадением ApplicationVersion.
+Совместимость GUI определяется schema interfaces, а не совпадением ApplicationVersion. Для `v0.3.0-alpha.1` требуются Backend Contract SchemaVersion `1` и BuildPlan SchemaVersion `1`; packaged GUI smoke проверяет оба значения.
 
 Полный контракт: [docs/BACKEND_CONTRACT.md](docs/BACKEND_CONTRACT.md). Архитектура GUI: [docs/GUI_ARCHITECTURE.md](docs/GUI_ARCHITECTURE.md).
 
@@ -128,6 +129,8 @@ powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
 
 Full validation должна проверять GUI build/test/publish, Pester, PSScriptAnalyzer, backend smokes, release package, manifest/checksum и packaged `WindowsISOBuilder.exe --backend-smoke`. Ни один автоматический smoke не скачивает Windows и не открывает UAC.
 
+Репозиторий также содержит `.github/workflows/windows-self-hosted-validation.yml`. Для pull request в `master` он запускает тот же Full validation на Windows self-hosted runner с labels `self-hosted`, `Windows`, `X64`; superseded PR runs отменяются через `concurrency`. `validation-result.json` публикуется как Actions artifact даже при падении validation.
+
 Фактические результаты конкретной среды нельзя подменять статусом implementation. См. [docs/VALIDATION_MATRIX.md](docs/VALIDATION_MATRIX.md).
 
 ## Release package
@@ -141,7 +144,7 @@ ZIP содержит:
 - документацию;
 - package-only `release-manifest.json`.
 
-Manifest содержит версии приложения/модуля/schema и additive GUI metadata; локальные developer paths, username и machine name не включаются.
+Manifest содержит версии приложения/модуля/schema и additive GUI metadata; локальные developer paths, username и machine name не включаются. `.github`, tests, `bin`/`obj`, validation artifacts и другие developer-only файлы в release ZIP не попадают.
 
 ## Безопасность
 
@@ -166,7 +169,7 @@ Manifest содержит версии приложения/модуля/schema 
 
 ## Ограничения v0.3.0
 
-В GUI MVP намеренно нет history, profiles, queue, cache-management UI, updater, installer/MSIX, USB writer/Rufus, full theme/language settings, customization/debloat, driver injection, TPM bypass, activation, custom UUP engine/downloader/converter и GitHub Actions.
+В GUI MVP намеренно нет history, profiles, queue, cache-management UI, updater, installer/MSIX, USB writer/Rufus, full theme/language settings, customization/debloat, driver injection, TPM bypass, activation и custom UUP engine/downloader/converter. GitHub Actions используется только как thin orchestration layer над существующей локальной Full validation на self-hosted Windows runner и не входит в runtime/release package.
 
 ## Лицензия
 
