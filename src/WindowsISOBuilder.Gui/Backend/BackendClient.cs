@@ -97,6 +97,13 @@ public sealed class BackendClient
                     response.Error,
                     response.RequestId);
             }
+            if (response.Data is null)
+            {
+                throw new BackendException(
+                    "INTERNAL_ERROR",
+                    "Backend returned success without a data payload.",
+                    requestId: requestId);
+            }
 
             // GetVersion is the GUI compatibility handshake. Contract and BuildPlan
             // schemas are independent interfaces and both must be supported before
