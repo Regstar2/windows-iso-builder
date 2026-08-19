@@ -46,6 +46,7 @@
                                     <ComboBox Width="120" SelectedValuePath="Tag" SelectedValue="{Binding Architecture}">
                                         <ComboBoxItem Content="x64" Tag="amd64"/>
                                         <ComboBoxItem Content="ARM64" Tag="arm64"/>
+                                        <ComboBoxItem Content="x86" Tag="x86"/>
                                     </ComboBox>
                                     <Button Content="Получить рекомендуемую" Command="{Binding LoadRecommendedCommand}"/>
                                 </WrapPanel>
@@ -194,7 +195,7 @@
                             <Button Content="Найти" Command="{Binding SearchCommand}"/>
                         </WrapPanel>
                     </StackPanel>
-                    <DataGrid x:Name="CatalogGrid" Grid.Row="1" ItemsSource="{Binding Builds}" SelectedItem="{Binding SelectedBuild}"
+                    <DataGrid x:Name="CatalogGrid" Grid.Row="1" ItemsSource="{Binding Builds}"
                               AutoGenerateColumns="False" IsReadOnly="True" Margin="0,12,0,0" MouseDoubleClick="CatalogGrid_DoubleClick">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Версия" Binding="{Binding VersionLabel}"/>
@@ -205,7 +206,10 @@
                             <DataGridTextColumn Header="Название" Binding="{Binding Title}" Width="*"/>
                         </DataGrid.Columns>
                     </DataGrid>
-                    <TextBlock Grid.Row="2" Text="Выберите сборку. Двойной щелчок откроет её параметры в быстром разделе." Foreground="#666" Margin="0,8,0,0"/>
+                    <DockPanel Grid.Row="2" Margin="0,8,0,0" LastChildFill="True">
+                        <Button DockPanel.Dock="Right" Content="Использовать выбранную" Click="UseCatalogBuild_Click"/>
+                        <TextBlock Text="Выберите сборку и нажмите кнопку или дважды щёлкните строку, чтобы открыть её параметры." Foreground="#666" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                    </DockPanel>
                 </Grid>
             </TabItem>
         </TabControl>
