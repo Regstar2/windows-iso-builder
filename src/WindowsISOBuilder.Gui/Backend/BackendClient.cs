@@ -146,16 +146,18 @@ public sealed class BackendClient
                 break;
 
             case "SearchBuilds":
-                if (data is not BuildListData)
+                if (data is not BuildListData builds ||
+                    builds.Builds is null ||
+                    builds.Builds.Any(build => !IsValidBuild(build)))
                 {
-                    throw ProtocolError(command, requestId, "unexpected data type");
+                    throw ProtocolError(command, requestId, "build list contains an invalid build identity");
                 }
                 break;
 
             case "GetRecommendedBuild":
-                if (data is not BuildData recommended || recommended.Build is null || string.IsNullOrWhiteSpace(recommended.Build.Uuid))
+                if (data is not BuildData recommended || !IsValidBuild(recommended.Build))
                 {
-                    throw ProtocolError(command, requestId, "recommended build is missing");
+                    throw ProtocolError(command, requestId, "recommended build is missing or invalid");
                 }
                 break;
 
@@ -180,16 +182,23 @@ public sealed class BackendClient
                 break;
 
             case "CreateBuildPlan":
-                if (data is not BuildPlanData buildPlan || buildPlan.Plan is null || buildPlan.Plan.SchemaVersion != 1)
+                if (data is not BuildPlanData buildPlan || !IsValidBuildPlan(buildPlan.Plan))
                 {
                     throw ProtocolError(command, requestId, "BuildPlan v1 payload is missing or invalid");
                 }
                 break;
 
             case "RunPreflight":
-                if (data is not PreflightData preflight || preflight.Checks is null || preflight.Checks.Count == 0)
+                if (data is not PreflightData preflight ||
+                    preflight.Checks is null ||
+                    preflight.Checks.Count == 0 ||
+                    preflight.Checks.Any(check =>
+                        check is null ||
+                        string.IsNullOrWhiteSpace(check.Id) ||
+                        string.IsNullOrWhiteSpace(check.Status) ||
+                        string.IsNullOrWhiteSpace(check.Severity)))
                 {
-                    throw ProtocolError(command, requestId, "preflight report has no checks");
+                    throw ProtocolError(command, requestId, "preflight report has no valid checks");
                 }
                 break;
 
@@ -211,6 +220,27 @@ public sealed class BackendClient
                 break;
         }
     }
+
+    private static bool IsValidBuild(BuildDto? build) =>
+        build is not null &&
+        !string.IsNullOrWhiteSpace(build.Uuid) &&
+        !string.IsNullOrWhiteSpace(build.Title) &&
+        !string.IsNullOrWhiteSpace(build.Product) &&
+        !string.IsNullOrWhiteSpace(build.Build) &&
+        !string.IsNullOrWhiteSpace(build.Architecture);
+
+    private static bool IsValidBuildPlan(BuildPlanDto? plan) =>
+        plan is not null &&
+        plan.SchemaVersion == 1 &&
+        IsValidBuild(plan.Build) &&
+        !string.IsNullOrWhiteSpace(plan.Language) &&
+        plan.Editions is { Count: > 0 } &&
+        plan.Editions.All(edition => !string.IsNullOrWhiteSpace(edition)) &&
+        !string.IsNullOrWhiteSpace(plan.SourceEdition) &&
+        (string.Equals(plan.ImageFormat, "ESD", StringComparison.OrdinalIgnoreCase) ||
+         string.Equals(plan.ImageFormat, "WIM", StringComparison.OrdinalIgnoreCase)) &&
+        !string.IsNullOrWhiteSpace(plan.OutputDirectory) &&
+        !string.IsNullOrWhiteSpace(plan.CacheDirectory);
 
     private static bool IsSha256(string? value) =>
         value is { Length: 64 } && value.All(static c => c is >= '0' and <= '9' or >= 'a' and <= 'f' or >= 'A' and <= 'F');
