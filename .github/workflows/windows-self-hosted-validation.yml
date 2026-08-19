@@ -91,11 +91,68 @@ jobs:
             -File .\tools\Invoke-ReleaseValidation.ps1 `
             -Full
 
+      - name: Run real GUI startup smoke
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $publish = Join-Path $env:RUNNER_TEMP 'wib-gui-startup-smoke'
+          if (Test-Path -LiteralPath $publish) {
+            Remove-Item -LiteralPath $publish -Recurse -Force
+          }
+
+          powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
+            -File .\tools\Build-Gui.ps1 `
+            -OutputDirectory $publish
+          if ($LASTEXITCODE -ne 0) {
+            throw "Build-Gui.ps1 failed with exit code $LASTEXITCODE."
+          }
+
+          $exe = Join-Path $publish 'WindowsISOBuilder.exe'
+          $log = Join-Path $env:LOCALAPPDATA ('WindowsISOBuilder\logs\gui-' + (Get-Date -Format 'yyyyMMdd') + '.log')
+          $before = if (Test-Path -LiteralPath $log) { [IO.File]::ReadAllText($log).Length } else { 0 }
+          $process = Start-Process -FilePath $exe -PassThru
+          Start-Sleep -Seconds 5
+          $process.Refresh()
+
+          $newLog = ''
+          if (Test-Path -LiteralPath $log) {
+            $allLog = [IO.File]::ReadAllText($log)
+            if ($allLog.Length -gt $before) {
+              $newLog = $allLog.Substring($before)
+            }
+          }
+
+          if ($newLog -match '\[ERROR\]\s+Unhandled UI exception') {
+            Write-Host '--- GUI startup error log ---'
+            $newLog -split "`r?`n" | ForEach-Object { if ($_ -ne '') { Write-Host $_ } }
+            Write-Host '--- end GUI startup error log ---'
+            if (-not $process.HasExited) {
+              Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            }
+            throw 'GUI reported an unhandled UI exception during startup smoke.'
+          }
+
+          if ($process.HasExited) {
+            Write-Host "GUI exited during startup smoke with code $($process.ExitCode)."
+            if ($newLog) {
+              Write-Host '--- GUI startup log ---'
+              $newLog -split "`r?`n" | ForEach-Object { if ($_ -ne '') { Write-Host $_ } }
+              Write-Host '--- end GUI startup log ---'
+            }
+            throw 'GUI did not remain alive through startup smoke.'
+          }
+
+          Write-Host 'GUI remained alive without unhandled UI exceptions through startup smoke.'
+          Stop-Process -Id $process.Id -Force
+          Wait-Process -Id $process.Id -ErrorAction SilentlyContinue
+
       - name: Upload validation report
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: windows-validation-report
-          path: validation-result.json
+          path: |
+            validation-result.json
+            pester-result.json
           if-no-files-found: warn
           retention-days: 14

@@ -1,0 +1,19 @@
+<Window x:Class="WindowsISOBuilder.Gui.Views.AdvancedOptionsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:services="clr-namespace:WindowsISOBuilder.Gui.Services"
+        Title="{services:Loc AdvancedTitle}"
+        Width="460" Height="275" MinWidth="420" MinHeight="245"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResizeWithGrip"
+        ShowInTaskbar="False">
+    <Grid Margin="18">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <TextBlock Text="{services:Loc AdvancedTitle}" Style="{StaticResource PageTitle}"/>
+        <StackPanel Grid.Row="1" Margin="0,16,0,0">
+            <CheckBox Content="{services:Loc AdvancedAddUpdates}" IsChecked="{Binding AddUpdates}"/>
+            <CheckBox Content="{services:Loc AdvancedCleanup}" IsChecked="{Binding Cleanup}" Margin="3,10,3,2"/>
+            <CheckBox Content="{services:Loc AdvancedNetFx3}" IsChecked="{Binding NetFx3}" Margin="3,10,3,2"/>
+        </StackPanel>
+        <Button Grid.Row="2" Content="{services:Loc ButtonClose}" IsCancel="True" HorizontalAlignment="Right" MinWidth="90"/>
+    </Grid>
+</Window>

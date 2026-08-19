@@ -13,9 +13,10 @@ public partial class App : Application
         DispatcherUnhandledException += (_, args) =>
         {
             _logger.Error("Unhandled UI exception", args.Exception);
+            var loc = LocalizationService.Instance;
             var openLog = MessageBox.Show(
-                "Произошла ошибка интерфейса Windows ISO Builder.\n\nОткрыть журнал GUI перед завершением приложения?",
-                "Windows ISO Builder",
+                loc.Get("UnhandledUiMessage"),
+                loc.Get("UnhandledUiTitle"),
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Error);
             if (openLog == MessageBoxResult.Yes && File.Exists(_logger.LogPath))
@@ -52,7 +53,10 @@ public partial class App : Application
             return;
         }
 
-        MainWindow = new MainWindow();
+        var settingsService = new AppSettingsService(_logger);
+        var settings = settingsService.Load();
+        LocalizationService.Instance.Initialize(settings.Language);
+        MainWindow = new MainWindow(settingsService, settings);
         MainWindow.Show();
     }
 }

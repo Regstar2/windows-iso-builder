@@ -2,7 +2,34 @@
 
 ## Unreleased
 
-Пока нет изменений после `0.3.0-alpha.1`.
+### Added
+
+- RU/EN GUI localization with English fallback, runtime language switching, and persisted explicit language choice;
+- system light/dark WPF theme integration and `PerMonitorV2` DPI manifest declaration;
+- safe window bounds/maximized-state persistence with current-monitor validation;
+- localized accessibility names and explanatory tooltips for the main workflow;
+- sanitized `windows-iso-builder-diagnostics.zip` generation with a fixed five-file allowlist;
+- GUI regression coverage for localization parity, diagnostics sanitization/package contents, window settings, theme/DPI and compact-layout invariants.
+
+### Changed
+
+- Quick Mode is reorganized into a compact responsive grid without page-level vertical scrolling;
+- build progress/status/actions now live in a persistent bottom panel instead of appending cards below the viewport;
+- successful preflight is summarized in the main window while complete details open separately;
+- advanced options open in a separate WPF dialog instead of expanding the Quick page;
+- Catalog Mode uses the `DataGrid` as its scrolling region and keeps the selected-build action row visible;
+- GUI assembly/file version is `0.3.1`; root ApplicationVersion and PowerShell ModuleVersion remain unchanged until a separate release/versioning step.
+
+### Security
+
+- GUI logs and diagnostics share one sanitizer for HTTP/HTTPS URLs, user-profile paths, usernames, bearer/token/API-key/secret assignments and Windows product keys before diagnostic archive writes;
+- `environment.json` uses an explicit diagnostic allowlist instead of dumping process environment variables.
+
+### Validation status
+
+- static source/XML/localization checks were performed during implementation;
+- Windows self-hosted CI and executable WPF validation are reported by the branch Pull Request and are not represented here until completed;
+- manual DPI, multi-monitor, keyboard, Narrator and real ISO end-to-end checks are not represented as completed by this changelog entry.
 
 ## 0.3.0-alpha.1 — 2026-08-18
 

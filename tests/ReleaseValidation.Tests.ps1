@@ -15,7 +15,7 @@ Describe 'Release validation tooling' {
             @($bytes | Where-Object { $_ -gt 127 }).Count | Should -Be 0
             $text = [Text.Encoding]::ASCII.GetString($bytes)
             $text | Should -Match '#requires -Version 5\.1'
-            $text | Should -Not -Match '\?\?|\?\.'
+            $text | Should -Not -Match '\?\?|\?.'
         }
     }
 
@@ -34,11 +34,16 @@ Describe 'Release validation tooling' {
         $project | Should -Match '<DebugType>none</DebugType>'
     }
 
-    It 'waits for packaged GUI smoke before starting archive creation' {
+    It 'waits for packaged GUI smoke before archive or validation cleanup' {
         $packager = Get-Content -LiteralPath (Join-Path $script:projectRoot 'tools\New-ReleasePackage.ps1') -Raw -Encoding ASCII
-        $packager | Should -Match 'Start-Process -FilePath \$guiExe .* -Wait .* -PassThru'
-        $packager | Should -Match '\$smokeProcess\.ExitCode'
-        $packager | Should -Not -Match '&\s+\$guiExe\s+--backend-smoke'
+        $validator = Get-Content -LiteralPath (Join-Path $script:projectRoot 'tools\Invoke-ReleaseValidation.ps1') -Raw -Encoding ASCII
+        foreach ($scriptText in @($packager, $validator)) {
+            $scriptText | Should -Match 'Start-Process -FilePath \$guiExe'
+            $scriptText | Should -Match '-Wait'
+            $scriptText | Should -Match '-PassThru'
+            $scriptText | Should -Match '\$smokeProcess\.ExitCode'
+            $scriptText | Should -Not -Match '&\s+\$guiExe\s+--backend-smoke'
+        }
     }
 
     It 'guards and restores the self-hosted validation environment' {
