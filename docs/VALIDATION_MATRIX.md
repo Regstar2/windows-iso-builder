@@ -15,10 +15,11 @@
 | PSScriptAnalyzer | Existing automated | Pass in Full |
 | PS5.1 Backend GetVersion/preflight smoke | Automated-ready | Pass |
 | PS7 Backend smoke | Existing optional | Pass или Skipped |
+| managed process-tree cancellation smoke | Automated-ready | Pass in Full |
 | `Build-Gui.ps1` self-contained publish | Automated-ready | Pass |
 | Release ZIP/checksum/manifest | Automated-ready | Pass |
 | Packaged backend source isolation | Automated-ready | Pass |
-| Packaged `WindowsISOBuilder.exe --backend-smoke` | Automated-ready | Pass |
+| Packaged `WindowsISOBuilder.exe --backend-smoke` (Contract v1 + BuildPlan v1) | Automated-ready | Pass |
 | Current tree/package safety scan | Automated-ready | Pass |
 
 Главная команда:
@@ -29,6 +30,12 @@ powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
 ```
 
 Safe automated validation не скачивает UUP set, не собирает реальный ISO и не должно открывать UAC.
+
+## Self-hosted GitHub Actions
+
+`.github/workflows/windows-self-hosted-validation.yml` является thin orchestration layer над той же командой Full validation. Pull request в `master` должен получить успешный `Full Windows validation` на runner labels `self-hosted`, `Windows`, `X64` перед переводом PR из Draft/перед merge.
+
+Workflow использует `concurrency` с отменой superseded PR runs и сохраняет `validation-result.json` как artifact даже при ошибке. Исторический PASS старого commit не считается PASS текущего head; статус должен относиться к актуальному SHA PR.
 
 ## Manual GUI smoke
 
@@ -42,12 +49,14 @@ Safe automated validation не скачивает UUP set, не собирает
 6. Editions динамически загружаются, multi-selection доступен.
 7. BuildPlan создаётся через backend.
 8. RunPreflight отображает pass/warning/fatal states; fatal блокирует build.
-9. Параметры можно изменить и перепроверить.
+9. Параметры можно изменить и перепроверить; старый preflight/plan не используется после изменения.
 10. Catalog search/architecture/Preview/servicing display filter работают.
-11. Network/invalid/preflight errors показываются controlled UI.
-12. Close during non-build не оставляет backend process; close during active build использует CancelBuild.
+11. Одиночное выделение строки Catalog не запускает metadata flow; double-click/«Использовать выбранную» открывает общий Quick flow.
+12. Network/UUP/download/converter/DISM/ISO/preflight errors показываются controlled UI по `error.code`.
+13. Close during non-build не оставляет backend process; close during active build использует CancelBuild.
+14. Неуспешный запрос CancelBuild возвращает UI в Building и не закрывает приложение поверх активной сборки.
 
-Текущий агентский environment не является Windows/.NET validation environment, поэтому фактический результат этого smoke должен оставаться **Not run**, пока владелец его не выполнит.
+Текущий агентский environment сам по себе не заменяет Windows manual GUI smoke. Фактический статус остаётся **Not run**, пока smoke действительно не выполнен.
 
 ## Real GUI E2E
 
@@ -63,7 +72,7 @@ Windows 11 → x64/amd64 → ru-RU → Professional → ESD → GUI preflight �
 
 ## Not required for v0.3.0
 
-Полный Cartesian matrix, ARM64/x86 E2E, installer/MSIX, updater, USB/Rufus, history/profiles/queue и GitHub Actions.
+Полный Cartesian matrix, ARM64/x86 real E2E, installer/MSIX, updater, USB/Rufus и history/profiles/queue.
 
 ## Safety scope
 
