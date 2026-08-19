@@ -96,6 +96,8 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: windows-validation-report
-          path: validation-result.json
+          path: |
+            validation-result.json
+            pester-result.json
           if-no-files-found: warn
           retention-days: 14
