@@ -48,6 +48,16 @@ public partial class MainWindow : Window
     {
         if (CatalogGrid.SelectedItem is not BuildDto build) return;
 
+        if (!build.EntryType.Equals("Windows", StringComparison.OrdinalIgnoreCase))
+        {
+            MessageBox.Show(
+                "Эта строка каталога является служебной записью и не может использоваться для сборки ISO. Выберите запись типа Windows.",
+                "Windows ISO Builder",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
         // Catalog selection is deliberately separate from the active build. Switch
         // to the shared configuration view before activation because assigning the
         // build starts metadata loading and disables configuration controls.
