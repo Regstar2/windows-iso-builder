@@ -12,4 +12,9 @@
     <FileVersion>0.3.0.1</FileVersion>
     <AssemblyVersion>0.3.0.0</AssemblyVersion>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
 </Project>
