@@ -99,10 +99,10 @@
                                         <DataTemplate>
                                             <Grid Margin="2,4">
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="90"/>
+                                                    <ColumnDefinition Width="120"/>
                                                     <ColumnDefinition/>
                                                 </Grid.ColumnDefinitions>
-                                                <TextBlock Text="{Binding Severity}" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding StatusLabel, Mode=OneWay}" FontWeight="SemiBold"/>
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Text="{Binding Message}" TextWrapping="Wrap"/>
                                                     <TextBlock Text="{Binding Code}" Foreground="#777" FontSize="12"/>
