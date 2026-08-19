@@ -20,7 +20,7 @@ public static class BackendSmoke
 
             var backendPath = new BackendPathResolver().Resolve(root);
             var response = await new BackendClient(backendPath, log).InvokeAsync<VersionData>("GetVersion", new { });
-            return response.Data?.ContractSchemaVersion == 1 ? 0 : 3;
+            return response.Data is { ContractSchemaVersion: 1, BuildPlanSchemaVersion: 1 } ? 0 : 3;
         }
         catch (Exception exception)
         {
