@@ -42,20 +42,6 @@ jobs:
             pwsh.exe -NoLogo -NoProfile -Command '$PSVersionTable | Format-List'
           }
 
-      - name: Inspect recent GUI log
-        shell: powershell
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $log = Join-Path $env:LOCALAPPDATA ('WindowsISOBuilder\logs\gui-' + (Get-Date -Format 'yyyyMMdd') + '.log')
-          if (Test-Path -LiteralPath $log) {
-            Write-Host '--- recent GUI log tail ---'
-            Get-Content -LiteralPath $log -Tail 160 | ForEach-Object { Write-Host $_ }
-            Write-Host '--- end recent GUI log tail ---'
-          }
-          else {
-            Write-Host 'No GUI log exists for today in the runner profile.'
-          }
-
       - name: Ensure validation modules
         shell: powershell
         run: |
@@ -123,21 +109,40 @@ jobs:
 
           $exe = Join-Path $publish 'WindowsISOBuilder.exe'
           $log = Join-Path $env:LOCALAPPDATA ('WindowsISOBuilder\logs\gui-' + (Get-Date -Format 'yyyyMMdd') + '.log')
+          $before = if (Test-Path -LiteralPath $log) { [IO.File]::ReadAllText($log).Length } else { 0 }
           $process = Start-Process -FilePath $exe -PassThru
           Start-Sleep -Seconds 5
           $process.Refresh()
 
+          $newLog = ''
+          if (Test-Path -LiteralPath $log) {
+            $allLog = [IO.File]::ReadAllText($log)
+            if ($allLog.Length -gt $before) {
+              $newLog = $allLog.Substring($before)
+            }
+          }
+
+          if ($newLog -match '\[ERROR\]\s+Unhandled UI exception') {
+            Write-Host '--- GUI startup error log ---'
+            $newLog -split "`r?`n" | ForEach-Object { if ($_ -ne '') { Write-Host $_ } }
+            Write-Host '--- end GUI startup error log ---'
+            if (-not $process.HasExited) {
+              Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            }
+            throw 'GUI reported an unhandled UI exception during startup smoke.'
+          }
+
           if ($process.HasExited) {
             Write-Host "GUI exited during startup smoke with code $($process.ExitCode)."
-            if (Test-Path -LiteralPath $log) {
-              Write-Host '--- GUI log tail ---'
-              Get-Content -LiteralPath $log -Tail 120 | ForEach-Object { Write-Host $_ }
-              Write-Host '--- end GUI log tail ---'
+            if ($newLog) {
+              Write-Host '--- GUI startup log ---'
+              $newLog -split "`r?`n" | ForEach-Object { if ($_ -ne '') { Write-Host $_ } }
+              Write-Host '--- end GUI startup log ---'
             }
             throw 'GUI did not remain alive through startup smoke.'
           }
 
-          Write-Host 'GUI remained alive through startup smoke.'
+          Write-Host 'GUI remained alive without unhandled UI exceptions through startup smoke.'
           Stop-Process -Id $process.Id -Force
           Wait-Process -Id $process.Id -ErrorAction SilentlyContinue
 
