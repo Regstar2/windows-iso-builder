@@ -55,17 +55,29 @@ jobs:
           if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
             Register-PSRepository -Default
           }
-          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
 
-          $pester = Get-Module -ListAvailable Pester |
-            Where-Object { $_.Version -eq [version]'5.7.1' } |
-            Select-Object -First 1
-          if (-not $pester) {
-            Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Force -SkipPublisherCheck
+          $gallery = Get-PSRepository -Name PSGallery -ErrorAction Stop
+          $originalPolicy = [string]$gallery.InstallationPolicy
+          try {
+            if ($originalPolicy -ne 'Trusted') {
+              Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+            }
+
+            $pester = Get-Module -ListAvailable Pester |
+              Where-Object { $_.Version -eq [version]'5.7.1' } |
+              Select-Object -First 1
+            if (-not $pester) {
+              Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Force -SkipPublisherCheck
+            }
+
+            if (-not (Get-Module -ListAvailable PSScriptAnalyzer | Select-Object -First 1)) {
+              Install-Module PSScriptAnalyzer -Scope CurrentUser -Force -SkipPublisherCheck
+            }
           }
-
-          if (-not (Get-Module -ListAvailable PSScriptAnalyzer | Select-Object -First 1)) {
-            Install-Module PSScriptAnalyzer -Scope CurrentUser -Force -SkipPublisherCheck
+          finally {
+            if ($originalPolicy -and $originalPolicy -ne 'Trusted') {
+              Set-PSRepository -Name PSGallery -InstallationPolicy $originalPolicy
+            }
           }
 
       - name: Run full release validation
