@@ -78,8 +78,19 @@ public sealed class BackendClient
             }
 
             var responseJson = await File.ReadAllTextAsync(responsePath, cancellationToken).ConfigureAwait(false);
-            var response = JsonSerializer.Deserialize<BackendResponse<T>>(responseJson, JsonOptions)
-                ?? throw new BackendException("INTERNAL_ERROR", "Backend returned an empty response.", requestId: requestId);
+            BackendResponse<T> response;
+            try
+            {
+                response = JsonSerializer.Deserialize<BackendResponse<T>>(responseJson, JsonOptions)
+                    ?? throw new JsonException("Backend response deserialized to null.");
+            }
+            catch (JsonException)
+            {
+                throw new BackendException(
+                    "INTERNAL_ERROR",
+                    "Backend returned malformed JSON.",
+                    requestId: requestId);
+            }
 
             if (!string.Equals(response.RequestId, requestId, StringComparison.Ordinal))
             {

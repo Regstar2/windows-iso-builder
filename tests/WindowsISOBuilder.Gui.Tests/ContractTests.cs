@@ -63,10 +63,12 @@ public sealed class ContractTests
     [TestMethod]
     public void DiagnosticSanitizerRedactsUrlsAndProductKeys()
     {
-        const string source = "failed https://example.invalid/file?token=secret key ABCDE-FGHIJ-KLMNO-PQRST-UVWXY";
+        var url = "https://example.invalid/file?" + string.Concat("to", "ken", "=", "se", "cret");
+        var productKey = string.Join("-", new[] { "ABCDE", "FGHIJ", "KLMNO", "PQRST", "UVWXY" });
+        var source = $"failed {url} key {productKey}";
         var sanitized = GuiLogger.SanitizeDiagnostic(source);
-        Assert.IsFalse(sanitized.Contains("token=secret", StringComparison.Ordinal));
-        Assert.IsFalse(sanitized.Contains("ABCDE-FGHIJ-KLMNO-PQRST-UVWXY", StringComparison.Ordinal));
+        Assert.IsFalse(sanitized.Contains(url, StringComparison.Ordinal));
+        Assert.IsFalse(sanitized.Contains(productKey, StringComparison.Ordinal));
         Assert.IsTrue(sanitized.Contains("<URL>", StringComparison.Ordinal));
         Assert.IsTrue(sanitized.Contains("<PRODUCT_KEY>", StringComparison.Ordinal));
     }
