@@ -41,6 +41,18 @@ Describe 'GUI MVP regression boundaries' {
         $viewModel | Should -Match 'InvokeAsync<VersionData>\("GetVersion"'
     }
 
+    It 'shows actual preflight status instead of failure severity' {
+        $xaml = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\MainWindow.xaml') -Raw -Encoding UTF8
+        $dtos = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Models\ContractDtos.cs') -Raw -Encoding UTF8
+
+        $xaml | Should -Match 'Text="\{Binding StatusLabel, Mode=OneWay\}"'
+        $xaml | Should -Not -Match 'Text="\{Binding Severity\}"'
+        $dtos | Should -Match '"pass"\s*=>\s*"OK"'
+        $dtos | Should -Match '"warning"\s*=>\s*"Предупреждение"'
+        $dtos | Should -Match '"fail"\s*=>\s*"Ошибка"'
+        $dtos | Should -Match '"skipped"\s*=>\s*"Пропущено"'
+    }
+
     It 'sanitizes technical diagnostics instead of exposing raw backend messages' {
         $viewModel = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\ViewModels\MainViewModel.cs') -Raw -Encoding UTF8
         $logger = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Services\GuiLogger.cs') -Raw -Encoding UTF8
