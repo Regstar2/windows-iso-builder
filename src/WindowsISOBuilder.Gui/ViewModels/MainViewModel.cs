@@ -236,12 +236,8 @@ public sealed class MainViewModel : ObservableObject
             _log.Info($"backendPath={path}");
             _client = new BackendClient(path, _log);
             var response = await _client.InvokeAsync<VersionData>("GetVersion", new { });
-            Version = response.Data?.ApplicationVersion ?? response.ApplicationVersion;
-            if (response.Data?.ContractSchemaVersion != 1)
-            {
-                throw new BackendException("UNSUPPORTED_SCHEMA", "Несовместимая версия backend.", requestId: response.RequestId);
-            }
-            _log.Info($"applicationVersion={Version} contractSchema=1 buildPlanSchema={response.Data?.BuildPlanSchemaVersion}");
+            Version = response.Data!.ApplicationVersion;
+            _log.Info($"applicationVersion={Version} contractSchema=1 buildPlanSchema=1");
             Status = "Готово";
             State = UiState.Idle;
         }
@@ -263,7 +259,7 @@ public sealed class MainViewModel : ObservableObject
             var response = await _client.InvokeAsync<BuildData>(
                 "GetRecommendedBuild",
                 new { product = Product, architecture, forceRefresh = true });
-            SelectedBuild = response.Data?.Build;
+            SelectedBuild = response.Data!.Build;
             Status = "Рекомендуемая сборка выбрана";
         }
         catch (Exception exception)
@@ -284,7 +280,7 @@ public sealed class MainViewModel : ObservableObject
                 "SearchBuilds",
                 new { search = SearchText, architecture = Architecture, includePreview = IncludePreview });
             _catalogResults.Clear();
-            _catalogResults.AddRange(response.Data?.Builds ?? []);
+            _catalogResults.AddRange(response.Data!.Builds);
             RefreshCatalogDisplay();
             Status = $"Найдено: {Builds.Count}";
             State = UiState.Idle;
@@ -349,7 +345,7 @@ public sealed class MainViewModel : ObservableObject
             Checks.Clear();
             _plan = null;
             var response = await _client.InvokeAsync<LanguageListData>("GetLanguages", new { updateId = _build.Uuid });
-            foreach (var language in response.Data?.Languages ?? []) Languages.Add(language);
+            foreach (var language in response.Data!.Languages) Languages.Add(language);
             SelectedLanguage = Languages.FirstOrDefault(x => x.Code.Equals("ru-ru", StringComparison.OrdinalIgnoreCase))
                 ?? Languages.FirstOrDefault();
         }
@@ -373,7 +369,7 @@ public sealed class MainViewModel : ObservableObject
             var response = await _client.InvokeAsync<EditionListData>(
                 "GetEditions",
                 new { updateId = _build.Uuid, language = SelectedLanguage.Code });
-            foreach (var edition in response.Data?.Editions ?? [])
+            foreach (var edition in response.Data!.Editions)
             {
                 var choice = new EditionChoice(edition);
                 choice.PropertyChanged += (_, args) =>
@@ -402,7 +398,9 @@ public sealed class MainViewModel : ObservableObject
             return null;
         }
 
-        Directory.CreateDirectory(OutputDirectory);
+        // Path creation/writability belongs to backend preflight. The GUI must not
+        // turn PATH_NOT_WRITABLE into an unrelated frontend exception before
+        // CreateBuildPlan/RunPreflight can return the structured backend result.
         var systemDrive = Environment.GetEnvironmentVariable("SystemDrive") ?? "C:";
         var cacheDirectory = Path.Combine(systemDrive + Path.DirectorySeparatorChar, "UUP-ISO-Work");
         var response = await _client.InvokeAsync<BuildPlanData>(
@@ -419,7 +417,7 @@ public sealed class MainViewModel : ObservableObject
                 outputDirectory = OutputDirectory,
                 cacheDirectory
             });
-        return response.Data?.Plan;
+        return response.Data!.Plan;
     }
 
     private async Task PreflightAsync()
@@ -440,9 +438,9 @@ public sealed class MainViewModel : ObservableObject
             var response = await _client!.InvokeAsync<PreflightData>(
                 "RunPreflight",
                 new { buildPlan = _plan, onlineChecks = true });
-            foreach (var check in response.Data?.Checks ?? []) Checks.Add(check);
-            State = response.Data?.Ready == true ? UiState.ReadyToBuild : UiState.PreflightFailed;
-            Status = response.Data?.Ready == true ? "Проверка пройдена" : "Найдены проблемы";
+            foreach (var check in response.Data!.Checks) Checks.Add(check);
+            State = response.Data.Ready ? UiState.ReadyToBuild : UiState.PreflightFailed;
+            Status = response.Data.Ready ? "Проверка пройдена" : "Найдены проблемы";
         }
         catch (Exception exception)
         {
@@ -499,8 +497,8 @@ public sealed class MainViewModel : ObservableObject
             }
 
             var response = await operation;
-            Result = response.Data;
-            Stage = response.Data?.Stage ?? "completed";
+            Result = response.Data!;
+            Stage = response.Data!.Stage;
             State = UiState.Completed;
             Progress = 100;
             Status = "ISO готов";
@@ -539,7 +537,7 @@ public sealed class MainViewModel : ObservableObject
             var response = await _client.InvokeAsync<CancelData>(
                 "CancelBuild",
                 new { targetRequestId = _activeBuildRequestId, cacheDirectory = _plan.CacheDirectory });
-            if (response.Data?.Requested != true)
+            if (!response.Data!.Requested)
             {
                 if (State == UiState.Cancelling) State = UiState.Building;
                 Status = "Backend не принял запрос отмены.";
@@ -655,7 +653,7 @@ public sealed class MainViewModel : ObservableObject
     public void OpenPath(string? path)
     {
         if (string.IsNullOrWhiteSpace(path) || (!File.Exists(path) && !Directory.Exists(path))) return;
-        Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+        Process.Start(new ProcessStartInfo(path!) { UseShellExecute = true });
     }
 
     public string DiagnosticText =>
