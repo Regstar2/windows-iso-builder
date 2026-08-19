@@ -132,7 +132,25 @@ Describe 'GUI polish regression boundaries' {
         $styles = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Resources\Styles.xaml') -Raw -Encoding UTF8
         $app | Should -Match 'ThemeMode="System"'
         $manifest | Should -Match 'PerMonitorV2'
+        $styles | Should -Match 'PresentationFramework\.Fluent;component/Themes/Fluent\.xaml'
+        $styles | Should -Match '<Style TargetType="UserControl">'
+        $styles | Should -Match 'SystemColors\.WindowTextBrushKey'
         $styles | Should -Not -Match '#F5F5F5|#EEEEEE|Background="White"'
+    }
+
+    It 'keeps the approved mockup hierarchy and selected navigation treatment' {
+        $styles = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Resources\Styles.xaml') -Raw -Encoding UTF8
+        $quick = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Views\QuickView.xaml') -Raw -Encoding UTF8
+        $catalog = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Views\CatalogView.xaml') -Raw -Encoding UTF8
+        $build = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Views\BuildPanelView.xaml') -Raw -Encoding UTF8
+        $styles | Should -Match 'x:Key="NavigationRadio"'
+        $styles | Should -Match 'x:Key="PrimaryButton"'
+        $script:mainXaml | Should -Match 'x:Name="QuickNav"'
+        $script:mainXaml | Should -Match 'x:Name="CatalogNav"'
+        $quick | Should -Match 'Style="\{StaticResource StatusBanner\}"'
+        $quick | Should -Match 'Style="\{StaticResource FieldLabel\}"'
+        $catalog | Should -Match 'Style="\{StaticResource PrimaryButton\}"'
+        $build | Should -Match 'Style="\{StaticResource PrimaryButton\}"'
     }
 
     It 'keeps diagnostics archive entries controlled and sanitized before ZIP writes' {
