@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using WindowsISOBuilder.Gui.Services;
 
 namespace WindowsISOBuilder.Gui.Models;
 
@@ -106,10 +107,10 @@ public sealed class PreflightCheckDto
     [JsonIgnore]
     public string StatusLabel => Status.ToLowerInvariant() switch
     {
-        "pass" => "OK",
-        "warning" => "Предупреждение",
-        "fail" => "Ошибка",
-        "skipped" => "Пропущено",
+        "pass" => LocalizationService.Instance.Get("StatusPass"),
+        "warning" => LocalizationService.Instance.Get("StatusWarning"),
+        "fail" => LocalizationService.Instance.Get("StatusFail"),
+        "skipped" => LocalizationService.Instance.Get("StatusSkipped"),
         _ => Status
     };
 }

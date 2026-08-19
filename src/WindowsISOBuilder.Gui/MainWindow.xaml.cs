@@ -1,127 +1,83 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
-using Microsoft.Win32;
 using WindowsISOBuilder.Gui.Models;
+using WindowsISOBuilder.Gui.Services;
 using WindowsISOBuilder.Gui.ViewModels;
 
 namespace WindowsISOBuilder.Gui;
 
 public partial class MainWindow : Window
 {
+    private readonly AppSettingsService _settingsService;
+    private readonly GuiLogger _log = new();
     private bool _allowClose;
     private MainViewModel ViewModel => (MainViewModel)DataContext;
+    private LocalizationService Loc => LocalizationService.Instance;
 
-    public MainWindow()
+    internal MainWindow(AppSettingsService settingsService, AppSettings settings)
     {
+        _settingsService = settingsService;
         InitializeComponent();
         DataContext = new MainViewModel();
+        RestoreWindow(settings);
+        UiLanguageCombo.SelectedValue = Loc.CurrentLanguage;
         Closing += OnClosing;
     }
 
     private void Quick_Click(object sender, RoutedEventArgs e)
     {
-        if (ViewModel.Architecture.Equals("all", StringComparison.OrdinalIgnoreCase))
-        {
-            ViewModel.Architecture = "amd64";
-        }
+        if (ViewModel.Architecture.Equals("all", StringComparison.OrdinalIgnoreCase)) ViewModel.Architecture = "amd64";
         Tabs.SelectedIndex = 0;
     }
 
     private void Catalog_Click(object sender, RoutedEventArgs e) => Tabs.SelectedIndex = 1;
+    private void CatalogView_BuildActivated(object? sender, EventArgs e) => Tabs.SelectedIndex = 0;
 
-    private void CatalogGrid_DoubleClick(object sender, MouseButtonEventArgs e)
+    private void UiLanguage_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (e.OriginalSource is not DependencyObject source ||
-            ItemsControl.ContainerFromElement(CatalogGrid, source) is not DataGridRow)
-        {
-            return;
-        }
-
-        UseSelectedCatalogBuild();
+        if (UiLanguageCombo.SelectedValue is string language) Loc.SetCulture(language);
     }
 
-    private void UseCatalogBuild_Click(object sender, RoutedEventArgs e) => UseSelectedCatalogBuild();
+    private void CreateDiagnostics_Click(object sender, RoutedEventArgs e) => UiActions.CreateDiagnostics(this, ViewModel, _log);
 
-    private void UseSelectedCatalogBuild()
+    private void RestoreWindow(AppSettings settings)
     {
-        if (CatalogGrid.SelectedItem is not BuildDto build) return;
-
-        if (!build.EntryType.Equals("Windows", StringComparison.OrdinalIgnoreCase))
+        if (AppSettingsService.HasUsableBoundsOnCurrentMonitors(settings))
         {
-            MessageBox.Show(
-                "Эта строка каталога является служебной записью и не может использоваться для сборки ISO. Выберите запись типа Windows.",
-                "Windows ISO Builder",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
-            return;
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            Width = Math.Clamp(settings.Width!.Value, MinWidth, Math.Max(MinWidth, SystemParameters.VirtualScreenWidth));
+            Height = Math.Clamp(settings.Height!.Value, MinHeight, Math.Max(MinHeight, SystemParameters.VirtualScreenHeight));
+            Left = settings.Left!.Value;
+            Top = settings.Top!.Value;
         }
-
-        // Catalog selection is deliberately separate from the active build. Switch
-        // to the shared configuration view before activation because assigning the
-        // build starts metadata loading and disables configuration controls.
-        ViewModel.Product = build.Product;
-        ViewModel.Architecture = build.Architecture;
-        Tabs.SelectedIndex = 0;
-        ViewModel.SelectedBuild = build;
+        if (settings.IsMaximized) Loaded += (_, _) => WindowState = WindowState.Maximized;
     }
 
-    private void Browse_Click(object sender, RoutedEventArgs e)
+    private void SaveWindowSettings()
     {
-        var dialog = new OpenFolderDialog
+        var bounds = WindowState == WindowState.Normal ? new Rect(Left, Top, ActualWidth, ActualHeight) : RestoreBounds;
+        _settingsService.Save(new AppSettings
         {
-            InitialDirectory = ViewModel.OutputDirectory,
-            Multiselect = false
-        };
-
-        if (dialog.ShowDialog(this) == true)
-        {
-            ViewModel.OutputDirectory = dialog.FolderName;
-        }
-    }
-
-    private void OpenResultFolder_Click(object sender, RoutedEventArgs e) => ViewModel.OpenPath(ViewModel.ResultDirectory);
-    private void OpenResultLog_Click(object sender, RoutedEventArgs e) => ViewModel.OpenPath(ViewModel.Result?.LogPath);
-    private void OpenErrorLog_Click(object sender, RoutedEventArgs e) => ViewModel.OpenPath(ViewModel.ErrorLogPath);
-
-    private void CopySha_Click(object sender, RoutedEventArgs e)
-    {
-        if (!string.IsNullOrWhiteSpace(ViewModel.Result?.Sha256))
-        {
-            System.Windows.Clipboard.SetText(ViewModel.Result.Sha256);
-        }
-    }
-
-    private void CopyDiagnostics_Click(object sender, RoutedEventArgs e)
-    {
-        if (!string.IsNullOrWhiteSpace(ViewModel.DiagnosticText))
-        {
-            System.Windows.Clipboard.SetText(ViewModel.DiagnosticText);
-        }
-    }
-
-    private void StartOver_Click(object sender, RoutedEventArgs e)
-    {
-        ViewModel.StartOver();
-        Tabs.SelectedIndex = 0;
+            Left = bounds.Left,
+            Top = bounds.Top,
+            Width = bounds.Width,
+            Height = bounds.Height,
+            IsMaximized = WindowState == WindowState.Maximized,
+            Language = Loc.CurrentLanguage
+        });
     }
 
     private async void OnClosing(object? sender, CancelEventArgs e)
     {
-        if (_allowClose || !ViewModel.IsBuilding) return;
-
+        if (_allowClose || !ViewModel.IsBuilding)
+        {
+            SaveWindowSettings();
+            return;
+        }
         e.Cancel = true;
-        var result = System.Windows.MessageBox.Show(
-            "Сборка ещё выполняется.\n\nДа — отменить сборку и выйти.\nНет — продолжить сборку.",
-            "Windows ISO Builder",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
-        if (result != MessageBoxResult.Yes) return;
-
-        var cancellationRequested = await ViewModel.CancelAsync();
-        if (!cancellationRequested) return;
-
+        if (MessageBox.Show(this, Loc.Get("CancelCloseMessage"), Loc.Get("CancelCloseTitle"), MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+        if (!await ViewModel.CancelAsync()) return;
         await ViewModel.WaitForBuildTerminationAsync();
         _allowClose = true;
         Close();

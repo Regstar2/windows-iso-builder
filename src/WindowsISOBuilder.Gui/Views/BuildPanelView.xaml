@@ -1,0 +1,34 @@
+<UserControl x:Class="WindowsISOBuilder.Gui.Views.BuildPanelView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:services="clr-namespace:WindowsISOBuilder.Gui.Services">
+    <Border x:Name="BuildPanel" Style="{StaticResource Card}" MinHeight="92">
+        <Grid>
+            <TextBlock Text="{Binding BuildPanelTitle}" Style="{StaticResource SectionTitle}" VerticalAlignment="Top" Margin="0,0,0,4"/>
+            <Grid Margin="0,27,0,0" Visibility="{Binding ShowBuildIdle, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center"><TextBlock Text="{Binding Status}" Style="{StaticResource MutedText}"/><ProgressBar Value="{Binding Progress, Mode=OneWay}" Height="9" Minimum="0" Maximum="100" Margin="0,8,10,0" AutomationProperties.Name="{services:Loc AutomationProgress}"/></StackPanel>
+                <Button Grid.Column="1" Content="{services:Loc ButtonBuild}" Command="{Binding BuildCommand}" MinWidth="118" VerticalAlignment="Center" AutomationProperties.Name="{services:Loc AutomationBuild}"/>
+            </Grid>
+            <Grid Margin="0,27,0,0" Visibility="{Binding ShowBuildProgress, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center"><TextBlock><Run Text="{Binding Status}"/><Run Text="  "/><Run Text="{Binding Speed}"/></TextBlock><ProgressBar Value="{Binding Progress, Mode=OneWay}" Height="12" Minimum="0" Maximum="100" Margin="0,8,10,0" AutomationProperties.Name="{services:Loc AutomationProgress}"/></StackPanel>
+                <Button Grid.Column="1" Content="{services:Loc ButtonCancel}" Command="{Binding CancelCommand}" MinWidth="108" VerticalAlignment="Center" AutomationProperties.Name="{services:Loc AutomationCancel}"/>
+            </Grid>
+            <Grid Margin="0,27,0,0" Visibility="{Binding ShowBuildError, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,12,0"><TextBlock Text="{Binding ErrorExplanation}" TextWrapping="Wrap"/><TextBlock Text="{Binding TechnicalDetails}" TextTrimming="CharacterEllipsis" MaxHeight="20" Opacity="0.68"/></StackPanel>
+                <WrapPanel Grid.Column="1" VerticalAlignment="Center"><Button Content="{services:Loc ButtonRetry}" Command="{Binding RetryCommand}"/><Button Content="{services:Loc ButtonOpenLog}" IsEnabled="{Binding HasErrorLog}" Click="OpenErrorLog_Click"/><Button Content="{services:Loc ButtonCreateDiagnostics}" Click="CreateDiagnostics_Click" ToolTip="{services:Loc TooltipDiagnostics}" AutomationProperties.Name="{services:Loc AutomationDiagnostics}"/></WrapPanel>
+            </Grid>
+            <Grid Margin="0,27,0,0" Visibility="{Binding ShowBuildResult, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,12,0"><TextBlock Text="{Binding Result.IsoPath}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Result.IsoPath}"/><TextBlock Margin="0,4,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding Result.Sha256}"><Run Text="{services:Loc ShaLabel}"/><Run Text=": "/><Run Text="{Binding Result.Sha256}"/></TextBlock></StackPanel>
+                <WrapPanel Grid.Column="1" VerticalAlignment="Center"><Button Content="{services:Loc ButtonOpenFolder}" Click="OpenResultFolder_Click"/><Button Content="{services:Loc ButtonOpenLog}" IsEnabled="{Binding HasResultLog}" Click="OpenResultLog_Click"/><Button Content="{services:Loc ButtonCopySha}" Click="CopySha_Click"/><Button Content="{services:Loc ButtonStartOver}" Click="StartOver_Click"/></WrapPanel>
+            </Grid>
+            <Grid Margin="0,27,0,0" Visibility="{Binding ShowBuildCancelled, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Text="{services:Loc BuildCancelledHint}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,12,0"/><Button Grid.Column="1" Content="{services:Loc ButtonStartOver}" Click="StartOver_Click" VerticalAlignment="Center"/>
+            </Grid>
+        </Grid>
+    </Border>
+</UserControl>

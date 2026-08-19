@@ -8,13 +8,16 @@
     <AssemblyName>WindowsISOBuilder</AssemblyName>
     <RootNamespace>WindowsISOBuilder.Gui</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>0.3.0.1</Version>
-    <FileVersion>0.3.0.1</FileVersion>
+    <Version>0.3.1</Version>
+    <FileVersion>0.3.1.0</FileVersion>
     <AssemblyVersion>0.3.0.0</AssemblyVersion>
+    <NoWarn>$(NoWarn);WPF0001</NoWarn>
   </PropertyGroup>
-
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <DebugSymbols>false</DebugSymbols>
     <DebugType>none</DebugType>
   </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="WindowsISOBuilder.Gui.Tests" />
+  </ItemGroup>
 </Project>
