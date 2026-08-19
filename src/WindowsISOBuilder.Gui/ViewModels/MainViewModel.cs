@@ -230,10 +230,13 @@ public sealed class MainViewModel : ObservableObject
     private async Task InitializeAsync()
     {
         _lastOperation = OperationKind.Startup;
+        State = UiState.LoadingBuild;
+        Status = "Проверка backend...";
+        ClearError();
         try
         {
             var path = new BackendPathResolver().Resolve();
-            _log.Info($"backendPath={path}");
+            _log.Info("backend resolved");
             _client = new BackendClient(path, _log);
             var response = await _client.InvokeAsync<VersionData>("GetVersion", new { });
             Version = response.Data!.ApplicationVersion;
@@ -634,18 +637,20 @@ public sealed class MainViewModel : ObservableObject
             ErrorLogPath = backendException.Error?.LogPath;
             ErrorTitle = mapping.Title;
             ErrorExplanation = mapping.Action;
+            var safeMessage = GuiLogger.SanitizeDiagnostic(backendException.Message);
+            var safeLogPath = GuiLogger.SanitizeDiagnostic(backendException.Error?.LogPath ?? string.Empty);
             TechnicalDetails =
                 $"error.code: {backendException.Code}\n" +
                 $"stage: {backendException.Error?.Stage}\n" +
-                $"backend message: {backendException.Message}\n" +
-                $"logPath: {backendException.Error?.LogPath}\n" +
+                $"backend message: {safeMessage}\n" +
+                $"logPath: {safeLogPath}\n" +
                 $"requestId: {backendException.RequestId}";
         }
         else
         {
             ErrorTitle = "Произошла ошибка интерфейса Windows ISO Builder";
             ErrorExplanation = "Откройте технические подробности или журнал GUI.";
-            TechnicalDetails = exception.Message;
+            TechnicalDetails = GuiLogger.SanitizeDiagnostic(exception.Message);
         }
         Status = "Ошибка";
     }
