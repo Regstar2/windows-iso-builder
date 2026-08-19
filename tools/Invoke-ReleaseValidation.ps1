@@ -268,8 +268,8 @@ function Invoke-PackageSmoke {
     $backend = Invoke-BackendSmoke -Executable $PowerShellExe -Root $packageRoot -Label 'package-ps51'
 
     $guiExe = Join-Path $packageRoot 'WindowsISOBuilder.exe'
-    & $guiExe --backend-smoke
-    if ($LASTEXITCODE -ne 0) { throw ('Packaged GUI backend smoke failed with exit code {0}.' -f $LASTEXITCODE) }
+    $smokeProcess = Start-Process -FilePath $guiExe -ArgumentList '--backend-smoke' -Wait -PassThru
+    if ($smokeProcess.ExitCode -ne 0) { throw ('Packaged GUI backend smoke failed with exit code {0}.' -f $smokeProcess.ExitCode) }
 
     return [ordered]@{
         checksum='pass'
