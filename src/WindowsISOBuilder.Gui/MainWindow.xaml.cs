@@ -29,10 +29,20 @@ public partial class MainWindow : Window
     {
         if (ViewModel.Architecture.Equals("all", StringComparison.OrdinalIgnoreCase)) ViewModel.Architecture = "amd64";
         Tabs.SelectedIndex = 0;
+        QuickNav.IsChecked = true;
     }
 
-    private void Catalog_Click(object sender, RoutedEventArgs e) => Tabs.SelectedIndex = 1;
-    private void CatalogView_BuildActivated(object? sender, EventArgs e) => Tabs.SelectedIndex = 0;
+    private void Catalog_Click(object sender, RoutedEventArgs e)
+    {
+        Tabs.SelectedIndex = 1;
+        CatalogNav.IsChecked = true;
+    }
+
+    private void CatalogView_BuildActivated(object? sender, EventArgs e)
+    {
+        Tabs.SelectedIndex = 0;
+        QuickNav.IsChecked = true;
+    }
 
     private void UiLanguage_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
