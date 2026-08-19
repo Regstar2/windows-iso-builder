@@ -34,13 +34,17 @@ public partial class App : Application
             args.SetObserved();
         };
 
+        // Complete WPF application startup before either the headless smoke path or
+        // normal window creation. App.xaml has no StartupUri, so this does not create
+        // the GUI during --backend-smoke.
+        base.OnStartup(e);
+
         if (e.Args.Contains("--backend-smoke", StringComparer.OrdinalIgnoreCase))
         {
             Shutdown(BackendSmoke.RunAsync(e.Args, _logger).GetAwaiter().GetResult());
             return;
         }
 
-        base.OnStartup(e);
         MainWindow = new MainWindow();
         MainWindow.Show();
     }
