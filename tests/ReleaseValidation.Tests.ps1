@@ -25,6 +25,13 @@ Describe 'Release validation tooling' {
         @($script:releaseConfig.RequiredPackageFiles) | Should -Contain 'release-manifest.json'
         @($script:releaseConfig.RequiredPackageFiles) | Should -Contain 'WindowsISOBuilder.exe'
         foreach ($denied in @('.git','.github','tests','output','logs','dist','cache','bin','obj','.project-rules','.vscode','.idea')) { @($script:releaseConfig.DeniedPathSegments) | Should -Contain $denied }
+        @($script:releaseConfig.DeniedExtensions) | Should -Contain '.pdb'
+    }
+
+    It 'disables GUI debug symbols in Release configuration' {
+        $project = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\WindowsISOBuilder.Gui.csproj') -Raw -Encoding UTF8
+        $project | Should -Match '<DebugSymbols>false</DebugSymbols>'
+        $project | Should -Match '<DebugType>none</DebugType>'
     }
 
     It 'has a complete source allowlist without generated GUI publish files' {
