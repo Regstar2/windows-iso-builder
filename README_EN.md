@@ -1,4 +1,4 @@
-﻿<div align="center">
+<div align="center">
 
 # Windows ISO Builder
 
@@ -33,7 +33,9 @@ The user release is self-contained `win-x64`; installing a separate .NET Runtime
 
 ## GUI scope
 
-The first GUI includes Quick Mode, Catalog Mode, dynamic languages/editions, multi-edition selection, ESD/WIM, build options, `CreateBuildPlan`, `RunPreflight`, async `ExecuteBuildPlan`, NDJSON progress, cooperative `CancelBuild`, structured error handling, result actions, and a local GUI log.
+The first GUI includes Quick Mode, Catalog Mode with explicit build activation, dynamic languages/editions, multi-edition selection, ESD/WIM, build options, `CreateBuildPlan`, `RunPreflight`, async `ExecuteBuildPlan`, NDJSON progress, cooperative `CancelBuild`, stable backend error-code UX for preflight/download/converter/DISM/ISO/elevation/cancellation failures, result actions, and a local GUI log.
+
+Catalog row highlighting does not start metadata requests. The selected row is activated by double-click or the explicit use-selected action and then enters the same Quick configuration/build flow.
 
 The GUI manifest uses `asInvoker`. Elevation remains owned by the existing backend immediately before the privileged build stage.
 
@@ -67,7 +69,7 @@ The PowerShell backend remains the sole owner of UUP catalog/recommendation, Bui
 
 The GUI does not import `WindowsISOBuilder.psm1`, invoke private functions, parse `Write-Host`/transcripts/aria2/converter output, or classify failures from localized messages.
 
-Compatibility is based on `contractSchemaVersion == 1`, not exact ApplicationVersion matching.
+Compatibility is schema-based rather than tied to exact ApplicationVersion matching. `v0.3.0-alpha.1` requires Backend Contract SchemaVersion `1` and BuildPlan SchemaVersion `1`; the packaged GUI smoke checks both values.
 
 See [Backend Contract v1](docs/BACKEND_CONTRACT_EN.md) and [GUI architecture](docs/GUI_ARCHITECTURE_EN.md).
 
@@ -97,11 +99,15 @@ powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
 
 Full validation covers GUI build/test/publish, Pester, PSScriptAnalyzer, backend smokes, packaging, checksum/manifest validation, and packaged `WindowsISOBuilder.exe --backend-smoke`. Safe automated smoke does not download Windows or request UAC.
 
+The repository also contains `.github/workflows/windows-self-hosted-validation.yml`. Pull requests targeting `master` run the same Full validation on a Windows self-hosted runner labeled `self-hosted`, `Windows`, `X64`; superseded PR runs are cancelled through workflow concurrency. `validation-result.json` is uploaded as an Actions artifact even when validation fails.
+
 Actual execution status must remain separate from implementation status. See [VALIDATION_MATRIX_EN.md](docs/VALIDATION_MATRIX_EN.md).
 
 ## Release package
 
 The release ZIP contains `WindowsISOBuilder.exe` plus its self-contained runtime, the existing PowerShell backend/TUI/CLI, documentation, and a package-only `release-manifest.json` with application/module/schema versions and additive GUI metadata.
+
+`.github`, tests, `bin`/`obj`, validation artifacts, and other developer-only files are excluded from the release ZIP.
 
 ## Security
 
@@ -109,7 +115,7 @@ Requests are untrusted data; backend dispatch is allowlisted; C# uses `ProcessSt
 
 ## v0.3.0 limitations
 
-History, profiles, queue, cache-management GUI, updater, installer/MSIX, USB/Rufus integration, full theme/language settings, customization/debloat, driver injection, TPM bypass, activation, a custom UUP engine/downloader/converter, and GitHub Actions are intentionally outside this GUI MVP.
+History, profiles, queue, cache-management GUI, updater, installer/MSIX, USB/Rufus integration, full theme/language settings, customization/debloat, driver injection, TPM bypass, activation, and a custom UUP engine/downloader/converter are intentionally outside this GUI MVP. GitHub Actions is used only as a thin orchestration layer over the existing local Full validation on the owner's self-hosted Windows runner and is not part of the runtime/release package.
 
 ## License
 
