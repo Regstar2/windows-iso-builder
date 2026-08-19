@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using Microsoft.Win32;
 using WindowsISOBuilder.Gui.Models;
@@ -30,20 +31,30 @@ public partial class MainWindow : Window
 
     private void Catalog_Click(object sender, RoutedEventArgs e) => Tabs.SelectedIndex = 1;
 
-    private void CatalogGrid_DoubleClick(object sender, MouseButtonEventArgs e) => UseSelectedCatalogBuild();
+    private void CatalogGrid_DoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (e.OriginalSource is not DependencyObject source ||
+            ItemsControl.ContainerFromElement(CatalogGrid, source) is not DataGridRow)
+        {
+            return;
+        }
+
+        UseSelectedCatalogBuild();
+    }
+
     private void UseCatalogBuild_Click(object sender, RoutedEventArgs e) => UseSelectedCatalogBuild();
 
     private void UseSelectedCatalogBuild()
     {
         if (CatalogGrid.SelectedItem is not BuildDto build) return;
 
-        // Catalog selection is deliberately separate from the active build. This
-        // prevents a single row click from starting metadata loading and disabling
-        // the tab before the documented double-click action can complete.
+        // Catalog selection is deliberately separate from the active build. Switch
+        // to the shared configuration view before activation because assigning the
+        // build starts metadata loading and disables configuration controls.
         ViewModel.Product = build.Product;
         ViewModel.Architecture = build.Architecture;
-        ViewModel.SelectedBuild = build;
         Tabs.SelectedIndex = 0;
+        ViewModel.SelectedBuild = build;
     }
 
     private void Browse_Click(object sender, RoutedEventArgs e)
