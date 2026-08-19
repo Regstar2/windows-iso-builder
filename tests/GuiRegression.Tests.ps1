@@ -15,11 +15,16 @@ Describe 'GUI MVP regression boundaries' {
         $appXaml | Should -Not -Match 'StartupUri'
     }
 
-    It 'keeps read-only progress binding one-way' {
+    It 'keeps read-only progress and inline text bindings one-way' {
         $buildPanelXaml = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Views\BuildPanelView.xaml') -Raw -Encoding UTF8
         $viewModel = @('MainViewModel.cs','MainViewModel.Metadata.cs','MainViewModel.Build.cs') | ForEach-Object { Get-Content -LiteralPath (Join-Path $script:projectRoot ('src\WindowsISOBuilder.Gui\ViewModels\' + $_)) -Raw -Encoding UTF8 } | Out-String
         $buildPanelXaml | Should -Match 'ProgressBar\s+Value="\{Binding Progress,\s*Mode=OneWay\}"'
+        $buildPanelXaml | Should -Match '<Run\s+Text="\{Binding Status,\s*Mode=OneWay\}"'
+        $buildPanelXaml | Should -Match '<Run\s+Text="\{Binding Speed,\s*Mode=OneWay\}"'
+        $buildPanelXaml | Should -Match '<Run\s+Text="\{Binding Result\.Sha256,\s*Mode=OneWay\}"'
         $viewModel | Should -Match 'public\s+double\s+Progress\s*\{\s*get\s*=>\s*_progress;\s*private\s+set'
+        $viewModel | Should -Match 'public\s+string\s+Speed\s*\{\s*get\s*=>\s*_speed;\s*private\s+set'
+        $viewModel | Should -Match 'public\s+string\s+Status\s*=>'
     }
 
     It 'prevents sync-context deadlock in packaged backend smoke' {
