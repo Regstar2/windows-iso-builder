@@ -18,7 +18,6 @@
     <DebugType>none</DebugType>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="PresentationFramework.Fluent" />
     <InternalsVisibleTo Include="WindowsISOBuilder.Gui.Tests" />
   </ItemGroup>
 </Project>
