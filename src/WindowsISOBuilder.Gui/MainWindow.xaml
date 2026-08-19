@@ -122,7 +122,7 @@
                             <StackPanel>
                                 <TextBlock Text="Сборка" FontSize="18" FontWeight="SemiBold"/>
                                 <TextBlock Text="{Binding Stage}" Foreground="#666"/>
-                                <ProgressBar Value="{Binding Progress}" Height="18" Minimum="0" Maximum="100" Margin="0,8"/>
+                                <ProgressBar Value="{Binding Progress, Mode=OneWay}" Height="18" Minimum="0" Maximum="100" Margin="0,8"/>
                                 <TextBlock Text="{Binding Status}" TextWrapping="Wrap"/>
                                 <TextBlock Text="{Binding Speed}"/>
                                 <Button Content="Отменить" Command="{Binding CancelCommand}" HorizontalAlignment="Left"/>
