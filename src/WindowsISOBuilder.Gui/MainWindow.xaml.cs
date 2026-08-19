@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
 using Microsoft.Win32;
+using WindowsISOBuilder.Gui.Models;
 using WindowsISOBuilder.Gui.ViewModels;
 
 namespace WindowsISOBuilder.Gui;
@@ -21,9 +22,20 @@ public partial class MainWindow : Window
     private void Quick_Click(object sender, RoutedEventArgs e) => Tabs.SelectedIndex = 0;
     private void Catalog_Click(object sender, RoutedEventArgs e) => Tabs.SelectedIndex = 1;
 
-    private void CatalogGrid_DoubleClick(object sender, MouseButtonEventArgs e)
+    private void CatalogGrid_DoubleClick(object sender, MouseButtonEventArgs e) => UseSelectedCatalogBuild();
+    private void UseCatalogBuild_Click(object sender, RoutedEventArgs e) => UseSelectedCatalogBuild();
+
+    private void UseSelectedCatalogBuild()
     {
-        if (CatalogGrid.SelectedItem is not null) Tabs.SelectedIndex = 0;
+        if (CatalogGrid.SelectedItem is not BuildDto build) return;
+
+        // Catalog selection is deliberately separate from the active build. This
+        // prevents a single row click from starting metadata loading and disabling
+        // the tab before the documented double-click action can complete.
+        ViewModel.Product = build.Product;
+        ViewModel.Architecture = build.Architecture;
+        ViewModel.SelectedBuild = build;
+        Tabs.SelectedIndex = 0;
     }
 
     private void Browse_Click(object sender, RoutedEventArgs e)
