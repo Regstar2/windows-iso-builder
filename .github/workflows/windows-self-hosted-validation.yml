@@ -91,6 +91,43 @@ jobs:
             -File .\tools\Invoke-ReleaseValidation.ps1 `
             -Full
 
+      - name: Run real GUI startup smoke
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $publish = Join-Path $env:RUNNER_TEMP 'wib-gui-startup-smoke'
+          if (Test-Path -LiteralPath $publish) {
+            Remove-Item -LiteralPath $publish -Recurse -Force
+          }
+
+          powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
+            -File .\tools\Build-Gui.ps1 `
+            -OutputDirectory $publish
+          if ($LASTEXITCODE -ne 0) {
+            throw "Build-Gui.ps1 failed with exit code $LASTEXITCODE."
+          }
+
+          $exe = Join-Path $publish 'WindowsISOBuilder.exe'
+          $log = Join-Path $env:LOCALAPPDATA ('WindowsISOBuilder\logs\gui-' + (Get-Date -Format 'yyyyMMdd') + '.log')
+          $beforeLength = if (Test-Path -LiteralPath $log) { (Get-Item -LiteralPath $log).Length } else { 0 }
+          $process = Start-Process -FilePath $exe -PassThru
+          Start-Sleep -Seconds 5
+          $process.Refresh()
+
+          if ($process.HasExited) {
+            Write-Host "GUI exited during startup smoke with code $($process.ExitCode)."
+            if (Test-Path -LiteralPath $log) {
+              Write-Host '--- GUI log tail ---'
+              Get-Content -LiteralPath $log -Tail 120 | ForEach-Object { Write-Host $_ }
+              Write-Host '--- end GUI log tail ---'
+            }
+            throw 'GUI did not remain alive through startup smoke.'
+          }
+
+          Write-Host 'GUI remained alive through startup smoke.'
+          Stop-Process -Id $process.Id -Force
+          Wait-Process -Id $process.Id -ErrorAction SilentlyContinue
+
       - name: Upload validation report
         if: always()
         uses: actions/upload-artifact@v7
