@@ -3,11 +3,15 @@ name: Windows self-hosted validation
 on:
   push:
     branches:
-      - feature/v0.3.0-gui-mvp
+      - master
   pull_request:
     branches:
       - master
   workflow_dispatch:
+
+concurrency:
+  group: windows-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate:
