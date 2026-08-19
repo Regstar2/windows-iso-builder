@@ -50,6 +50,11 @@ public sealed class BackendClient
             var responsePath = Path.Combine(operationDirectory, "response.json");
             var eventPath = Path.Combine(operationDirectory, "events.ndjson");
 
+            // InvokeAsync executes synchronously until its first incomplete await.
+            // Publish transport metadata here so a WPF caller never receives it from
+            // a thread-pool continuation after ConfigureAwait(false).
+            transportReady?.Invoke(eventPath, requestId);
+
             var request = new BackendRequest(1, requestId, command, arguments);
             var requestJson = JsonSerializer.Serialize(request, JsonOptions);
             await File.WriteAllTextAsync(
@@ -58,7 +63,6 @@ public sealed class BackendClient
                 new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
                 cancellationToken).ConfigureAwait(false);
 
-            transportReady?.Invoke(eventPath, requestId);
             _log.Info($"backend command={command} requestId={requestId}");
 
             var exitCode = await _runner.RunAsync(
