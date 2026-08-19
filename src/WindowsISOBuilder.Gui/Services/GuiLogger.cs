@@ -27,6 +27,7 @@ public sealed partial class GuiLogger
 
     public void Info(string message) => Write("INFO", message, null);
     public void Error(string message, Exception? exception = null) => Write("ERROR", message, exception);
+    public static string SanitizeDiagnostic(string value) => Sanitize(value);
 
     private void Write(string level, string message, Exception? exception)
     {
