@@ -44,23 +44,23 @@ public sealed class BackendClient
             Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(operationDirectory);
 
-        var requestPath = Path.Combine(operationDirectory, "request.json");
-        var responsePath = Path.Combine(operationDirectory, "response.json");
-        var eventPath = Path.Combine(operationDirectory, "events.ndjson");
-
-        var request = new BackendRequest(1, requestId, command, arguments);
-        var requestJson = JsonSerializer.Serialize(request, JsonOptions);
-        await File.WriteAllTextAsync(
-            requestPath,
-            requestJson,
-            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
-            cancellationToken).ConfigureAwait(false);
-
-        transportReady?.Invoke(eventPath, requestId);
-        _log.Info($"backend command={command} requestId={requestId}");
-
         try
         {
+            var requestPath = Path.Combine(operationDirectory, "request.json");
+            var responsePath = Path.Combine(operationDirectory, "response.json");
+            var eventPath = Path.Combine(operationDirectory, "events.ndjson");
+
+            var request = new BackendRequest(1, requestId, command, arguments);
+            var requestJson = JsonSerializer.Serialize(request, JsonOptions);
+            await File.WriteAllTextAsync(
+                requestPath,
+                requestJson,
+                new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+                cancellationToken).ConfigureAwait(false);
+
+            transportReady?.Invoke(eventPath, requestId);
+            _log.Info($"backend command={command} requestId={requestId}");
+
             var exitCode = await _runner.RunAsync(
                 _runner.CreateStartInfo(_script, requestPath, responsePath, eventPath),
                 cancellationToken).ConfigureAwait(false);
