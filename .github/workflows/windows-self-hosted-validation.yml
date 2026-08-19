@@ -70,8 +70,11 @@ jobs:
               Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Force -SkipPublisherCheck
             }
 
-            if (-not (Get-Module -ListAvailable PSScriptAnalyzer | Select-Object -First 1)) {
-              Install-Module PSScriptAnalyzer -Scope CurrentUser -Force -SkipPublisherCheck
+            $analyzer = Get-Module -ListAvailable PSScriptAnalyzer |
+              Where-Object { $_.Version -eq [version]'1.25.0' } |
+              Select-Object -First 1
+            if (-not $analyzer) {
+              Install-Module PSScriptAnalyzer -RequiredVersion 1.25.0 -Scope CurrentUser -Force -SkipPublisherCheck
             }
           }
           finally {
