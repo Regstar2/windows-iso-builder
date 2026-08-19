@@ -19,8 +19,9 @@ public sealed partial class GuiLogger
         }
         catch
         {
-            // Logger construction itself must never make the GUI unstartable.
-            LogPath = Path.Combine(Path.GetTempPath(), $"windows-iso-builder-gui-{Environment.ProcessId}.log");
+            // The fallback itself deliberately avoids filesystem/path discovery.
+            // Even a broken TEMP/LOCALAPPDATA configuration must not block startup.
+            LogPath = $"windows-iso-builder-gui-{Environment.ProcessId}.log";
         }
     }
 
