@@ -16,6 +16,14 @@ Describe 'GUI MVP regression boundaries' {
         $appXaml | Should -Not -Match 'StartupUri'
     }
 
+    It 'keeps read-only progress binding one-way' {
+        $mainWindowXaml = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\MainWindow.xaml') -Raw -Encoding UTF8
+        $viewModel = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\ViewModels\MainViewModel.cs') -Raw -Encoding UTF8
+
+        $mainWindowXaml | Should -Match 'ProgressBar\s+Value="\{Binding Progress,\s*Mode=OneWay\}"'
+        $viewModel | Should -Match 'public\s+double\s+Progress\s*\{\s*get\s*=>\s*_progress;\s*private\s+set'
+    }
+
     It 'prevents sync-context deadlock in packaged backend smoke' {
         $smoke = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Services\BackendSmoke.cs') -Raw -Encoding UTF8
         $smoke | Should -Match '\.ConfigureAwait\(false\)'
