@@ -19,8 +19,13 @@ public static class BackendSmoke
             }
 
             var backendPath = new BackendPathResolver().Resolve(root);
-            var response = await new BackendClient(backendPath, log).InvokeAsync<VersionData>("GetVersion", new { });
-            return response.Data is { ContractSchemaVersion: 1, BuildPlanSchemaVersion: 1 } ? 0 : 3;
+            await new BackendClient(backendPath, log).InvokeAsync<VersionData>("GetVersion", new { });
+            return 0;
+        }
+        catch (BackendException exception) when (exception.Code == "UNSUPPORTED_SCHEMA")
+        {
+            log.Error("backend smoke schema mismatch", exception);
+            return 3;
         }
         catch (Exception exception)
         {
