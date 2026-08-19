@@ -49,7 +49,7 @@
         </Border>
 
         <Border Grid.Row="1" Grid.Column="1" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
-            <TabControl x:Name="Tabs" BorderThickness="0" Background="Transparent" KeyboardNavigation.TabNavigation="Continue">
+            <TabControl x:Name="Tabs" SelectedIndex="0" BorderThickness="0" Background="Transparent" KeyboardNavigation.TabNavigation="Continue">
                 <TabControl.Template>
                     <ControlTemplate TargetType="{x:Type TabControl}">
                         <ContentPresenter Content="{TemplateBinding SelectedContent}"/>
