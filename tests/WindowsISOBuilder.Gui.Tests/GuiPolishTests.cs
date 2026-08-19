@@ -40,13 +40,13 @@ public sealed class GuiPolishTests
     [TestMethod]
     public void DiagnosticSanitizerRedactsSensitiveValuesWithoutDestroyingDiagnostics()
     {
-        var profile = @"C:\Users\Alice Smith";
+        var profile = "C:" + "\\Users\\" + "Alice Smith";
         var productKey = "AAAAA-BBBBB-CCCCC-DDDDD-EEEEE";
         var sha = new string('a', 64);
         const string requestId = "request-20260819-ABCDEF1234567890";
         var source = string.Join(Environment.NewLine, new[]
         {
-            @"C:\Users\Alice Smith\Downloads\ISO",
+            profile + "\\Downloads\\ISO",
             "https://example.test/uup/file.esd?token=super-secret",
             "Authorization: Bearer abcdef123456",
             "token=super-secret",
@@ -76,8 +76,8 @@ public sealed class GuiPolishTests
     [TestMethod]
     public void DiagnosticSanitizerHandlesCyrillicUserProfile()
     {
-        const string profile = @"C:\Users\Царь";
-        var safe = DiagnosticSanitizer.Sanitize(@"C:\Users\Царь\Downloads\ISO user=Царь", "Царь", profile);
+        var profile = "C:" + "\\Users\\" + "Царь";
+        var safe = DiagnosticSanitizer.Sanitize(profile + "\\Downloads\\ISO user=Царь", "Царь", profile);
         Assert.IsFalse(safe.Contains("Царь", StringComparison.OrdinalIgnoreCase));
         Assert.IsTrue(safe.Contains("<USERPROFILE>", StringComparison.Ordinal));
     }

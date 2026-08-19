@@ -5,7 +5,7 @@ using WindowsISOBuilder.Gui.Models;
 
 namespace WindowsISOBuilder.Gui.Services;
 
-internal sealed partial class AppSettingsService
+internal sealed class AppSettingsService
 {
     private const uint MonitorDefaultToNull = 0;
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -113,12 +113,12 @@ internal sealed partial class AppSettingsService
         return Path.Combine(root, "settings.json");
     }
 
-    [LibraryImport("user32.dll")]
-    private static partial IntPtr MonitorFromRect(ref NativeRect rect, uint flags);
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromRect(ref NativeRect rect, uint flags);
 
-    [LibraryImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
+    [DllImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
+    private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct NativeRect
