@@ -14,7 +14,7 @@ public sealed class NdjsonEventReader
 
     public async Task<IReadOnlyList<BackendEvent>> ReadNewAsync(string path, CancellationToken ct = default)
     {
-        if (!File.Exists(path)) return [];
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return [];
 
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         if (_position > stream.Length)
@@ -62,7 +62,13 @@ public sealed class NdjsonEventReader
             if (string.IsNullOrWhiteSpace(line)) return;
 
             var backendEvent = JsonSerializer.Deserialize<BackendEvent>(line, BackendClient.JsonOptions);
-            if (backendEvent is null || backendEvent.Sequence <= _lastSequence) return;
+            if (backendEvent is null ||
+                backendEvent.SchemaVersion != 1 ||
+                string.IsNullOrWhiteSpace(backendEvent.RequestId) ||
+                backendEvent.Sequence <= _lastSequence)
+            {
+                return;
+            }
 
             _lastSequence = backendEvent.Sequence;
             result.Add(backendEvent);
