@@ -102,6 +102,16 @@ public sealed class PreflightCheckDto
     public string Code { get; set; } = "";
     public string Message { get; set; } = "";
     public JsonElement? Data { get; set; }
+
+    [JsonIgnore]
+    public string StatusLabel => Status.ToLowerInvariant() switch
+    {
+        "pass" => "OK",
+        "warning" => "Предупреждение",
+        "fail" => "Ошибка",
+        "skipped" => "Пропущено",
+        _ => Status
+    };
 }
 
 public sealed class BuildResultDto
