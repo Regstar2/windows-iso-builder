@@ -68,6 +68,6 @@
     )
 
     DeniedFileNames = @('.DS_Store','Thumbs.db','validation-result.json')
-    DeniedExtensions = @('.iso','.wim','.esd','.swm','.log','.zip','.aria2','.tmp','.bak','.user','.suo','.secret','.secrets','.local')
+    DeniedExtensions = @('.iso','.wim','.esd','.swm','.log','.zip','.aria2','.tmp','.bak','.user','.suo','.secret','.secrets','.local','.pdb')
     TextScanExtensions = @('.ps1','.psm1','.psd1','.cmd','.md','.json','.txt','.yml','.yaml','.ini','.cs','.csproj','.xaml')
 }
