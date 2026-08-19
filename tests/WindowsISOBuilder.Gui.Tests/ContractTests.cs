@@ -28,4 +28,21 @@ public sealed class ContractTests
     [TestMethod] public void BackendProcessArgumentsAreSeparated() { var p = new BackendProcessRunner().CreateStartInfo("C:\\a b\\x.ps1", "r q.json", "resp.json", "events.json"); CollectionAssert.Contains(p.ArgumentList.ToArray(), "C:\\a b\\x.ps1"); CollectionAssert.Contains(p.ArgumentList.ToArray(), "r q.json"); }
     [TestMethod] public void BackendPathResolverUsesExplicitRoot() { var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root); var file = Path.Combine(root, "Invoke-WibBackend.ps1"); File.WriteAllText(file, "# test"); try { Assert.AreEqual(file, new BackendPathResolver().Resolve(root)); } finally { Directory.Delete(root, true); } }
     [TestMethod] public void ErrorMappingKnownCode() { Assert.AreEqual("Недостаточно свободного места", ErrorMapper.Map("DISK_SPACE_LOW").Title); }
+
+    [TestMethod]
+    public void ErrorMappingsCoverStableBackendTaxonomy()
+    {
+        var generic = ErrorMapper.Map("FUTURE_CODE").Title;
+        foreach (var code in new[]
+        {
+            "DISK_SPACE_LOW", "PATH_NOT_WRITABLE", "REQUIRED_COMPONENT_MISSING",
+            "UUP_API_UNAVAILABLE", "NETWORK_ERROR", "UUP_PACKAGE_DOWNLOAD_FAILED",
+            "UUP_PACKAGE_INVALID", "DOWNLOAD_FAILED", "CONVERTER_FAILED", "DISM_FAILED",
+            "ISO_NOT_FOUND", "ISO_VALIDATION_FAILED", "ELEVATION_CANCELLED",
+            "BUILD_CANCELLED", "BUILD_FAILED"
+        })
+        {
+            Assert.AreNotEqual(generic, ErrorMapper.Map(code).Title, $"Missing user-facing mapping for {code}.");
+        }
+    }
 }
