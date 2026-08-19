@@ -19,7 +19,15 @@ public partial class MainWindow : Window
         Closing += OnClosing;
     }
 
-    private void Quick_Click(object sender, RoutedEventArgs e) => Tabs.SelectedIndex = 0;
+    private void Quick_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel.Architecture.Equals("all", StringComparison.OrdinalIgnoreCase))
+        {
+            ViewModel.Architecture = "amd64";
+        }
+        Tabs.SelectedIndex = 0;
+    }
+
     private void Catalog_Click(object sender, RoutedEventArgs e) => Tabs.SelectedIndex = 1;
 
     private void CatalogGrid_DoubleClick(object sender, MouseButtonEventArgs e) => UseSelectedCatalogBuild();
