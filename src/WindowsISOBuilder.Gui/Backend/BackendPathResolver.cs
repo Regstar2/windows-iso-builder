@@ -4,10 +4,12 @@ public sealed class BackendPathResolver
 {
     public string Resolve(string? overrideRoot = null)
     {
-        var explicitRoot = overrideRoot ?? Environment.GetEnvironmentVariable("WIB_BACKEND_ROOT");
-        if (!string.IsNullOrWhiteSpace(explicitRoot))
+        // Explicit override is accepted only from a caller that deliberately passes
+        // it (for example --backend-root in release/developer smoke). Normal GUI
+        // startup never trusts an ambient environment variable as executable code.
+        if (!string.IsNullOrWhiteSpace(overrideRoot))
         {
-            var explicitPath = Path.GetFullPath(Path.Combine(explicitRoot, "Invoke-WibBackend.ps1"));
+            var explicitPath = Path.GetFullPath(Path.Combine(overrideRoot, "Invoke-WibBackend.ps1"));
             if (File.Exists(explicitPath)) return explicitPath;
             throw new FileNotFoundException("Компоненты Windows ISO Builder повреждены или отсутствуют.", explicitPath);
         }
