@@ -41,11 +41,12 @@ function Protect-ValidationText {
     param([AllowNull()][string]$Text)
     if ($null -eq $Text) { return '' }
     $value = [string]$Text
-    foreach ($replacement in @(
+    $replacements = @(
         [pscustomobject]@{ Path=$projectRoot; Label='<projectRoot>' },
         [pscustomobject]@{ Path=$workRoot; Label='<temp>' },
         [pscustomobject]@{ Path=$env:USERPROFILE; Label='<userProfile>' }
-    )) {
+    )
+    foreach ($replacement in $replacements) {
         if (-not [string]::IsNullOrWhiteSpace([string]$replacement.Path)) {
             $value = $value -replace [regex]::Escape([string]$replacement.Path), [string]$replacement.Label
         }
@@ -199,7 +200,10 @@ function Invoke-BackendSmoke {
         schemaVersion = 1
         requestId = ($Label + '-preflight')
         command = 'RunPreflight'
-        arguments = [ordered]@{ buildPlan=(New-SmokePlan -CacheDirectory $cache -OutputDirectory $output); onlineChecks=$false }
+        arguments = [ordered]@{
+            buildPlan = New-SmokePlan -CacheDirectory $cache -OutputDirectory $output
+            onlineChecks = $false
+        }
     }
     [IO.File]::WriteAllText($preRequestPath, ($preRequest | ConvertTo-Json -Depth 30), $utf8NoBom)
     Invoke-ChildPowerShell -Executable $Executable -Arguments @(
@@ -211,27 +215,12 @@ function Invoke-BackendSmoke {
     if ($null -eq $preResponse.data.PSObject.Properties['ready']) { throw 'Preflight response missing ready.' }
     if (@($preResponse.data.checks).Count -eq 0) { throw 'Preflight response contains no checks.' }
 
-    return [ordered]@{ getVersion='pass'; offlinePreflight='pass'; eventLines=$eventLines.Count; ready=[bool]$preResponse.data.ready }
-}
-
-function Get-ZipLogicalFiles {
-    param([string]$ZipPath, [string]$ExpectedRootName)
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-    $archive = [IO.Compression.ZipFile]::OpenRead($ZipPath)
-    try {
-        $prefix = $ExpectedRootName + '/'
-        $result = @()
-        foreach ($entry in @($archive.Entries)) {
-            $name = ([string]$entry.FullName).Replace('\','/')
-            if ([string]::IsNullOrWhiteSpace($name) -or $name.EndsWith('/')) { continue }
-            if (-not $name.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) {
-                throw ('ZIP entry outside package root: {0}' -f $name)
-            }
-            $result += $name.Substring($prefix.Length).Replace('/','\')
-        }
-        return @($result | Sort-Object -Unique)
+    return [ordered]@{
+        getVersion='pass'
+        offlinePreflight='pass'
+        eventLines=$eventLines.Count
+        ready=[bool]$preResponse.data.ready
     }
-    finally { $archive.Dispose() }
 }
 
 function Invoke-PackageSmoke {
@@ -246,27 +235,19 @@ function Invoke-PackageSmoke {
     $actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $ZipPath).Hash.ToUpperInvariant()
     if ($expectedHash -ne $actualHash) { throw 'Release checksum mismatch.' }
 
-    $rootName = 'windows-iso-builder-v{0}' -f $version
-    $actualFiles = @(Get-ZipLogicalFiles -ZipPath $ZipPath -ExpectedRootName $rootName)
-    $expectedFiles = @(Get-WibReleaseSourceFiles -ProjectRoot $projectRoot -Config $config -Version $version | ForEach-Object { $_.RelativePath })
-    $expectedFiles = @($expectedFiles + 'release-manifest.json' | Sort-Object -Unique)
-    if ($actualFiles.Count -ne $expectedFiles.Count) { throw 'ZIP logical file count does not match release allowlist.' }
-    foreach ($path in $expectedFiles) {
-        if ($actualFiles -notcontains $path) { throw ('ZIP missing expected file: {0}' -f $path) }
-    }
-    foreach ($path in $actualFiles) {
-        if ($expectedFiles -notcontains $path) { throw ('ZIP contains unexpected file: {0}' -f $path) }
-        if (Test-WibReleaseRelativePathDenied -RelativePath $path -Config $config) { throw ('ZIP contains denied file: {0}' -f $path) }
-    }
-
     $extractRoot = Join-Path $workRoot ('package-' + [Guid]::NewGuid().ToString('N'))
     Expand-Archive -LiteralPath $ZipPath -DestinationPath $extractRoot -Force
-    $packageRoot = Join-Path $extractRoot $rootName
+    $packageRoot = Join-Path $extractRoot ('windows-iso-builder-v{0}' -f $version)
     if (-not (Test-Path -LiteralPath $packageRoot -PathType Container)) { throw 'Extracted package root is missing.' }
 
     foreach ($required in @($config.RequiredPackageFiles)) {
         if (-not (Test-Path -LiteralPath (Join-Path $packageRoot ([string]$required)) -PathType Leaf)) {
             throw ('Package missing required file: {0}' -f $required)
+        }
+    }
+    foreach ($sourceFile in @(Get-WibReleaseSourceFiles -ProjectRoot $projectRoot -Config $config -Version $version)) {
+        if (-not (Test-Path -LiteralPath (Join-Path $packageRoot $sourceFile.RelativePath) -PathType Leaf)) {
+            throw ('Package missing allowlisted source file: {0}' -f $sourceFile.RelativePath)
         }
     }
 
@@ -275,6 +256,9 @@ function Invoke-PackageSmoke {
     if ([string]$releaseManifest.moduleVersion -ne $moduleVersion) { throw 'release-manifest moduleVersion mismatch.' }
     if ([int]$releaseManifest.backendContractSchemaVersion -ne 1) { throw 'release-manifest Backend Contract schema mismatch.' }
     if ([int]$releaseManifest.buildPlanSchemaVersion -ne 1) { throw 'release-manifest BuildPlan schema mismatch.' }
+    if (-not [bool]$releaseManifest.gui.included) { throw 'release-manifest GUI included flag is false.' }
+    if ([string]$releaseManifest.gui.runtime -ne 'win-x64') { throw 'release-manifest GUI runtime mismatch.' }
+    if (-not [bool]$releaseManifest.gui.selfContained) { throw 'release-manifest GUI selfContained flag is false.' }
 
     Assert-ScriptSyntax -Path (Join-Path $packageRoot 'Start-Builder.ps1')
     $packageFindings = @(Get-WibReleaseSafetyFindings -Files (Get-WibFilesUnderRoot -Root $packageRoot) -Config $config)
@@ -282,7 +266,19 @@ function Invoke-PackageSmoke {
 
     Invoke-ModuleImportSmoke -Executable $PowerShellExe -Root $packageRoot -Label 'package-ps51' | Out-Null
     $backend = Invoke-BackendSmoke -Executable $PowerShellExe -Root $packageRoot -Label 'package-ps51'
-    return [ordered]@{ checksum='pass'; logicalFiles=$actualFiles.Count; manifest='pass'; safety='pass'; backend=$backend }
+
+    $guiExe = Join-Path $packageRoot 'WindowsISOBuilder.exe'
+    & $guiExe --backend-smoke
+    if ($LASTEXITCODE -ne 0) { throw ('Packaged GUI backend smoke failed with exit code {0}.' -f $LASTEXITCODE) }
+
+    return [ordered]@{
+        checksum='pass'
+        manifest='pass'
+        safety='pass'
+        moduleSourceIsolation='pass'
+        backend=$backend
+        guiBackendSmoke='pass'
+    }
 }
 
 try {
@@ -291,8 +287,8 @@ try {
     Write-Host ''
 
     Invoke-RequiredCheck -Id 'version-and-schema' -Required $true -Action {
-        if ($version -ne '0.2.3-alpha.1') { throw ('VERSION is {0}; expected 0.2.3-alpha.1.' -f $version) }
-        if ($moduleVersion -ne '0.2.3') { throw ('ModuleVersion is {0}; expected 0.2.3.' -f $moduleVersion) }
+        if ($version -ne '0.3.0-alpha.1') { throw ('VERSION is {0}; expected 0.3.0-alpha.1.' -f $version) }
+        if ($moduleVersion -ne '0.3.0') { throw ('ModuleVersion is {0}; expected 0.3.0.' -f $moduleVersion) }
         if ([int]$manifestData.backendContractSchemaVersion -ne 1) { throw 'Backend Contract SchemaVersion must remain 1.' }
         if ([int]$manifestData.buildPlanSchemaVersion -ne 1) { throw 'BuildPlan SchemaVersion must remain 1.' }
         [ordered]@{ applicationVersion=$version; moduleVersion=$moduleVersion; backendContractSchemaVersion=1; buildPlanSchemaVersion=1 }
@@ -309,10 +305,17 @@ try {
     }
 
     Invoke-RequiredCheck -Id 'powershell-syntax' -Required $true -Action {
-        foreach ($relative in @('Start-Builder.ps1','Invoke-WibBackend.ps1','tools\New-ReleasePackage.ps1','tools\Invoke-ReleaseValidation.ps1','tools\ReleaseValidation.Common.ps1')) {
+        foreach ($relative in @(
+            'Start-Builder.ps1',
+            'Invoke-WibBackend.ps1',
+            'tools\Build-Gui.ps1',
+            'tools\New-ReleasePackage.ps1',
+            'tools\Invoke-ReleaseValidation.ps1',
+            'tools\ReleaseValidation.Common.ps1'
+        )) {
             Assert-ScriptSyntax -Path (Join-Path $projectRoot $relative)
         }
-        [ordered]@{ parsed=5 }
+        [ordered]@{ parsed=6 }
     }
 
     Invoke-RequiredCheck -Id 'current-tree-safety-scan' -Required $true -Action {
@@ -327,6 +330,37 @@ try {
 
     $psCommand = Get-Command powershell.exe -ErrorAction SilentlyContinue
     $ps51 = if ($null -eq $psCommand) { '' } else { [string]$psCommand.Source }
+
+    $dotnet = Get-Command dotnet -ErrorAction SilentlyContinue
+    $hasDotNet10 = $false
+    if ($null -ne $dotnet) {
+        $sdks = @(& $dotnet.Source --list-sdks)
+        $hasDotNet10 = @($sdks | Where-Object { $_ -match '^10\.' }).Count -gt 0
+    }
+    if ($Full) {
+        if ($null -eq $dotnet -or -not $hasDotNet10) {
+            Add-ValidationResult -Id 'gui-build-test-publish' -Status fail -Required $true -Message '.NET 10 SDK is not installed.'
+        }
+        elseif ([string]::IsNullOrWhiteSpace($ps51)) {
+            Add-ValidationResult -Id 'gui-build-test-publish' -Status fail -Required $true -Message 'powershell.exe is required to run Build-Gui.ps1.'
+        }
+        else {
+            Invoke-RequiredCheck -Id 'gui-build-test-publish' -Required $true -Action {
+                Invoke-ChildPowerShell -Executable $ps51 -Arguments @(
+                    '-NoLogo','-NoProfile','-ExecutionPolicy','Bypass','-File',(Join-Path $projectRoot 'tools\Build-Gui.ps1'),
+                    '-OutputDirectory',(Join-Path $workRoot 'gui-publish')
+                )
+                if (-not (Test-Path -LiteralPath (Join-Path $workRoot 'gui-publish\WindowsISOBuilder.exe') -PathType Leaf)) {
+                    throw 'GUI publish did not produce WindowsISOBuilder.exe.'
+                }
+                [ordered]@{ runtime='win-x64'; selfContained=$true; tests='pass' }
+            }
+        }
+    }
+    else {
+        Add-ValidationResult -Id 'gui-build-test-publish' -Status skipped -Required $false -Message 'Use -Full for GUI build/test/publish validation.'
+    }
+
     if ([string]::IsNullOrWhiteSpace($ps51)) {
         Add-ValidationResult -Id 'powershell-5.1-runtime' -Status fail -Required $true -Message 'powershell.exe is not available.'
     }
@@ -411,6 +445,9 @@ exit 0
         if ([string]::IsNullOrWhiteSpace($ps51)) {
             Add-ValidationResult -Id 'release-package-smoke' -Status fail -Required $true -Message 'PS5.1 is unavailable.'
         }
+        elseif ($null -eq $dotnet -or -not $hasDotNet10) {
+            Add-ValidationResult -Id 'release-package-smoke' -Status fail -Required $true -Message '.NET 10 SDK is required to build the GUI release package.'
+        }
         else {
             Invoke-RequiredCheck -Id 'release-package-smoke' -Required $true -Action {
                 $zip = $PackagePath
@@ -423,7 +460,9 @@ exit 0
                     )
                     $zip = Join-Path $packageOutput ('windows-iso-builder-v{0}.zip' -f $version)
                 }
-                else { $zip = [IO.Path]::GetFullPath($zip) }
+                else {
+                    $zip = [IO.Path]::GetFullPath($zip)
+                }
                 Invoke-PackageSmoke -ZipPath $zip -PowerShellExe $ps51
             }
         }

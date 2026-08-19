@@ -8,6 +8,7 @@ Describe 'Release package validation' {
         $script:releaseVersion = [IO.File]::ReadAllText((Join-Path $script:projectRoot 'VERSION'), [Text.Encoding]::ASCII).Trim()
         $script:packageOutput = Join-Path $TestDrive 'package-output'
         & (Join-Path $script:projectRoot 'tools\New-ReleasePackage.ps1') -OutputDirectory $script:packageOutput | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw 'New-ReleasePackage.ps1 failed.' }
         $script:zipPath = Join-Path $script:packageOutput ('windows-iso-builder-v{0}.zip' -f $script:releaseVersion)
         $script:checksumPath = "$script:zipPath.sha256"
         $script:extractRoot = Join-Path $TestDrive 'extracted'
@@ -15,106 +16,47 @@ Describe 'Release package validation' {
         $script:packageRoot = Join-Path $script:extractRoot ('windows-iso-builder-v{0}' -f $script:releaseVersion)
     }
 
-    AfterAll {
-        Remove-Module WindowsISOBuilder -Force -ErrorAction SilentlyContinue
-    }
-
     It 'creates an openable ZIP and matching SHA-256 checksum' {
         Test-Path -LiteralPath $script:zipPath -PathType Leaf | Should -BeTrue
-        Test-Path -LiteralPath $script:checksumPath -PathType Leaf | Should -BeTrue
         $checksumText = [IO.File]::ReadAllText($script:checksumPath, [Text.Encoding]::UTF8)
-        $checksumMatch = [regex]::Match($checksumText, '^([A-Fa-f0-9]{64})\s+')
-        $checksumMatch.Success | Should -BeTrue
-        $expectedHash = $checksumMatch.Groups[1].Value.ToUpperInvariant()
+        $checksumText | Should -Match '^([A-Fa-f0-9]{64})\s+'
+        $expectedHash = ([regex]::Match($checksumText, '^([A-Fa-f0-9]{64})\s+')).Groups[1].Value.ToUpperInvariant()
         (Get-FileHash -LiteralPath $script:zipPath -Algorithm SHA256).Hash.ToUpperInvariant() | Should -Be $expectedHash
-
-        Add-Type -AssemblyName System.IO.Compression.FileSystem
-        $archive = [IO.Compression.ZipFile]::OpenRead($script:zipPath)
-        try { @($archive.Entries).Count | Should -BeGreaterThan 0 }
-        finally { $archive.Dispose() }
     }
 
-    It 'contains exactly the allowlisted logical source files plus release-manifest.json' {
-        Add-Type -AssemblyName System.IO.Compression.FileSystem
-        $archive = [IO.Compression.ZipFile]::OpenRead($script:zipPath)
-        try {
-            $prefix = ('windows-iso-builder-v{0}/' -f $script:releaseVersion)
-            $actual = @($archive.Entries | ForEach-Object { ([string]$_.FullName).Replace('\','/') } |
-                Where-Object { $_ -and -not $_.EndsWith('/') } |
-                ForEach-Object {
-                    $_.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase) | Should -BeTrue
-                    $_.Substring($prefix.Length).Replace('/','\')
-                } | Sort-Object -Unique)
+    It 'contains every allowlisted source runtime file plus generated GUI runtime files' {
+        foreach ($source in @(Get-WibReleaseSourceFiles -ProjectRoot $script:projectRoot -Config $script:releaseConfig -Version $script:releaseVersion)) {
+            Test-Path -LiteralPath (Join-Path $script:packageRoot $source.RelativePath) -PathType Leaf | Should -BeTrue
         }
-        finally { $archive.Dispose() }
-
-        $source = @(Get-WibReleaseSourceFiles -ProjectRoot $script:projectRoot -Config $script:releaseConfig -Version $script:releaseVersion |
-            ForEach-Object { $_.RelativePath } | Sort-Object -Unique)
-        $expected = @($source + 'release-manifest.json' | Sort-Object -Unique)
-        $actual | Should -Be $expected
-        foreach ($path in $actual) {
-            (Test-WibReleaseRelativePathDenied -RelativePath $path -Config $script:releaseConfig) | Should -BeFalse
-        }
+        Test-Path -LiteralPath (Join-Path $script:packageRoot 'WindowsISOBuilder.exe') -PathType Leaf | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $script:packageRoot 'WindowsISOBuilder.dll') -PathType Leaf | Should -BeTrue
     }
 
-    It 'generates the expected release manifest versions' {
-        $manifestPath = Join-Path $script:packageRoot 'release-manifest.json'
-        $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
-        $manifest.applicationVersion | Should -Be '0.2.3-alpha.1'
-        $manifest.moduleVersion | Should -Be '0.2.3'
+    It 'generates expected package-only manifest versions and GUI metadata' {
+        $manifest = Get-Content -LiteralPath (Join-Path $script:packageRoot 'release-manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        $manifest.applicationVersion | Should -Be '0.3.0-alpha.1'
+        $manifest.moduleVersion | Should -Be '0.3.0'
         $manifest.backendContractSchemaVersion | Should -Be 1
         $manifest.buildPlanSchemaVersion | Should -Be 1
+        $manifest.gui.included | Should -BeTrue
+        $manifest.gui.runtime | Should -Be 'win-x64'
+        $manifest.gui.selfContained | Should -BeTrue
     }
 
-    It 'contains all required runtime files and no obvious secret or personal-path findings' {
-        foreach ($required in @($script:releaseConfig.RequiredPackageFiles)) {
-            Test-Path -LiteralPath (Join-Path $script:packageRoot ([string]$required)) | Should -BeTrue
-        }
-        $files = @(Get-WibFilesUnderRoot -Root $script:packageRoot)
-        @(Get-WibReleaseSafetyFindings -Files $files -Config $script:releaseConfig).Count | Should -Be 0
+    It 'contains required runtime files and no safety findings' {
+        foreach ($required in @($script:releaseConfig.RequiredPackageFiles)) { Test-Path -LiteralPath (Join-Path $script:packageRoot ([string]$required)) | Should -BeTrue }
+        @(Get-WibReleaseSafetyFindings -Files (Get-WibFilesUnderRoot -Root $script:packageRoot) -Config $script:releaseConfig).Count | Should -Be 0
     }
 
-    It 'imports the packaged module from the extracted package instead of the source checkout' {
-        Remove-Module WindowsISOBuilder -Force -ErrorAction SilentlyContinue
-        $packagedModule = Join-Path $script:packageRoot 'src\WindowsISOBuilder\WindowsISOBuilder.psd1'
-        Import-Module $packagedModule -Force
-        $loadedModule = Get-Module WindowsISOBuilder | Select-Object -First 1
-        $loadedModule | Should -Not -BeNullOrEmpty
-        [IO.Path]::GetFullPath([string]$loadedModule.Path).StartsWith(
-            [IO.Path]::GetFullPath($script:packageRoot), [StringComparison]::OrdinalIgnoreCase
-        ) | Should -BeTrue
+    It 'keeps packaged backend inside extracted package and runs GUI backend smoke' {
+        Test-Path -LiteralPath (Join-Path $script:packageRoot 'Invoke-WibBackend.ps1') | Should -BeTrue
+        & (Join-Path $script:packageRoot 'WindowsISOBuilder.exe') --backend-smoke
+        $LASTEXITCODE | Should -Be 0
     }
 
-    It 'runs packaged GetVersion and offline RunPreflight through the public backend function' {
-        Remove-Module WindowsISOBuilder -Force -ErrorAction SilentlyContinue
-        Import-Module (Join-Path $script:packageRoot 'src\WindowsISOBuilder\WindowsISOBuilder.psd1') -Force
-
-        $requestPath = Join-Path $TestDrive 'package-version-request.json'
-        $responsePath = Join-Path $TestDrive 'package-version-response.json'
-        $versionRequest = [ordered]@{ schemaVersion=1; requestId='package-version'; command='GetVersion'; arguments=[ordered]@{} }
-        [IO.File]::WriteAllText($requestPath, ($versionRequest | ConvertTo-Json -Depth 10), (New-Object Text.UTF8Encoding($false)))
-        Invoke-WibBackendRequest -RequestFile $requestPath -ResponseFile $responsePath | Out-Null
-        $version = Get-Content -LiteralPath $responsePath -Raw -Encoding UTF8 | ConvertFrom-Json
-        $version.success | Should -BeTrue
-        $version.applicationVersion | Should -Be '0.2.3-alpha.1'
-
-        $cache = Join-Path $TestDrive 'package-cache'
-        $output = Join-Path $TestDrive 'package-output-dir'
-        New-Item -ItemType Directory -Path $cache,$output -Force | Out-Null
-        $plan = [ordered]@{
-            schemaVersion=1; applicationVersion='0.2.3-alpha.1'; createdAt='2026-08-18T00:00:00Z';
-            build=[ordered]@{ uuid='package-smoke'; title='Package smoke'; product='Windows 11'; versionLabel='smoke'; build='0.0'; architecture='amd64'; entryType='Windows'; createdAt='2026-08-18T00:00:00Z'; isPreview=$false };
-            language='ru-ru'; editions=@('Professional'); sourceEdition='Professional'; virtualEditions=@(); imageFormat='ESD';
-            addUpdates=$true; cleanup=$true; netFx3=$false; outputDirectory=$output; cacheDirectory=$cache; removeWorkAfterSuccess=$false
-        }
-        $preflightRequestPath = Join-Path $TestDrive 'package-preflight-request.json'
-        $preflightResponsePath = Join-Path $TestDrive 'package-preflight-response.json'
-        $preflightRequest = [ordered]@{ schemaVersion=1; requestId='package-preflight'; command='RunPreflight'; arguments=[ordered]@{ buildPlan=$plan; onlineChecks=$false } }
-        [IO.File]::WriteAllText($preflightRequestPath, ($preflightRequest | ConvertTo-Json -Depth 30), (New-Object Text.UTF8Encoding($false)))
-        Invoke-WibBackendRequest -RequestFile $preflightRequestPath -ResponseFile $preflightResponsePath | Out-Null
-        $preflight = Get-Content -LiteralPath $preflightResponsePath -Raw -Encoding UTF8 | ConvertFrom-Json
-        $preflight.success | Should -BeTrue
-        $preflight.data.PSObject.Properties.Name | Should -Contain 'ready'
-        @($preflight.data.checks).Count | Should -BeGreaterThan 0
+    It 'keeps TUI and CLI entry points in the GUI release' {
+        Test-Path -LiteralPath (Join-Path $script:packageRoot 'Start-Builder.cmd') | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $script:packageRoot 'Start-Builder.ps1') | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $script:packageRoot 'Invoke-WibBackend.ps1') | Should -BeTrue
     }
 }

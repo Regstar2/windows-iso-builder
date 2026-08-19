@@ -1,117 +1,73 @@
-# Release Validation Matrix
+# Validation matrix v0.3.0-alpha.1
 
-## Purpose
+This matrix separates implemented validation from validation that was actually executed.
 
-This matrix separates implemented capabilities from validation that has actually been executed. `v0.2.3-alpha.1` is the validation/release-hardening release before the first GUI and does not add new user-facing feature scope.
+Status vocabulary: **Automated-ready** means the check exists; **Confirmed** means it was actually executed; **Not run** means it was not executed; **Skipped** means an optional runtime is unavailable; **Not required** means it is outside this release gate.
 
-Statuses:
+## Automated checks
 
-- **Automated** — verified by the local validation workflow without downloading Windows;
-- **Controlled smoke** — safe opt-in temporary-file/process validation without a UUP set;
-- **Confirmed** — a real end-to-end scenario was previously completed to a usable ISO;
-- **Not run** — the procedure exists but the scenario has not yet been executed;
-- **Not required** — not a release gate for this version.
-
-## A. Automated
-
-| Check | Status | Notes |
+| Check | Implementation | Required before release |
 |---|---|---|
-| VERSION / ModuleVersion / SchemaVersion | Automated | `0.2.3-alpha.1` / `0.2.3` / Contract 1 / BuildPlan 1 |
-| Module import | Automated | mandatory PS5.1 smoke |
-| Full Pester suite | Automated | invoked only through `tests/Run-Tests.ps1` |
-| PSScriptAnalyzer | Automated | Full: missing module = FAIL; Quick: SKIPPED |
-| Backend `GetVersion` | Automated | JSON request/response |
-| Offline `RunPreflight` | Automated | no network request and no UUP download |
-| Backend Events | Automated | semantic fields/NDJSON serialization |
-| Backend Contract v1 regression | Automated | required fields/commands; additive optional fields remain allowed |
-| BuildPlan v1 fixture/round-trip | Automated | Schema v1 backward compatibility |
-| Release allowlist/denylist | Automated | one shared packaging/test configuration |
-| ZIP open/checksum/manifest | Automated | source validation does not replace package validation |
-| Packaged module/GetVersion/RunPreflight | Automated | imported strictly from the extracted ZIP |
-| Current tree obvious-secret scan | Automated | limited scan of current tracked files |
-| Release package safety scan | Automated | obvious secrets, personal paths and generated/runtime junk |
+| VERSION / ModuleVersion / schemas | Automated-ready | Pass |
+| `dotnet restore/build/test` | Automated-ready | Pass |
+| GUI contract/state/event-reader tests | Automated-ready | Pass |
+| PowerShell Pester | Existing automated | Pass |
+| PSScriptAnalyzer | Existing automated | Pass in Full |
+| PS5.1 backend GetVersion/preflight smoke | Automated-ready | Pass |
+| PS7 backend smoke | Existing optional | Pass or Skipped |
+| managed process-tree cancellation smoke | Automated-ready | Pass in Full |
+| `Build-Gui.ps1` self-contained publish | Automated-ready | Pass |
+| ZIP/checksum/manifest | Automated-ready | Pass |
+| Packaged backend source isolation | Automated-ready | Pass |
+| Packaged `WindowsISOBuilder.exe --backend-smoke` (Contract v1 + BuildPlan v1) | Automated-ready | Pass |
+| Current-tree/package safety scan | Automated-ready | Pass |
 
 Primary command:
-
-```powershell
-powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
-  -File .\tools\Invoke-ReleaseValidation.ps1
-```
-
-Full safe release workflow:
 
 ```powershell
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
   -File .\tools\Invoke-ReleaseValidation.ps1 -Full
 ```
 
-Neither Quick nor Full may download a UUP set or build a real Windows ISO.
+Safe automated validation must not download a UUP set, build a real Windows ISO, or request UAC.
 
-## B. Controlled smoke
+## Self-hosted GitHub Actions
 
-| Check | Status | Notes |
-|---|---|---|
-| PowerShell 7 Backend Contract | Controlled smoke | runs when `pwsh` exists; missing PS7 = SKIPPED |
-| PID-rooted process-tree cancellation | Controlled smoke | dummy PowerShell tree, no aria2/DISM/UUP |
-| Release ZIP smoke | Controlled smoke | extract → syntax → package module → Backend GetVersion → offline RunPreflight |
-| TUI navigation | Manual controlled smoke | Start-Builder.cmd, menu/quick/cache/back/exit; no UAC or build required |
+`.github/workflows/windows-self-hosted-validation.yml` is a thin orchestration layer over the same Full validation command. A pull request targeting `master` must receive a successful `Full Windows validation` on runner labels `self-hosted`, `Windows`, `X64` before the PR is moved out of Draft / merged.
 
-TUI smoke procedure:
+Workflow concurrency cancels superseded PR runs and `validation-result.json` is retained as an artifact even on failure. A PASS from an older commit does not validate the current PR head; the result must correspond to the current SHA.
 
-1. Run `Start-Builder.cmd`.
-2. Verify the main menu.
-3. Open the quick submenu and return.
-4. Open cache information and return.
-5. Exit normally.
-6. Do not approve a real build or trigger UAC solely for this smoke.
+## Manual GUI smoke
 
-## C. Real E2E
+Before Ready/Merge on Windows, verify:
 
-The minimum pre-GUI baseline is intentionally not a Cartesian product.
+1. GUI starts without startup UAC.
+2. Quick Mode opens.
+3. Windows 11 recommended build loads.
+4. Windows 10 recommended build loads.
+5. Languages load dynamically.
+6. Editions load dynamically and multi-selection works.
+7. BuildPlan is created through the backend.
+8. RunPreflight displays pass/warning/fatal states and fatal checks block build.
+9. Changing build parameters invalidates the old preflight/plan and requires re-checking.
+10. Catalog search/architecture/Preview/servicing display filter work.
+11. A single Catalog row selection does not start metadata loading; double-click / use-selected enters the common Quick flow.
+12. Network/UUP/download/converter/DISM/ISO/preflight failures show controlled `error.code`-based UX.
+13. Closing outside a build leaves no backend process; closing during an active build uses CancelBuild.
+14. A failed CancelBuild request returns the UI to Building and does not close over an active build.
 
-| Scenario | Product | Arch | Language | Editions | Format | Status |
-|---|---|---|---|---|---|---|
-| A | Windows 11 | x64 | ru-RU | Core + Professional | ESD | **Confirmed baseline** |
-| B | Windows 10 | x64 | ru-RU or en-US | Professional | ESD | **Not run** |
-| C | Windows 11 | x64 | ru-RU or en-US | one regular edition | WIM | **Not run** |
+The agent environment itself does not replace the Windows manual GUI smoke. Status remains **Not run** until the smoke is actually performed.
 
-Scenario A was previously confirmed on the preserved build pipeline and remains the baseline. It is not represented as newly executed by the agent for `v0.2.3-alpha.1`.
+## Real GUI E2E
 
-Scenarios B and C may be changed to **Confirmed** only after a real ISO is built manually. Until then they remain **Not run**.
+Preferred pre-tag scenario: Windows 11, x64/amd64, ru-RU, Professional, ESD, GUI preflight → UAC → progress → ISO → success screen.
 
-Manual E2E results use `docs/validation/results/.README.md`. Do not commit the ISO, signed UUP URLs, product keys, or personal local paths.
+Status remains **Not run** until actually executed. Previous backend E2E evidence is not a new GUI E2E run.
 
-## D. Not tested / Not required for v0.2.3
+## Not required for v0.3.0
 
-This release does not require:
+Full Cartesian matrices, ARM64/x86 real E2E, installer/MSIX, updater, USB/Rufus, and history/profiles/queue.
 
-- a complete Windows 10 × Windows 11 × WIM × ESD × editions × languages Cartesian product;
-- ARM64 E2E;
-- x86 E2E;
-- a dedicated 10+ GB download → cancel → resume test;
-- a real UUP cancellation build;
-- GUI/WPF/WinUI/C# validation;
-- installer/MSIX/updater/USB/Rufus scenarios.
+## Safety scope
 
-## Package-only user flow
-
-The release ZIP is validated as a separate artifact rather than assumed correct because the source checkout passes tests:
-
-1. download the ZIP and `.sha256`;
-2. verify the checksum;
-3. extract the ZIP;
-4. run `Start-Builder.cmd`;
-5. choose quick mode or normal search;
-6. select build/language/edition/format;
-7. pass local preflight;
-8. UAC appears only immediately before the build;
-9. observe progress;
-10. receive the ISO and its SHA-256.
-
-Automated package smoke stops before a real build and never requires UAC.
-
-## Safety-scan limitations
-
-The built-in scan is a limited check of **current tracked files and the current release package** for obvious secrets, private-key blocks, explicit credential assignments, personal `C:\Users\...` paths, and generated/runtime artifacts.
-
-It is **not a Git-history audit** and does not prove that an old commit, reflog, fork, or external release asset never contained a secret. Historical secret auditing requires a separate specialized tool when needed.
+The built-in scan checks current tracked files and the current release package for obvious secrets, personal paths, and generated junk. It is **not a Git-history audit** and does not prove that old commits/reflogs/forks contain no secrets.

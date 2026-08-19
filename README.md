@@ -1,84 +1,70 @@
-﻿<div align="center">
+<div align="center">
 
 # Windows ISO Builder
 
-Интерактивный PowerShell-клиент UUP dump для поиска, загрузки и автоматической сборки Windows ISO без ручной работы с сайтом, UUID, SKU и `ConvertConfig.ini`.
+GUI и PowerShell-клиент UUP dump для поиска, загрузки и сборки Windows ISO без ручной работы с UUID, SKU и `ConvertConfig.ini`.
 
 **Русский** · [English](README_EN.md)
 
-[Быстрый старт](#быстрый-старт) · [Backend Contract](#backend-contract) · [Проверка релиза](#проверка-релиза) · [Документация](#документация)
-
 </div>
 
-## О проекте
+## Статус
 
-Windows ISO Builder использует динамический каталог UUP dump, а файлы Windows получает с Microsoft Windows Update/CDN через сгенерированный UUP dump conversion package. Проект не содержит зашитого каталога Windows и не реализует собственный UUP downloader/converter.
+Текущая версия — **`0.3.0-alpha.1`**.
 
-TUI, non-interactive CLI и machine-readable Backend Contract используют один PowerShell backend.
-
-## Статус проекта
-
-Текущая версия — **`0.2.3-alpha.1`**.
-
-- ApplicationVersion: `0.2.3-alpha.1`;
-- PowerShell ModuleVersion: `0.2.3`;
+- ApplicationVersion: `0.3.0-alpha.1`;
+- PowerShell ModuleVersion: `0.3.0`;
 - Backend Contract SchemaVersion: `1`;
 - BuildPlan SchemaVersion: `1`.
 
-`0.2.3-alpha.1` — последний backend-focused validation release перед началом `v0.3.0` GUI. GUI, WPF/WinUI и C# здесь намеренно отсутствуют.
+`v0.3.0-alpha.1` добавляет первый WPF GUI. Существующие TUI, CLI и machine-readable Backend Contract сохраняются. GUI не является новым UUP/build backend: он работает через `Invoke-WibBackend.ps1` и Contract v1.
 
-## Возможности
+## Быстрый старт — GUI
 
-- динамический поиск Windows builds и quick mode без hardcoded build numbers;
-- динамические languages/editions, multi-edition через virtual editions;
-- `install.wim` и `install.esd`;
-- API/package/UUP cache и штатный `aria2` resume;
-- compact console progress и полный `converter-*.log`;
-- build/elevated/execution logs, SHA-256 и JSON metadata;
-- TUI и non-interactive PowerShell CLI;
-- Backend Contract v1 с JSON request/response и NDJSON events;
-- `RunPreflight` с агрегированным machine-readable report;
-- local preflight до UAC и повторный authoritative preflight в worker;
-- structured error taxonomy с source-level error codes и optional `details`;
-- `CancelBuild` и cooperative cancellation по `requestId`;
-- отмена через elevation boundary;
-- PID-rooted termination только собственного process tree;
-- сохранение partial UUP cache/work directory после отмены;
-- локальный release validation workflow, который отдельно проверяет source checkout и готовый release ZIP.
+1. Скачайте release ZIP и распакуйте его полностью.
+2. Запустите `WindowsISOBuilder.exe` обычным пользователем.
+3. Выберите Windows 11 или Windows 10 и получите рекомендуемую сборку либо откройте «Каталог».
+4. Выберите язык, одну или несколько редакций, ESD/WIM и каталог результата.
+5. Выполните проверку готовности.
+6. Если fatal-проверок нет, нажмите «Создать ISO» и подтвердите UAC, когда backend запросит повышение прав.
+7. После завершения GUI покажет путь к ISO и SHA-256.
 
-## Быстрый старт
+Пользовательский release является `win-x64` self-contained: отдельная установка .NET Runtime не требуется. .NET 10 SDK нужен только для разработки/сборки GUI.
 
-1. Скачайте и распакуйте release ZIP.
-2. Запустите `Start-Builder.cmd`.
-3. Выберите обычный поиск или quick mode.
-4. Выберите язык, редакции и WIM/ESD.
-5. До UAC приложение выполнит local preflight. Fatal problem не должна открывать elevation prompt.
-6. При успешном preflight подтвердите UAC и дождитесь ISO.
+## GUI
 
-Рабочий кеш по умолчанию: `C:\UUP-ISO-Work`. Готовые ISO сохраняются в выбранный output directory.
+Первый GUI включает:
 
-## Требования
+- Quick Mode с backend-командой `GetRecommendedBuild`;
+- Catalog Mode с `SearchBuilds`, Preview и display-фильтром служебных записей;
+- явное применение выбранной каталожной сборки без запуска metadata-запросов по одиночному клику;
+- динамические languages/editions из backend без встроенных списков;
+- multi-edition выбор;
+- ESD/WIM и базовые converter options;
+- `CreateBuildPlan` + `RunPreflight`;
+- asynchronous `ExecuteBuildPlan` и NDJSON progress/events;
+- cooperative `CancelBuild` без GUI-side kill процессов;
+- обработку стабильных backend error codes для preflight/download/converter/DISM/ISO/elevation/cancellation;
+- success screen с ISO, SHA-256, журналом и открытием папки;
+- GUI log в `%LOCALAPPDATA%\WindowsISOBuilder\logs`.
 
-- Windows 10/11 x64 для реальной ISO build;
-- Windows PowerShell 5.1 или PowerShell 7;
-- DISM, `Expand-Archive`, `Get-FileHash`;
-- права администратора для UUP/conversion stage;
-- conservative minimum: 40 GiB для cache/work и 8 GiB для output;
-- доступ к UUP dump и Microsoft Windows Update/CDN.
+GUI запускается с `asInvoker`. UAC остаётся частью существующего backend workflow непосредственно перед privileged build stage.
 
-`Mount-DiskImage` используется для более глубокой post-build проверки, но его отсутствие само по себе является warning, а не fatal preflight failure.
+## Console / automation
 
-## Надёжность и отмена
+TUI не deprecated. Для консольного интерактивного режима:
 
-`RunPreflight` возвращает `ready` и массив `checks` со стабильными `id`, `status`, `severity`, `code`, `message`, `data`. Обычная неготовность environment — успешная Backend Contract operation (`success=true`, `data.ready=false`), а не transport failure.
+```powershell
+.\Start-Builder.cmd
+```
 
-`ExecuteBuildPlan` использует свой `requestId` как operation id. `CancelBuild` принимает `targetRequestId` и `cacheDirectory`. Control marker строится по SHA-256 request id; raw request id не используется как filesystem path.
+или:
 
-`CancelBuild` означает только принятие запроса отмены. Фактическая остановка подтверждается final response/event целевой `ExecuteBuildPlan` operation с `BUILD_CANCELLED`/`cancelled`.
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Start-Builder.ps1
+```
 
-Managed runner завершает только process tree, корнем которого является PID процесса, запущенного самим Windows ISO Builder. Поиск/kill по имени `aria2`, `dism` или другого процесса не используется. Partial downloads и work directory сохраняются для resume.
-
-## Использование CLI
+Non-interactive пример:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Start-Builder.ps1 `
@@ -90,8 +76,6 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Start-Builder.ps1 `
   -ImageFormat ESD
 ```
 
-## Backend Contract
-
 Machine entry point:
 
 ```powershell
@@ -102,73 +86,90 @@ powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
   -EventFile .\events.ndjson
 ```
 
-Backend Contract Schema v1 поддерживает:
+## Архитектурная граница
 
-`GetVersion`, `SearchBuilds`, `GetRecommendedBuild`, `GetLanguages`, `GetEditions`, `CreateBuildPlan`, `ValidateBuildPlan`, `ExecuteBuildPlan`, `RunPreflight`, `CancelBuild`.
+PowerShell backend остаётся единственным владельцем UUP catalog, recommendation, BuildPlan, preflight, UAC/elevation, download, converter/DISM, ISO validation и cancellation process tree.
 
-После `v0.2.3` этот Contract v1 и BuildPlan v1 считаются baseline интерфейсом для первого GUI. Additive optional fields остаются допустимыми; breaking changes требуют отдельного SchemaVersion.
+GUI не импортирует `WindowsISOBuilder.psm1`, не вызывает private functions, не парсит `Write-Host`, transcript, aria2/converter output и не классифицирует ошибку по локализованному `message`.
 
-Полный contract: [docs/BACKEND_CONTRACT.md](docs/BACKEND_CONTRACT.md).
+Совместимость GUI определяется schema interfaces, а не совпадением ApplicationVersion. Для `v0.3.0-alpha.1` требуются Backend Contract SchemaVersion `1` и BuildPlan SchemaVersion `1`; packaged GUI smoke проверяет оба значения.
 
-## Проверка релиза
+Полный контракт: [docs/BACKEND_CONTRACT.md](docs/BACKEND_CONTRACT.md). Архитектура GUI: [docs/GUI_ARCHITECTURE.md](docs/GUI_ARCHITECTURE.md).
 
-Проект использует локальные Pester tests, PSScriptAnalyzer и единый validation entry point. GitHub Actions намеренно не являются release gate.
+## Требования
 
-Быстрая проверка не скачивает UUP set и не собирает ISO:
+Для пользователя:
+
+- Windows 10/11 x64;
+- Windows PowerShell 5.1;
+- DISM и штатные Windows tools;
+- доступ к UUP dump и Microsoft Windows Update/CDN;
+- достаточно места для cache/work/output;
+- права администратора только на privileged build stage.
+
+Для разработки GUI требуется .NET 10 SDK.
+
+## Сборка и тесты GUI
 
 ```powershell
-powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
-  -File .\tools\Invoke-ReleaseValidation.ps1
+dotnet restore .\WindowsISOBuilder.sln
+dotnet build .\WindowsISOBuilder.sln -c Release
+dotnet test .\WindowsISOBuilder.sln -c Release --no-build
+powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\tools\Build-Gui.ps1
 ```
 
-Полный безопасный release smoke, включая временную сборку/распаковку ZIP и controlled process-tree test:
+`Build-Gui.ps1` делает restore/build/test/publish `win-x64 --self-contained` и не устанавливает SDK автоматически.
+
+## Проверка релиза
 
 ```powershell
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
   -File .\tools\Invoke-ReleaseValidation.ps1 -Full
 ```
 
-Validation пишет machine-readable `validation-result.json` и возвращает non-zero exit code при failure обязательной проверки. Generated report и `dist/` не предназначены для commit.
+Full validation должна проверять GUI build/test/publish, Pester, PSScriptAnalyzer, backend smokes, release package, manifest/checksum и packaged `WindowsISOBuilder.exe --backend-smoke`. Ни один автоматический smoke не скачивает Windows и не открывает UAC.
 
-Source validation и release-package validation считаются разными слоями. Подробная фактическая матрица, включая реальные E2E статусы: [docs/VALIDATION_MATRIX.md](docs/VALIDATION_MATRIX.md).
+Репозиторий также содержит `.github/workflows/windows-self-hosted-validation.yml`. Для pull request в `master` он запускает тот же Full validation на Windows self-hosted runner с labels `self-hosted`, `Windows`, `X64`; superseded PR runs отменяются через `concurrency`. `validation-result.json` публикуется как Actions artifact даже при падении validation.
+
+Фактические результаты конкретной среды нельзя подменять статусом implementation. См. [docs/VALIDATION_MATRIX.md](docs/VALIDATION_MATRIX.md).
 
 ## Release package
 
-`tools/New-ReleasePackage.ps1` читает версию из `VERSION`, формирует ZIP и `.sha256`, а внутрь ZIP добавляет сгенерированный `release-manifest.json` с версиями приложения, модуля, Backend Contract и BuildPlan.
+ZIP содержит:
 
-Release ZIP строится из централизованного allowlist и не должен содержать `tests`, `.git`, `.github`, `output`, `logs`, `dist`, cache, IDE state, `.project-rules` или user-specific files.
+- `WindowsISOBuilder.exe` и self-contained `win-x64` runtime;
+- `Invoke-WibBackend.ps1`;
+- PowerShell module/backend;
+- `Start-Builder.cmd` / `Start-Builder.ps1`;
+- документацию;
+- package-only `release-manifest.json`.
+
+Manifest содержит версии приложения/модуля/schema и additive GUI metadata; локальные developer paths, username и machine name не включаются. `.github`, tests, `bin`/`obj`, validation artifacts и другие developer-only файлы в release ZIP не попадают.
 
 ## Безопасность
 
-- explicit Backend command allowlist;
-- нет `Invoke-Expression`/eval;
-- request считается untrusted input;
-- cancellation path строится только через SHA-256 request id;
-- process termination выполняется только по PID собственного process tree;
-- machine responses не должны раскрывать tokens, signed UUP URLs, product keys или Exception object graph;
-- release validation выполняет ограниченный scan текущих tracked files и package на очевидные secrets/personal paths.
-
-Этот scan не является историческим аудитом Git history.
+- requests считаются недоверенными данными;
+- backend dispatch использует allowlist;
+- C# запускает PowerShell через `ProcessStartInfo.ArgumentList`;
+- пользовательские строки не исполняются как PowerShell;
+- cancellation выполняется через `CancelBuild`, а не `taskkill`/`Stop-Process` из GUI;
+- signed UUP URLs, tokens и product keys не должны попадать в GUI log;
+- backend path определяется относительно package root; сетевой executable/backend code не загружается.
 
 ## Документация
 
 - [Backend Contract v1](docs/BACKEND_CONTRACT.md)
+- [GUI architecture](docs/GUI_ARCHITECTURE.md)
+- [Архитектура проекта](docs/ARCHITECTURE.md)
+- [Статус реализации](docs/IMPLEMENTATION_STATUS.md)
 - [Матрица проверки](docs/VALIDATION_MATRIX.md)
 - [Требования](REQUIREMENTS.md)
-- [Архитектура](docs/ARCHITECTURE.md)
-- [Статус реализации](docs/IMPLEMENTATION_STATUS.md)
 - [История изменений](CHANGELOG.md)
-- [Release notes](docs/releases/)
-- [Безопасность](SECURITY.md)
-- [Участие в разработке](CONTRIBUTING.md)
+- [Release notes](docs/releases/v0.3.0-alpha.1.md)
 
-## Ограничения
+## Ограничения v0.3.0
 
-- `0.2.3-alpha.1` остаётся alpha;
-- GUI, WPF/WinUI, queue/history/profiles, updater, USB/Rufus integration и dynamic disk estimator не реализованы;
-- transport Backend Contract — local JSON/NDJSON files + PowerShell process, не HTTP server;
-- реальный Windows 10 E2E и отдельный Windows 11 WIM baseline должны отмечаться как подтверждённые только после фактической ручной сборки;
-- внешний UUP dump API/conversion package может измениться.
+В GUI MVP намеренно нет history, profiles, queue, cache-management UI, updater, installer/MSIX, USB writer/Rufus, full theme/language settings, customization/debloat, driver injection, TPM bypass, activation и custom UUP engine/downloader/converter. GitHub Actions используется только как thin orchestration layer над существующей локальной Full validation на self-hosted Windows runner и не входит в runtime/release package.
 
 ## Лицензия
 

@@ -197,7 +197,15 @@ function Start-WibElevatedPlan {
     Write-Host ('Лог повышенного процесса: {0}' -f $elevatedExecutionLogPath) -ForegroundColor DarkGray
     try {
         try {
-            $process = Start-Process -FilePath (Get-WibPowerShellExecutable) -Verb RunAs -Wait -PassThru -ArgumentList $arguments
+            $startProcessParameters = @{
+                FilePath = (Get-WibPowerShellExecutable)
+                Verb = 'RunAs'
+                Wait = $true
+                PassThru = $true
+                ArgumentList = $arguments
+            }
+            if ($eventContext.Enabled) { $startProcessParameters.WindowStyle = 'Hidden' }
+            $process = Start-Process @startProcessParameters
         }
         catch {
             if (Test-WibElevationCancelledException -Exception $_.Exception) {

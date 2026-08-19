@@ -1,117 +1,79 @@
-# Матрица проверки релиза
+# Матрица проверки v0.3.0-alpha.1
 
-## Назначение
+Эта матрица отделяет наличие implementation от реально выполненного validation.
 
-Эта матрица отделяет реализованные возможности от реально выполненной проверки. `v0.2.3-alpha.1` — validation/release-hardening версия перед первым GUI; она не добавляет новый пользовательский feature scope.
+Статусы: **Automated-ready** — код проверки существует; **Confirmed** — реально выполнено; **Not run** — не запускалось; **Skipped** — optional runtime отсутствует; **Not required** — не gate версии.
 
-Статусы:
+## Автоматические проверки
 
-- **Automated** — проверяется локальным validation workflow без загрузки Windows;
-- **Controlled smoke** — безопасный opt-in тест с временными файлами/процессами, без UUP set;
-- **Confirmed** — реальный end-to-end сценарий ранее фактически доведён до готового ISO;
-- **Not run** — процедура подготовлена, но фактический E2E для этого сценария ещё не выполнен;
-- **Not required** — не является release gate данной версии.
-
-## A. Automated
-
-| Проверка | Статус | Примечание |
+| Проверка | Implementation | Требуемый фактический статус перед release |
 |---|---|---|
-| VERSION / ModuleVersion / SchemaVersion | Automated | `0.2.3-alpha.1` / `0.2.3` / Contract 1 / BuildPlan 1 |
-| Import module | Automated | обязательный PS5.1 smoke |
-| Полный Pester suite | Automated | запускается только через `tests/Run-Tests.ps1` |
-| PSScriptAnalyzer | Automated | Full: отсутствие модуля = FAIL; Quick: SKIPPED |
-| Backend `GetVersion` | Automated | JSON request/response |
-| `RunPreflight` offline | Automated | не обращается к сети и не скачивает UUP |
-| Backend Events | Automated | semantic fields/NDJSON serialization |
-| Backend Contract v1 regression | Automated | required fields/commands; additive optional fields разрешены |
-| BuildPlan v1 fixture/round-trip | Automated | Schema v1 backward compatibility |
-| Release allowlist/denylist | Automated | единая конфигурация для packaging и tests |
-| ZIP open/checksum/manifest | Automated | source validation не заменяет package validation |
-| Packaged module/GetVersion/RunPreflight | Automated | импорт строго из распакованного ZIP |
-| Current tree obvious-secret scan | Automated | ограниченный scan текущих tracked files |
-| Release package safety scan | Automated | obvious secrets, personal paths, generated/runtime junk |
+| VERSION / ModuleVersion / SchemaVersion | Automated-ready | Pass |
+| `dotnet restore/build/test` | Automated-ready | Pass |
+| GUI Contract/MVVM/event-reader tests | Automated-ready | Pass |
+| PowerShell Pester | Existing automated | Pass |
+| PSScriptAnalyzer | Existing automated | Pass in Full |
+| PS5.1 Backend GetVersion/preflight smoke | Automated-ready | Pass |
+| PS7 Backend smoke | Existing optional | Pass или Skipped |
+| managed process-tree cancellation smoke | Automated-ready | Pass in Full |
+| `Build-Gui.ps1` self-contained publish | Automated-ready | Pass |
+| Release ZIP/checksum/manifest | Automated-ready | Pass |
+| Packaged backend source isolation | Automated-ready | Pass |
+| Packaged `WindowsISOBuilder.exe --backend-smoke` (Contract v1 + BuildPlan v1) | Automated-ready | Pass |
+| Current tree/package safety scan | Automated-ready | Pass |
 
-Основная команда:
-
-```powershell
-powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
-  -File .\tools\Invoke-ReleaseValidation.ps1
-```
-
-Полный безопасный release workflow:
+Главная команда:
 
 ```powershell
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
   -File .\tools\Invoke-ReleaseValidation.ps1 -Full
 ```
 
-Ни Quick, ни Full не должны скачивать UUP set или собирать настоящий Windows ISO.
+Safe automated validation не скачивает UUP set, не собирает реальный ISO и не должно открывать UAC.
 
-## B. Controlled smoke
+## Self-hosted GitHub Actions
 
-| Проверка | Статус | Примечание |
-|---|---|---|
-| PowerShell 7 Backend Contract | Controlled smoke | запускается при наличии `pwsh`; отсутствие = SKIPPED |
-| PID-rooted process-tree cancellation | Controlled smoke | dummy PowerShell tree, без aria2/DISM/UUP |
-| Release ZIP smoke | Controlled smoke | extract → syntax → package module → Backend GetVersion → offline RunPreflight |
-| TUI navigation | Manual controlled smoke | Start-Builder.cmd, menu/quick/cache/back/exit; UAC и build не нужны |
+`.github/workflows/windows-self-hosted-validation.yml` является thin orchestration layer над той же командой Full validation. Pull request в `master` должен получить успешный `Full Windows validation` на runner labels `self-hosted`, `Windows`, `X64` перед переводом PR из Draft/перед merge.
 
-TUI smoke:
+Workflow использует `concurrency` с отменой superseded PR runs и сохраняет `validation-result.json` как artifact даже при ошибке. Исторический PASS старого commit не считается PASS текущего head; статус должен относиться к актуальному SHA PR.
 
-1. Запустить `Start-Builder.cmd`.
-2. Проверить главное меню.
-3. Открыть quick submenu и вернуться назад.
-4. Открыть информацию о кеше и вернуться назад.
-5. Завершить программу через штатный Exit.
-6. Не подтверждать реальную сборку и не запускать UAC ради этого smoke.
+## Manual GUI smoke
 
-## C. Real E2E
+Перед Ready/Merge проверить на Windows:
 
-Минимальная baseline-матрица перед GUI не является Cartesian product.
+1. GUI запускается без startup UAC.
+2. Quick Mode открывается.
+3. Windows 11 recommended build загружается.
+4. Windows 10 recommended build загружается.
+5. Languages динамически загружаются.
+6. Editions динамически загружаются, multi-selection доступен.
+7. BuildPlan создаётся через backend.
+8. RunPreflight отображает pass/warning/fatal states; fatal блокирует build.
+9. Параметры можно изменить и перепроверить; старый preflight/plan не используется после изменения.
+10. Catalog search/architecture/Preview/servicing display filter работают.
+11. Одиночное выделение строки Catalog не запускает metadata flow; double-click/«Использовать выбранную» открывает общий Quick flow.
+12. Network/UUP/download/converter/DISM/ISO/preflight errors показываются controlled UI по `error.code`.
+13. Close during non-build не оставляет backend process; close during active build использует CancelBuild.
+14. Неуспешный запрос CancelBuild возвращает UI в Building и не закрывает приложение поверх активной сборки.
 
-| Сценарий | Product | Arch | Language | Editions | Format | Статус |
-|---|---|---|---|---|---|---|
-| A | Windows 11 | x64 | ru-RU | Core + Professional | ESD | **Confirmed baseline** |
-| B | Windows 10 | x64 | ru-RU или en-US | Professional | ESD | **Not run** |
-| C | Windows 11 | x64 | ru-RU или en-US | одна обычная edition | WIM | **Not run** |
+Текущий агентский environment сам по себе не заменяет Windows manual GUI smoke. Фактический статус остаётся **Not run**, пока smoke действительно не выполнен.
 
-Сценарий A подтверждён ранее на сохранённом build pipeline и остаётся baseline. Он не считается заново выполненным агентом для `v0.2.3-alpha.1`.
+## Real GUI E2E
 
-Сценарии B и C должны получить **Confirmed** только после фактической ручной сборки готового ISO. До этого статус остаётся **Not run**.
+Желательный pre-tag сценарий:
 
-Результат ручного E2E записывается по шаблону `docs/validation/results/.README.md`. ISO, signed UUP URLs, product keys и персональные локальные пути в Git не коммитятся.
+Windows 11 → x64/amd64 → ru-RU → Professional → ESD → GUI preflight → UAC → progress → ISO → success screen.
 
-## D. Not tested / Not required for v0.2.3
+До фактической сборки статус: **Not run**. Предыдущие backend E2E не считаются новым GUI E2E.
 
-Не требуется ради этой версии:
+## Сохранённый backend baseline
 
-- полный Windows 10 × Windows 11 × WIM × ESD × editions × languages Cartesian product;
-- ARM64 E2E;
-- x86 E2E;
-- специальный 10+ GB download → cancel → resume test;
-- отдельная реальная UUP cancellation build;
-- GUI/WPF/WinUI/C# validation;
-- installer/MSIX/updater/USB/Rufus scenarios.
+Ранее подтверждённый Windows 11 x64 ru-RU multi-edition ESD pipeline остаётся историческим backend baseline, но не заменяет GUI E2E `v0.3.0-alpha.1`.
 
-## Package-only user flow
+## Not required for v0.3.0
 
-Release ZIP проверяется как отдельный артефакт, а не как копия source checkout:
+Полный Cartesian matrix, ARM64/x86 real E2E, installer/MSIX, updater, USB/Rufus и history/profiles/queue.
 
-1. скачать ZIP и `.sha256`;
-2. проверить checksum;
-3. распаковать ZIP;
-4. запустить `Start-Builder.cmd`;
-5. выбрать quick mode или обычный поиск;
-6. выбрать build/language/edition/format;
-7. пройти local preflight;
-8. UAC появляется только непосредственно перед build;
-9. наблюдать progress;
-10. получить ISO и его SHA-256.
+## Safety scope
 
-Автоматический package smoke останавливается до шага реального build и не требует UAC.
-
-## Ограничения safety scan
-
-Встроенный scan — это ограниченная проверка **текущих tracked files и текущего release package** на очевидные секреты, private-key blocks, явные credential assignments, персональные `C:\Users\...` пути и generated/runtime artefacts.
-
-Он **не является аудитом Git history** и не доказывает отсутствие секрета в старых commits, reflog, forks или внешних release assets. Исторический secret audit при необходимости выполняется отдельным специализированным инструментом.
+Built-in safety scan проверяет текущие tracked files и current release package на очевидные secrets/personal paths/generated junk. Это **не Git-history audit** и не доказывает отсутствие секрета в старых commits/reflog/forks.

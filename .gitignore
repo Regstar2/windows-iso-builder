@@ -1,5 +1,7 @@
 output/
 dist/
+bin/
+obj/
 .private/
 *.iso
 *.wim

@@ -1,0 +1,101 @@
+name: Windows self-hosted validation
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-validation-v2-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Full Windows validation
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Show environment
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Write-Host "Runner: $env:RUNNER_NAME"
+          Write-Host "OS: $env:RUNNER_OS"
+          dotnet --info
+          powershell.exe -NoLogo -NoProfile -Command '$PSVersionTable | Format-List'
+          if (Get-Command pwsh.exe -ErrorAction SilentlyContinue) {
+            pwsh.exe -NoLogo -NoProfile -Command '$PSVersionTable | Format-List'
+          }
+
+      - name: Ensure validation modules
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+          if (-not (Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue)) {
+            Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force | Out-Null
+          }
+
+          if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
+            Register-PSRepository -Default
+          }
+
+          $gallery = Get-PSRepository -Name PSGallery -ErrorAction Stop
+          $originalPolicy = [string]$gallery.InstallationPolicy
+          try {
+            if ($originalPolicy -ne 'Trusted') {
+              Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+            }
+
+            $pester = Get-Module -ListAvailable Pester |
+              Where-Object { $_.Version -eq [version]'5.7.1' } |
+              Select-Object -First 1
+            if (-not $pester) {
+              Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Force -SkipPublisherCheck
+            }
+
+            $analyzer = Get-Module -ListAvailable PSScriptAnalyzer |
+              Where-Object { $_.Version -eq [version]'1.25.0' } |
+              Select-Object -First 1
+            if (-not $analyzer) {
+              Install-Module PSScriptAnalyzer -RequiredVersion 1.25.0 -Scope CurrentUser -Force -SkipPublisherCheck
+            }
+          }
+          finally {
+            if ($originalPolicy -and $originalPolicy -ne 'Trusted') {
+              Set-PSRepository -Name PSGallery -InstallationPolicy $originalPolicy
+            }
+          }
+
+      - name: Run full release validation
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
+            -File .\tools\Invoke-ReleaseValidation.ps1 `
+            -Full
+
+      - name: Upload validation report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-validation-report
+          path: validation-result.json
+          if-no-files-found: warn
+          retention-days: 14

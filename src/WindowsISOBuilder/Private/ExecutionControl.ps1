@@ -289,7 +289,7 @@ function Invoke-WibManagedProcess {
     $stdoutReader = $null
     $stderrReader = $null
     try {
-        $process = Start-Process -FilePath $FilePath -ArgumentList $ArgumentList -WorkingDirectory $WorkingDirectory -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -PassThru
+        $process = Start-Process -FilePath $FilePath -ArgumentList $ArgumentList -WorkingDirectory $WorkingDirectory -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -PassThru -WindowStyle Hidden
         Write-WibProcessTerminationDiagnostic ('Managed process started with PID {0}.' -f $process.Id)
 
         for ($openAttempt = 0; $openAttempt -lt 20 -and ($null -eq $stdoutReader -or $null -eq $stderrReader); $openAttempt++) {
