@@ -71,8 +71,11 @@ try {
     }
 
     $guiExe = Join-Path $packageRoot 'WindowsISOBuilder.exe'
-    & $guiExe --backend-smoke
-    if ($LASTEXITCODE -ne 0) { throw ('Packaged GUI backend smoke failed with exit code {0}.' -f $LASTEXITCODE) }
+    # Windows PowerShell 5.1 does not reliably wait for GUI-subsystem native
+    # applications invoked with '&'. Waiting explicitly prevents runtime DLLs
+    # from remaining locked when Compress-Archive starts reading the package.
+    $smokeProcess = Start-Process -FilePath $guiExe -ArgumentList @('--backend-smoke') -Wait -PassThru -WindowStyle Hidden
+    if ($smokeProcess.ExitCode -ne 0) { throw ('Packaged GUI backend smoke failed with exit code {0}.' -f $smokeProcess.ExitCode) }
 
     Remove-Item -LiteralPath $archivePath,$hashPath -Force -ErrorAction SilentlyContinue
     Compress-Archive -LiteralPath $packageRoot -DestinationPath $archivePath -CompressionLevel Optimal
