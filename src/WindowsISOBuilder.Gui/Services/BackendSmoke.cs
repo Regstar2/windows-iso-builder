@@ -19,7 +19,9 @@ public static class BackendSmoke
             }
 
             var backendPath = new BackendPathResolver().Resolve(root);
-            await new BackendClient(backendPath, log).InvokeAsync<VersionData>("GetVersion", new { });
+            await new BackendClient(backendPath, log)
+                .InvokeAsync<VersionData>("GetVersion", new { })
+                .ConfigureAwait(false);
             return 0;
         }
         catch (BackendException exception) when (exception.Code == "UNSUPPORTED_SCHEMA")
