@@ -57,11 +57,13 @@ public sealed class ContractTests
         var generic = ErrorMapper.Map("FUTURE_CODE").Title;
         foreach (var code in new[]
         {
+            "UNSUPPORTED_SCHEMA", "INVALID_ARGUMENT", "INVALID_BUILD_PLAN",
+            "LANGUAGE_NOT_FOUND", "EDITION_NOT_FOUND",
             "DISK_SPACE_LOW", "PATH_NOT_WRITABLE", "REQUIRED_COMPONENT_MISSING",
             "UUP_API_UNAVAILABLE", "NETWORK_ERROR", "UUP_PACKAGE_DOWNLOAD_FAILED",
             "UUP_PACKAGE_INVALID", "DOWNLOAD_FAILED", "CONVERTER_FAILED", "DISM_FAILED",
             "ISO_NOT_FOUND", "ISO_VALIDATION_FAILED", "ELEVATION_CANCELLED",
-            "BUILD_CANCELLED", "BUILD_FAILED"
+            "BUILD_CANCELLED", "BUILD_FAILED", "INTERNAL_ERROR"
         })
         {
             Assert.AreNotEqual(generic, ErrorMapper.Map(code).Title, $"Missing user-facing mapping for {code}.");
