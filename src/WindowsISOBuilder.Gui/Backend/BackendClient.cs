@@ -156,14 +156,20 @@ public sealed class BackendClient
                 break;
 
             case "GetLanguages":
-                if (data is not LanguageListData languages || languages.Languages.Count == 0 || languages.Languages.Any(x => string.IsNullOrWhiteSpace(x.Code)))
+                if (data is not LanguageListData languages ||
+                    languages.Languages is null ||
+                    languages.Languages.Count == 0 ||
+                    languages.Languages.Any(x => x is null || string.IsNullOrWhiteSpace(x.Code)))
                 {
                     throw ProtocolError(command, requestId, "language list is empty or invalid");
                 }
                 break;
 
             case "GetEditions":
-                if (data is not EditionListData editions || editions.Editions.Count == 0 || editions.Editions.Any(x => string.IsNullOrWhiteSpace(x.Code)))
+                if (data is not EditionListData editions ||
+                    editions.Editions is null ||
+                    editions.Editions.Count == 0 ||
+                    editions.Editions.Any(x => x is null || string.IsNullOrWhiteSpace(x.Code)))
                 {
                     throw ProtocolError(command, requestId, "edition list is empty or invalid");
                 }
@@ -177,7 +183,7 @@ public sealed class BackendClient
                 break;
 
             case "RunPreflight":
-                if (data is not PreflightData preflight || preflight.Checks.Count == 0)
+                if (data is not PreflightData preflight || preflight.Checks is null || preflight.Checks.Count == 0)
                 {
                     throw ProtocolError(command, requestId, "preflight report has no checks");
                 }
@@ -185,7 +191,7 @@ public sealed class BackendClient
 
             case "ExecuteBuildPlan":
                 if (data is not BuildResultDto result ||
-                    !result.Stage.Equals("completed", StringComparison.OrdinalIgnoreCase) ||
+                    !string.Equals(result.Stage, "completed", StringComparison.OrdinalIgnoreCase) ||
                     string.IsNullOrWhiteSpace(result.IsoPath) ||
                     !IsSha256(result.Sha256))
                 {
@@ -202,8 +208,8 @@ public sealed class BackendClient
         }
     }
 
-    private static bool IsSha256(string value) =>
-        value.Length == 64 && value.All(static c => c is >= '0' and <= '9' or >= 'a' and <= 'f' or >= 'A' and <= 'F');
+    private static bool IsSha256(string? value) =>
+        value is { Length: 64 } && value.All(static c => c is >= '0' and <= '9' or >= 'a' and <= 'f' or >= 'A' and <= 'F');
 
     private static BackendException ProtocolError(string command, string requestId, string reason) =>
         new("INTERNAL_ERROR", $"Backend Contract violation for {command}: {reason}.", requestId: requestId);
