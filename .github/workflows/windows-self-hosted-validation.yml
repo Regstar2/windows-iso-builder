@@ -9,6 +9,9 @@ on:
       - master
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: windows-validation-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -16,6 +19,7 @@ concurrency:
 jobs:
   validate:
     name: Full Windows validation
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 45
 
@@ -24,6 +28,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Show environment
         shell: powershell
