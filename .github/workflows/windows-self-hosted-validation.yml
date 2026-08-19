@@ -1,0 +1,77 @@
+name: Windows self-hosted validation
+
+on:
+  push:
+    branches:
+      - feature/v0.3.0-gui-mvp
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Full Windows validation
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Show environment
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Write-Host "Runner: $env:RUNNER_NAME"
+          Write-Host "OS: $env:RUNNER_OS"
+          dotnet --info
+          powershell.exe -NoLogo -NoProfile -Command '$PSVersionTable | Format-List'
+          if (Get-Command pwsh.exe -ErrorAction SilentlyContinue) {
+            pwsh.exe -NoLogo -NoProfile -Command '$PSVersionTable | Format-List'
+          }
+
+      - name: Ensure validation modules
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+          if (-not (Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue)) {
+            Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force | Out-Null
+          }
+
+          if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
+            Register-PSRepository -Default
+          }
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+
+          $pester = Get-Module -ListAvailable Pester |
+            Where-Object { $_.Version -eq [version]'5.7.1' } |
+            Select-Object -First 1
+          if (-not $pester) {
+            Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Force -SkipPublisherCheck
+          }
+
+          if (-not (Get-Module -ListAvailable PSScriptAnalyzer | Select-Object -First 1)) {
+            Install-Module PSScriptAnalyzer -Scope CurrentUser -Force -SkipPublisherCheck
+          }
+
+      - name: Run full release validation
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
+            -File .\tools\Invoke-ReleaseValidation.ps1 `
+            -Full
+
+      - name: Upload validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-validation-report
+          path: validation-result.json
+          if-no-files-found: warn
+          retention-days: 14
