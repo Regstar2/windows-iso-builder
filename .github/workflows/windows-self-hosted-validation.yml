@@ -42,6 +42,20 @@ jobs:
             pwsh.exe -NoLogo -NoProfile -Command '$PSVersionTable | Format-List'
           }
 
+      - name: Inspect recent GUI log
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $log = Join-Path $env:LOCALAPPDATA ('WindowsISOBuilder\logs\gui-' + (Get-Date -Format 'yyyyMMdd') + '.log')
+          if (Test-Path -LiteralPath $log) {
+            Write-Host '--- recent GUI log tail ---'
+            Get-Content -LiteralPath $log -Tail 160 | ForEach-Object { Write-Host $_ }
+            Write-Host '--- end recent GUI log tail ---'
+          }
+          else {
+            Write-Host 'No GUI log exists for today in the runner profile.'
+          }
+
       - name: Ensure validation modules
         shell: powershell
         run: |
@@ -109,7 +123,6 @@ jobs:
 
           $exe = Join-Path $publish 'WindowsISOBuilder.exe'
           $log = Join-Path $env:LOCALAPPDATA ('WindowsISOBuilder\logs\gui-' + (Get-Date -Format 'yyyyMMdd') + '.log')
-          $beforeLength = if (Test-Path -LiteralPath $log) { (Get-Item -LiteralPath $log).Length } else { 0 }
           $process = Start-Process -FilePath $exe -PassThru
           Start-Sleep -Seconds 5
           $process.Refresh()
