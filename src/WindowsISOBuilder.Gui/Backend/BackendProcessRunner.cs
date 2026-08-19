@@ -15,7 +15,8 @@ public sealed class BackendProcessRunner
         var psi = new ProcessStartInfo(windowsPowerShell)
         {
             UseShellExecute = false,
-            CreateNoWindow = true
+            CreateNoWindow = true,
+            WindowStyle = ProcessWindowStyle.Hidden
         };
         foreach (var argument in new[]
         {
