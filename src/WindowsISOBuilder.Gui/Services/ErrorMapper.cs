@@ -4,6 +4,7 @@ public static class ErrorMapper
 {
     public static (string Title, string Action) Map(string? code) => code switch
     {
+        "UNSUPPORTED_SCHEMA" => ("Несовместимая версия backend", "Обновите Windows ISO Builder целиком: GUI и PowerShell backend должны быть из одного совместимого пакета."),
         "DISK_SPACE_LOW" => ("Недостаточно свободного места", "Освободите место и повторите проверку."),
         "PATH_NOT_WRITABLE" => ("Нет доступа к каталогу", "Выберите другой каталог или исправьте права."),
         "REQUIRED_COMPONENT_MISSING" => ("Отсутствует обязательный компонент Windows", "Установите или восстановите указанный в проверке компонент и повторите проверку."),
