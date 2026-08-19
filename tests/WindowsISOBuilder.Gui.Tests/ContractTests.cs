@@ -60,6 +60,17 @@ public sealed class ContractTests
         }
     }
 
+    [TestMethod]
+    public void DiagnosticSanitizerRedactsUrlsAndProductKeys()
+    {
+        const string source = "failed https://example.invalid/file?token=secret key ABCDE-FGHIJ-KLMNO-PQRST-UVWXY";
+        var sanitized = GuiLogger.SanitizeDiagnostic(source);
+        Assert.IsFalse(sanitized.Contains("token=secret", StringComparison.Ordinal));
+        Assert.IsFalse(sanitized.Contains("ABCDE-FGHIJ-KLMNO-PQRST-UVWXY", StringComparison.Ordinal));
+        Assert.IsTrue(sanitized.Contains("<URL>", StringComparison.Ordinal));
+        Assert.IsTrue(sanitized.Contains("<PRODUCT_KEY>", StringComparison.Ordinal));
+    }
+
     [TestMethod] public void ErrorMappingKnownCode() { Assert.AreEqual("Недостаточно свободного места", ErrorMapper.Map("DISK_SPACE_LOW").Title); }
 
     [TestMethod]
@@ -68,12 +79,13 @@ public sealed class ContractTests
         var generic = ErrorMapper.Map("FUTURE_CODE").Title;
         foreach (var code in new[]
         {
-            "UNSUPPORTED_SCHEMA", "UNSUPPORTED_HOST", "INVALID_ARGUMENT", "INVALID_BUILD_PLAN",
+            "INVALID_REQUEST", "UNSUPPORTED_SCHEMA", "INVALID_COMMAND", "UNSUPPORTED_HOST",
+            "INVALID_ARGUMENT", "INVALID_BUILD_PLAN", "BUILD_NOT_FOUND",
             "LANGUAGE_NOT_FOUND", "EDITION_NOT_FOUND",
             "DISK_SPACE_LOW", "PATH_NOT_WRITABLE", "REQUIRED_COMPONENT_MISSING",
-            "UUP_API_UNAVAILABLE", "NETWORK_ERROR", "UUP_PACKAGE_DOWNLOAD_FAILED",
+            "UUP_API_ERROR", "UUP_API_UNAVAILABLE", "NETWORK_ERROR", "UUP_PACKAGE_DOWNLOAD_FAILED",
             "UUP_PACKAGE_INVALID", "DOWNLOAD_FAILED", "CONVERTER_FAILED", "DISM_FAILED",
-            "ISO_NOT_FOUND", "ISO_VALIDATION_FAILED", "ELEVATION_CANCELLED",
+            "ISO_NOT_FOUND", "ISO_VALIDATION_FAILED", "ELEVATION_FAILED", "ELEVATION_CANCELLED",
             "BUILD_CANCELLED", "BUILD_FAILED", "INTERNAL_ERROR"
         })
         {
