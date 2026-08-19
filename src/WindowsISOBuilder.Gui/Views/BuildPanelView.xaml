@@ -12,7 +12,7 @@
             </Grid>
             <Grid Margin="0,27,0,0" Visibility="{Binding ShowBuildProgress, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                <StackPanel VerticalAlignment="Center"><TextBlock><Run Text="{Binding Status}"/><Run Text="  "/><Run Text="{Binding Speed}"/></TextBlock><ProgressBar Value="{Binding Progress, Mode=OneWay}" Height="12" Minimum="0" Maximum="100" Margin="0,8,10,0" AutomationProperties.Name="{services:Loc AutomationProgress}"/></StackPanel>
+                <StackPanel VerticalAlignment="Center"><TextBlock><Run Text="{Binding Status, Mode=OneWay}"/><Run Text="  "/><Run Text="{Binding Speed, Mode=OneWay}"/></TextBlock><ProgressBar Value="{Binding Progress, Mode=OneWay}" Height="12" Minimum="0" Maximum="100" Margin="0,8,10,0" AutomationProperties.Name="{services:Loc AutomationProgress}"/></StackPanel>
                 <Button Grid.Column="1" Content="{services:Loc ButtonCancel}" Command="{Binding CancelCommand}" MinWidth="108" VerticalAlignment="Center" AutomationProperties.Name="{services:Loc AutomationCancel}"/>
             </Grid>
             <Grid Margin="0,27,0,0" Visibility="{Binding ShowBuildError, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -22,7 +22,7 @@
             </Grid>
             <Grid Margin="0,27,0,0" Visibility="{Binding ShowBuildResult, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                <StackPanel Margin="0,0,12,0"><TextBlock Text="{Binding Result.IsoPath}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Result.IsoPath}"/><TextBlock Margin="0,4,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding Result.Sha256}"><Run Text="{services:Loc ShaLabel}"/><Run Text=": "/><Run Text="{Binding Result.Sha256}"/></TextBlock></StackPanel>
+                <StackPanel Margin="0,0,12,0"><TextBlock Text="{Binding Result.IsoPath}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Result.IsoPath}"/><TextBlock Margin="0,4,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding Result.Sha256}"><Run Text="{services:Loc ShaLabel}"/><Run Text=": "/><Run Text="{Binding Result.Sha256, Mode=OneWay}"/></TextBlock></StackPanel>
                 <WrapPanel Grid.Column="1" VerticalAlignment="Center"><Button Content="{services:Loc ButtonOpenFolder}" Click="OpenResultFolder_Click"/><Button Content="{services:Loc ButtonOpenLog}" IsEnabled="{Binding HasResultLog}" Click="OpenResultLog_Click"/><Button Content="{services:Loc ButtonCopySha}" Click="CopySha_Click"/><Button Content="{services:Loc ButtonStartOver}" Click="StartOver_Click"/></WrapPanel>
             </Grid>
             <Grid Margin="0,27,0,0" Visibility="{Binding ShowBuildCancelled, Converter={StaticResource BooleanToVisibilityConverter}}">
