@@ -27,6 +27,28 @@ public sealed class ContractTests
     [TestMethod] public void SafeRequestSerializationDoesNotEmitTypeMetadata() { var json = JsonSerializer.Serialize(new BackendRequest(1, "id", "GetVersion", new { search = "x;Write-Host hacked" }), BackendClient.JsonOptions); Assert.IsFalse(json.Contains("$type", StringComparison.OrdinalIgnoreCase)); Assert.IsTrue(json.Contains("x;Write-Host hacked")); }
     [TestMethod] public void BackendProcessArgumentsAreSeparated() { var p = new BackendProcessRunner().CreateStartInfo("C:\\a b\\x.ps1", "r q.json", "resp.json", "events.json"); CollectionAssert.Contains(p.ArgumentList.ToArray(), "C:\\a b\\x.ps1"); CollectionAssert.Contains(p.ArgumentList.ToArray(), "r q.json"); }
     [TestMethod] public void BackendPathResolverUsesExplicitRoot() { var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root); var file = Path.Combine(root, "Invoke-WibBackend.ps1"); File.WriteAllText(file, "# test"); try { Assert.AreEqual(file, new BackendPathResolver().Resolve(root)); } finally { Directory.Delete(root, true); } }
+
+    [TestMethod]
+    public void BackendPathResolverDoesNotTrustAmbientExecutableOverride()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var fakeBackend = Path.Combine(root, "Invoke-WibBackend.ps1");
+        File.WriteAllText(fakeBackend, "# untrusted ambient override");
+        var oldValue = Environment.GetEnvironmentVariable("WIB_BACKEND_ROOT");
+        try
+        {
+            Environment.SetEnvironmentVariable("WIB_BACKEND_ROOT", root);
+            var resolved = new BackendPathResolver().Resolve();
+            Assert.AreNotEqual(Path.GetFullPath(fakeBackend), Path.GetFullPath(resolved));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("WIB_BACKEND_ROOT", oldValue);
+            Directory.Delete(root, true);
+        }
+    }
+
     [TestMethod] public void ErrorMappingKnownCode() { Assert.AreEqual("Недостаточно свободного места", ErrorMapper.Map("DISK_SPACE_LOW").Title); }
 
     [TestMethod]
