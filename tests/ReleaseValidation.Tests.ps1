@@ -34,12 +34,17 @@ Describe 'Release validation tooling' {
         $project | Should -Match '<DebugType>none</DebugType>'
     }
 
-    It 'guards the self-hosted runner from fork pull requests' {
+    It 'guards and restores the self-hosted validation environment' {
         $workflow = Get-Content -LiteralPath (Join-Path $script:projectRoot '.github\workflows\windows-self-hosted-validation.yml') -Raw -Encoding UTF8
         $workflow | Should -Match "head\.repo\.full_name == github\.repository"
         $workflow | Should -Match 'contents:\s*read'
         $workflow | Should -Match 'persist-credentials:\s*false'
         $workflow | Should -Match 'runs-on:\s*\[self-hosted, Windows, X64\]'
+        $workflow | Should -Match "RequiredVersion 5\.7\.1"
+        $workflow | Should -Match "RequiredVersion 1\.25\.0"
+        $workflow | Should -Match '\$originalPolicy'
+        $workflow | Should -Match 'finally\s*\{'
+        $workflow | Should -Match 'InstallationPolicy \$originalPolicy'
     }
 
     It 'has a complete source allowlist without generated GUI publish files' {
