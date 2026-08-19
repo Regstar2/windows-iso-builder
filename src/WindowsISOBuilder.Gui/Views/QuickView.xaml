@@ -97,7 +97,7 @@
                             </ComboBox>
                         </StackPanel>
                         <Button Grid.Column="4" Content="{services:Loc ButtonAdvanced}" Click="Advanced_Click" VerticalAlignment="Bottom"
-                                ToolTip="{services:Loc TooltipAdvanced}" Padding="10,6" TextBlock.TextTrimming="CharacterEllipsis"/>
+                                ToolTip="{services:Loc TooltipAdvanced}" Padding="10,6"/>
                     </Grid>
 
                     <TextBlock Grid.Row="4" Text="{services:Loc LabelOutputDirectory}" Style="{StaticResource FieldLabel}" Margin="0,11,0,5"/>
