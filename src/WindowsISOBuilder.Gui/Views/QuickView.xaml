@@ -3,8 +3,14 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:services="clr-namespace:WindowsISOBuilder.Gui.Services"
              xmlns:views="clr-namespace:WindowsISOBuilder.Gui.Views">
-    <Grid x:Name="QuickLayout" Margin="18,14,18,12">
-        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <Grid x:Name="QuickLayout" Margin="20,18,20,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
         <StackPanel Grid.Row="0" Margin="0,0,0,10">
             <TextBlock Text="{services:Loc QuickTitle}" Style="{StaticResource PageTitle}"/>
             <TextBlock Text="{services:Loc QuickSubtitle}" Style="{StaticResource MutedText}" Margin="0,2,0,0"/>
@@ -14,60 +20,93 @@
             <Grid>
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                 <TextBlock Text="{services:Loc SectionWindows}" Style="{StaticResource SectionTitle}"/>
-                <Grid Grid.Row="1" Margin="0,7,0,0">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="110"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Grid Grid.Row="1" Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="190"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="112"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
                     <ComboBox Grid.Column="0" SelectedValuePath="Content" SelectedValue="{Binding Product}" AutomationProperties.Name="{services:Loc AutomationProduct}">
-                        <ComboBoxItem Content="Windows 11"/><ComboBoxItem Content="Windows 10"/>
+                        <ComboBoxItem Content="Windows 11"/>
+                        <ComboBoxItem Content="Windows 10"/>
                     </ComboBox>
-                    <ComboBox Grid.Column="1" SelectedValuePath="Tag" SelectedValue="{Binding Architecture}" AutomationProperties.Name="{services:Loc AutomationArchitecture}">
-                        <ComboBoxItem Content="x64" Tag="amd64"/><ComboBoxItem Content="ARM64" Tag="arm64"/><ComboBoxItem Content="x86" Tag="x86"/>
+                    <ComboBox Grid.Column="2" SelectedValuePath="Tag" SelectedValue="{Binding Architecture}" AutomationProperties.Name="{services:Loc AutomationArchitecture}">
+                        <ComboBoxItem Content="x64" Tag="amd64"/>
+                        <ComboBoxItem Content="ARM64" Tag="arm64"/>
+                        <ComboBoxItem Content="x86" Tag="x86"/>
                     </ComboBox>
-                    <Button Grid.Column="2" Content="{services:Loc ButtonRecommended}" Command="{Binding LoadRecommendedCommand}"/>
+                    <Button Grid.Column="4" Content="{services:Loc ButtonRecommended}" Command="{Binding LoadRecommendedCommand}" MinWidth="190"/>
                 </Grid>
-                <Grid Grid.Row="2" Margin="3,5,3,0">
+                <Grid Grid.Row="2" Margin="0,9,0,0">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <TextBlock Text="{Binding SelectedBuildSummary}" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center"/>
-                    <TextBlock Grid.Column="1" Text="{services:Loc RecommendedLabel}" Margin="12,0,0,0" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding SelectedBuildSummary, Mode=OneWay}" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1" Text="{services:Loc RecommendedLabel}" Margin="14,0,0,0" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
                 </Grid>
             </Grid>
         </Border>
 
         <Grid Grid.Row="2" Margin="0,0,0,10">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="1.15*" MinWidth="370"/><ColumnDefinition Width="10"/><ColumnDefinition Width="0.85*" MinWidth="300"/></Grid.ColumnDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.15*" MinWidth="390"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="0.85*" MinWidth="300"/>
+            </Grid.ColumnDefinitions>
+
             <Border Grid.Column="0" Style="{StaticResource Card}" IsEnabled="{Binding IsConfigurationEnabled}">
                 <Grid>
-                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
                     <TextBlock Text="{services:Loc SectionParameters}" Style="{StaticResource SectionTitle}"/>
-                    <TextBlock Grid.Row="1" Text="{services:Loc LabelImageLanguage}" Margin="3,8,3,0"/>
+
+                    <TextBlock Grid.Row="1" Text="{services:Loc LabelImageLanguage}" Style="{StaticResource FieldLabel}" Margin="0,11,0,5"/>
                     <ComboBox Grid.Row="2" ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}" AutomationProperties.Name="{services:Loc AutomationImageLanguage}"/>
-                    <Grid Grid.Row="3" Margin="0,4,0,0">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="118"/></Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock Text="{services:Loc LabelEditions}" Margin="3,0,3,2"/>
-                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="66">
+
+                    <Grid Grid.Row="3" Margin="0,11,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="95"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="86"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="{services:Loc LabelEditions}" Style="{StaticResource FieldLabel}"/>
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="54">
                                 <ItemsControl ItemsSource="{Binding Editions}" AutomationProperties.Name="{services:Loc AutomationEditions}">
                                     <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding Name}" IsChecked="{Binding Selected}"/></DataTemplate></ItemsControl.ItemTemplate>
                                 </ItemsControl>
                             </ScrollViewer>
                         </StackPanel>
-                        <StackPanel Grid.Column="1">
-                            <TextBlock Text="{services:Loc LabelImageFormat}" Margin="3,0,3,2"/>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="{services:Loc LabelImageFormat}" Style="{StaticResource FieldLabel}"/>
                             <ComboBox SelectedValuePath="Content" SelectedValue="{Binding ImageFormat}" ToolTip="{services:Loc TooltipImageFormat}" AutomationProperties.Name="{services:Loc AutomationImageFormat}">
-                                <ComboBoxItem Content="ESD"/><ComboBoxItem Content="WIM"/>
+                                <ComboBoxItem Content="ESD"/>
+                                <ComboBoxItem Content="WIM"/>
                             </ComboBox>
                         </StackPanel>
+                        <Button Grid.Column="4" Content="{services:Loc ButtonAdvanced}" Click="Advanced_Click" VerticalAlignment="Bottom"
+                                ToolTip="{services:Loc TooltipAdvanced}" Padding="10,6" TextBlock.TextTrimming="CharacterEllipsis"/>
                     </Grid>
-                    <TextBlock Grid.Row="4" Text="{services:Loc LabelOutputDirectory}" Margin="3,7,3,0"/>
-                    <Grid Grid.Row="5" VerticalAlignment="Top">
-                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                        <Grid>
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <TextBox Text="{Binding OutputDirectory}" ToolTip="{services:Loc TooltipOutput}" AutomationProperties.Name="{services:Loc AutomationOutputDirectory}"/>
-                            <Button Grid.Column="1" Content="{services:Loc ButtonBrowse}" Click="Browse_Click" AutomationProperties.Name="{services:Loc AutomationBrowse}"/>
-                        </Grid>
-                        <Button Grid.Row="1" Content="{services:Loc ButtonAdvanced}" Click="Advanced_Click" HorizontalAlignment="Left" ToolTip="{services:Loc TooltipAdvanced}"/>
+
+                    <TextBlock Grid.Row="4" Text="{services:Loc LabelOutputDirectory}" Style="{StaticResource FieldLabel}" Margin="0,11,0,5"/>
+                    <Grid Grid.Row="5">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" Text="{Binding OutputDirectory}" ToolTip="{services:Loc TooltipOutput}" AutomationProperties.Name="{services:Loc AutomationOutputDirectory}"/>
+                        <Button Grid.Column="2" Content="{services:Loc ButtonBrowse}" Click="Browse_Click" AutomationProperties.Name="{services:Loc AutomationBrowse}" MinWidth="84"/>
                     </Grid>
+                    <TextBlock Grid.Row="6" Text="{services:Loc TooltipAdvanced}" Style="{StaticResource MutedText}" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0" VerticalAlignment="Top"/>
                 </Grid>
             </Border>
 
@@ -75,14 +114,25 @@
                 <Grid>
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <TextBlock Text="{services:Loc PreflightTitle}" Style="{StaticResource SectionTitle}"/>
-                    <TextBlock Grid.Row="1" Text="{Binding PreflightSummary}" Margin="3,9,3,5" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                    <ItemsControl Grid.Row="2" ItemsSource="{Binding ProblemChecks}" Margin="3,0">
-                        <ItemsControl.ItemTemplate><DataTemplate><Grid Margin="0,3"><Grid.ColumnDefinitions><ColumnDefinition Width="86"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="{Binding StatusLabel, Mode=OneWay}" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="{Binding Message}" TextWrapping="Wrap"/></Grid></DataTemplate></ItemsControl.ItemTemplate>
+                    <Border Grid.Row="1" Style="{StaticResource StatusBanner}" Margin="0,11,0,8">
+                        <TextBlock Text="{Binding PreflightSummary, Mode=OneWay}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                    </Border>
+                    <ItemsControl Grid.Row="2" ItemsSource="{Binding ProblemChecks}" Margin="2,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,4">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="86"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding StatusLabel, Mode=OneWay}" FontWeight="SemiBold"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding Message}" TextWrapping="Wrap"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,6,0,0">
-                        <Button Content="{Binding PreflightActionLabel}" Command="{Binding PreflightCommand}" ToolTip="{services:Loc TooltipPreflight}" AutomationProperties.Name="{services:Loc AutomationPreflight}"/>
-                        <Button Content="{services:Loc ButtonDetails}" Click="PreflightDetails_Click" IsEnabled="{Binding HasPreflightChecks}"/>
-                    </StackPanel>
+                    <Grid Grid.Row="3" Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Content="{Binding PreflightActionLabel, Mode=OneWay}" Command="{Binding PreflightCommand}" ToolTip="{services:Loc TooltipPreflight}" AutomationProperties.Name="{services:Loc AutomationPreflight}"/>
+                        <Button Grid.Column="2" Content="{services:Loc ButtonDetails}" Click="PreflightDetails_Click" IsEnabled="{Binding HasPreflightChecks}"/>
+                    </Grid>
                 </Grid>
             </Border>
         </Grid>
