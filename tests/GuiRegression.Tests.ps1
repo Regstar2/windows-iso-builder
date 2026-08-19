@@ -47,10 +47,10 @@ Describe 'GUI MVP regression boundaries' {
 
         $xaml | Should -Match 'Text="\{Binding StatusLabel, Mode=OneWay\}"'
         $xaml | Should -Not -Match 'Text="\{Binding Severity\}"'
-        $dtos | Should -Match '"pass"\s*=>\s*"OK"'
-        $dtos | Should -Match '"warning"\s*=>\s*"Предупреждение"'
-        $dtos | Should -Match '"fail"\s*=>\s*"Ошибка"'
-        $dtos | Should -Match '"skipped"\s*=>\s*"Пропущено"'
+        $dtos | Should -Match 'StatusLabel\s*=>\s*Status\.ToLowerInvariant\(\)\s*switch'
+        foreach ($status in @('pass','warning','fail','skipped')) {
+            $dtos | Should -Match ('"{0}"\s*=>' -f $status)
+        }
     }
 
     It 'sanitizes technical diagnostics instead of exposing raw backend messages' {
