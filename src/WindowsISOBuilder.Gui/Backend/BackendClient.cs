@@ -99,25 +99,10 @@ public sealed class BackendClient
             }
             if (response.Data is null)
             {
-                throw new BackendException(
-                    "INTERNAL_ERROR",
-                    "Backend returned success without a data payload.",
-                    requestId: requestId);
+                throw ProtocolError(command, requestId, "success response has no data payload");
             }
 
-            // GetVersion is the GUI compatibility handshake. Contract and BuildPlan
-            // schemas are independent interfaces and both must be supported before
-            // the GUI starts issuing metadata/plan/build commands.
-            if (string.Equals(command, "GetVersion", StringComparison.Ordinal) &&
-                response.Data is VersionData version &&
-                (version.ContractSchemaVersion != 1 || version.BuildPlanSchemaVersion != 1))
-            {
-                throw new BackendException(
-                    "UNSUPPORTED_SCHEMA",
-                    $"Unsupported schemas: contract={version.ContractSchemaVersion}, buildPlan={version.BuildPlanSchemaVersion}.",
-                    requestId: requestId);
-            }
-
+            ValidatePayload(command, response.Data, requestId);
             return response;
         }
         finally
@@ -133,6 +118,95 @@ public sealed class BackendClient
             }
         }
     }
+
+    private static void ValidatePayload(string command, object data, string requestId)
+    {
+        switch (command)
+        {
+            case "GetVersion":
+                if (data is not VersionData version)
+                {
+                    throw ProtocolError(command, requestId, "unexpected data type");
+                }
+                if (version.ContractSchemaVersion != 1 || version.BuildPlanSchemaVersion != 1)
+                {
+                    throw new BackendException(
+                        "UNSUPPORTED_SCHEMA",
+                        $"Unsupported schemas: contract={version.ContractSchemaVersion}, buildPlan={version.BuildPlanSchemaVersion}.",
+                        requestId: requestId);
+                }
+                if (string.IsNullOrWhiteSpace(version.ApplicationVersion))
+                {
+                    throw ProtocolError(command, requestId, "applicationVersion is empty");
+                }
+                break;
+
+            case "SearchBuilds":
+                if (data is not BuildListData)
+                {
+                    throw ProtocolError(command, requestId, "unexpected data type");
+                }
+                break;
+
+            case "GetRecommendedBuild":
+                if (data is not BuildData recommended || recommended.Build is null || string.IsNullOrWhiteSpace(recommended.Build.Uuid))
+                {
+                    throw ProtocolError(command, requestId, "recommended build is missing");
+                }
+                break;
+
+            case "GetLanguages":
+                if (data is not LanguageListData languages || languages.Languages.Count == 0 || languages.Languages.Any(x => string.IsNullOrWhiteSpace(x.Code)))
+                {
+                    throw ProtocolError(command, requestId, "language list is empty or invalid");
+                }
+                break;
+
+            case "GetEditions":
+                if (data is not EditionListData editions || editions.Editions.Count == 0 || editions.Editions.Any(x => string.IsNullOrWhiteSpace(x.Code)))
+                {
+                    throw ProtocolError(command, requestId, "edition list is empty or invalid");
+                }
+                break;
+
+            case "CreateBuildPlan":
+                if (data is not BuildPlanData buildPlan || buildPlan.Plan is null || buildPlan.Plan.SchemaVersion != 1)
+                {
+                    throw ProtocolError(command, requestId, "BuildPlan v1 payload is missing or invalid");
+                }
+                break;
+
+            case "RunPreflight":
+                if (data is not PreflightData preflight || preflight.Checks.Count == 0)
+                {
+                    throw ProtocolError(command, requestId, "preflight report has no checks");
+                }
+                break;
+
+            case "ExecuteBuildPlan":
+                if (data is not BuildResultDto result ||
+                    !result.Stage.Equals("completed", StringComparison.OrdinalIgnoreCase) ||
+                    string.IsNullOrWhiteSpace(result.IsoPath) ||
+                    !IsSha256(result.Sha256))
+                {
+                    throw ProtocolError(command, requestId, "completed build result is missing ISO/SHA-256 data");
+                }
+                break;
+
+            case "CancelBuild":
+                if (data is not CancelData cancel || string.IsNullOrWhiteSpace(cancel.TargetRequestId))
+                {
+                    throw ProtocolError(command, requestId, "cancellation acknowledgement is invalid");
+                }
+                break;
+        }
+    }
+
+    private static bool IsSha256(string value) =>
+        value.Length == 64 && value.All(static c => c is >= '0' and <= '9' or >= 'a' and <= 'f' or >= 'A' and <= 'F');
+
+    private static BackendException ProtocolError(string command, string requestId, string reason) =>
+        new("INTERNAL_ERROR", $"Backend Contract violation for {command}: {reason}.", requestId: requestId);
 }
 
 public sealed class BackendException : Exception
