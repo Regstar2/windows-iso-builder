@@ -20,7 +20,14 @@ public partial class App : Application
                 MessageBoxImage.Error);
             if (openLog == MessageBoxResult.Yes && File.Exists(_logger.LogPath))
             {
-                Process.Start(new ProcessStartInfo(_logger.LogPath) { UseShellExecute = true });
+                try
+                {
+                    Process.Start(new ProcessStartInfo(_logger.LogPath) { UseShellExecute = true });
+                }
+                catch (Exception openException)
+                {
+                    _logger.Error("Failed to open GUI log", openException);
+                }
             }
             args.Handled = true;
             Shutdown(2);
