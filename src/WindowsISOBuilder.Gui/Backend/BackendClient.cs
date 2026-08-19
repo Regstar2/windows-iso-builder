@@ -87,7 +87,7 @@ public sealed class BackendClient
             }
             if (response.SchemaVersion != 1)
             {
-                throw new BackendException("UNSUPPORTED_SCHEMA", "Несовместимая версия backend.", requestId: requestId);
+                throw new BackendException("UNSUPPORTED_SCHEMA", "Несовместимая версия Backend Contract.", requestId: requestId);
             }
             if (!response.Success)
             {
@@ -96,6 +96,19 @@ public sealed class BackendClient
                     response.Error?.Message ?? "Backend operation failed.",
                     response.Error,
                     response.RequestId);
+            }
+
+            // GetVersion is the GUI compatibility handshake. Contract and BuildPlan
+            // schemas are independent interfaces and both must be supported before
+            // the GUI starts issuing metadata/plan/build commands.
+            if (string.Equals(command, "GetVersion", StringComparison.Ordinal) &&
+                response.Data is VersionData version &&
+                (version.ContractSchemaVersion != 1 || version.BuildPlanSchemaVersion != 1))
+            {
+                throw new BackendException(
+                    "UNSUPPORTED_SCHEMA",
+                    $"Unsupported schemas: contract={version.ContractSchemaVersion}, buildPlan={version.BuildPlanSchemaVersion}.",
+                    requestId: requestId);
             }
 
             return response;
