@@ -9,7 +9,7 @@
         KeyboardNavigation.TabNavigation="Continue"
         Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
     <Grid>
-        <Grid.RowDefinitions><RowDefinition Height="52"/><RowDefinition Height="*"/><RowDefinition Height="32"/></Grid.RowDefinitions>
+        <Grid.RowDefinitions><RowDefinition Height="52"/><RowDefinition Height="*"/><RowDefinition Height="38"/></Grid.RowDefinitions>
         <Grid.ColumnDefinitions><ColumnDefinition Width="176"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
 
         <Border Grid.Row="0" Grid.ColumnSpan="2"
@@ -68,12 +68,14 @@
                 <TextBlock Text="{services:Loc FooterSource}" VerticalAlignment="Center" Style="{StaticResource MutedText}" FontSize="12"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <TextBlock Text="{services:Loc FooterLanguage}" VerticalAlignment="Center" Margin="0,0,6,0" FontSize="12"/>
-                    <ComboBox x:Name="UiLanguageCombo" Width="108" Height="26" Margin="0" SelectedValuePath="Tag"
+                    <ComboBox x:Name="UiLanguageCombo" Width="108" Height="30" Margin="0" SelectedValuePath="Tag"
+                              VerticalAlignment="Center"
                               SelectionChanged="UiLanguage_SelectionChanged" AutomationProperties.Name="{services:Loc AutomationUiLanguage}">
                         <ComboBoxItem Tag="ru" Content="{services:Loc LanguageRussian}"/>
                         <ComboBoxItem Tag="en" Content="{services:Loc LanguageEnglish}"/>
                     </ComboBox>
                     <Button Content="{services:Loc FooterDiagnostics}" Style="{StaticResource FooterButton}" Click="CreateDiagnostics_Click"
+                            VerticalAlignment="Center"
                             ToolTip="{services:Loc TooltipDiagnostics}" AutomationProperties.Name="{services:Loc AutomationDiagnostics}"/>
                 </StackPanel>
             </Grid>
