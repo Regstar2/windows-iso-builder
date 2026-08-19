@@ -49,9 +49,10 @@ Describe 'Release package validation' {
     }
 
     It 'keeps packaged backend inside extracted package and runs GUI backend smoke' {
+        $guiExe = Join-Path $script:packageRoot 'WindowsISOBuilder.exe'
         Test-Path -LiteralPath (Join-Path $script:packageRoot 'Invoke-WibBackend.ps1') | Should -BeTrue
-        & (Join-Path $script:packageRoot 'WindowsISOBuilder.exe') --backend-smoke
-        $LASTEXITCODE | Should -Be 0
+        $smokeProcess = Start-Process -FilePath $guiExe -ArgumentList @('--backend-smoke') -Wait -PassThru -WindowStyle Hidden
+        $smokeProcess.ExitCode | Should -Be 0
     }
 
     It 'keeps TUI and CLI entry points in the GUI release' {
