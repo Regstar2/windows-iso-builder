@@ -6,7 +6,13 @@ public sealed class BackendProcessRunner
 {
     public ProcessStartInfo CreateStartInfo(string script, string request, string response, string events)
     {
-        var psi = new ProcessStartInfo("powershell.exe")
+        var windowsPowerShell = Path.Combine(
+            Environment.SystemDirectory,
+            "WindowsPowerShell",
+            "v1.0",
+            "powershell.exe");
+
+        var psi = new ProcessStartInfo(windowsPowerShell)
         {
             UseShellExecute = false,
             CreateNoWindow = true
