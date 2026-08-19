@@ -25,6 +25,17 @@ public sealed class StateAndIntegrationTests
     }
 
     [TestMethod]
+    public void StateMachineAllowsCancellationFailureAndRetryRecovery()
+    {
+        Assert.IsTrue(UiStateRules.CanTransition(UiState.Cancelling, UiState.Building));
+        Assert.IsTrue(UiStateRules.CanTransition(UiState.Failed, UiState.ReadyToBuild));
+        Assert.IsTrue(UiStateRules.CanTransition(UiState.Failed, UiState.ReadyToPreflight));
+        Assert.IsTrue(UiStateRules.CanTransition(UiState.Failed, UiState.LoadingBuild));
+        Assert.IsTrue(UiStateRules.CanTransition(UiState.Failed, UiState.LoadingLanguages));
+        Assert.IsTrue(UiStateRules.CanTransition(UiState.Failed, UiState.LoadingEditions));
+    }
+
+    [TestMethod]
     public async Task RealBackendGetVersionSmokeOnWindows()
     {
         if (!OperatingSystem.IsWindows())
