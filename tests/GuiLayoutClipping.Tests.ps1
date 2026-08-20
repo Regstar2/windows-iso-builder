@@ -28,9 +28,11 @@ Describe 'GUI clipping regressions' {
         $script:quickXaml | Should -Not -Match '<ColumnDefinition Width="86"/>[\s\S]*?Content="\{services:Loc ButtonAdvanced\}"'
     }
 
-    It 'keeps catalog search controls tall enough for Fluent content' {
-        $script:catalogXaml | Should -Match '<TextBox Grid.Column="0" Height="36"'
-        $script:catalogXaml | Should -Match '<ComboBox Grid.Column="2" Height="36"'
-        $script:catalogXaml | Should -Match '<Button Grid.Column="8" Height="36"[\s\S]*?Content="\{services:Loc ButtonSearch\}"'
+    It 'wraps catalog search controls instead of clipping the Search button' {
+        $script:catalogXaml | Should -Match '<WrapPanel Orientation="Horizontal">'
+        $script:catalogXaml | Should -Match '<TextBox Width="230" Height="36"'
+        $script:catalogXaml | Should -Match '<ComboBox Width="112" Height="36"'
+        $script:catalogXaml | Should -Match '<Button Height="36"[\s\S]*?Content="\{services:Loc ButtonSearch\}"'
+        $script:catalogXaml | Should -Not -Match '<Grid.ColumnDefinitions>[\s\S]*?ButtonSearch'
     }
 }
