@@ -8,8 +8,12 @@
     <SolidColorBrush x:Key="WibTextBrush" Color="#1A1A1A"/>
     <SolidColorBrush x:Key="WibMutedTextBrush" Color="#6B6B6B"/>
     <SolidColorBrush x:Key="WibControlBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="WibControlHoverBrush" Color="#F7F7F7"/>
+    <SolidColorBrush x:Key="WibControlPressedBrush" Color="#E9E9E9"/>
     <SolidColorBrush x:Key="WibDisabledControlBrush" Color="#F0F0F0"/>
     <SolidColorBrush x:Key="WibDisabledTextBrush" Color="#6F6F6F"/>
+    <SolidColorBrush x:Key="WibPrimaryButtonBrush" Color="#0067C0"/>
+    <SolidColorBrush x:Key="WibPrimaryButtonTextBrush" Color="#FFFFFF"/>
 
     <Style TargetType="Window">
         <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI"/>
@@ -32,18 +36,47 @@
         <Setter Property="Padding" Value="14,6"/>
         <Setter Property="Margin" Value="0"/>
         <Setter Property="MinHeight" Value="32"/>
-        <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="Foreground" Value="{DynamicResource WibTextBrush}"/>
         <Setter Property="Background" Value="{DynamicResource WibControlBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource WibBorderBrush}"/>
-        <Style.Triggers>
-            <Trigger Property="IsEnabled" Value="False">
-                <Setter Property="Foreground" Value="{DynamicResource WibDisabledTextBrush}"/>
-                <Setter Property="Background" Value="{DynamicResource WibDisabledControlBrush}"/>
-                <Setter Property="BorderBrush" Value="{DynamicResource WibBorderBrush}"/>
-                <Setter Property="Opacity" Value="1"/>
-            </Trigger>
-        </Style.Triggers>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="ButtonSurface"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="4"
+                            Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter RecognizesAccessKey="True"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="ButtonSurface" Property="Background" Value="{DynamicResource WibControlHoverBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="ButtonSurface" Property="Background" Value="{DynamicResource WibControlPressedBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="ButtonSurface" Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="ButtonSurface" Property="Background" Value="{DynamicResource WibDisabledControlBrush}"/>
+                            <Setter TargetName="ButtonSurface" Property="BorderBrush" Value="{DynamicResource WibBorderBrush}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource WibDisabledTextBrush}"/>
+                            <Setter Property="Cursor" Value="Arrow"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
     <Style TargetType="TextBox">
         <Setter Property="Padding" Value="9,5"/>
@@ -130,9 +163,10 @@
     </Style>
 
     <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-        <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
-        <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.HighlightTextBrushKey}}"/>
+        <Setter Property="Background" Value="{DynamicResource WibPrimaryButtonBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource WibPrimaryButtonTextBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
+        <Setter Property="BorderThickness" Value="2"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Padding" Value="16,7"/>
     </Style>
@@ -140,9 +174,10 @@
     <Style x:Key="GuidedActionButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
         <Style.Triggers>
             <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="True">
-                <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
-                <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.HighlightTextBrushKey}}"/>
+                <Setter Property="Background" Value="{DynamicResource WibPrimaryButtonBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource WibPrimaryButtonTextBrush}"/>
                 <Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
+                <Setter Property="BorderThickness" Value="2"/>
                 <Setter Property="FontWeight" Value="SemiBold"/>
             </DataTrigger>
         </Style.Triggers>
