@@ -15,7 +15,11 @@ Describe 'Release validation tooling' {
             @($bytes | Where-Object { $_ -gt 127 }).Count | Should -Be 0
             $text = [Text.Encoding]::ASCII.GetString($bytes)
             $text | Should -Match '#requires -Version 5\.1'
-            $text | Should -Not -Match '\?\?|\?.'
+
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseInput($text, [ref]$tokens, [ref]$parseErrors) | Out-Null
+            @($parseErrors).Count | Should -Be 0
         }
     }
 
