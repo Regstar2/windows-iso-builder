@@ -10,14 +10,15 @@ GUI и PowerShell-клиент UUP dump для поиска, загрузки и
 
 ## Статус
 
-Текущая source-версия release train — **`0.3.3`**.
+Текущая source-версия release train — **`0.3.4`**.
 
-- ApplicationVersion: `0.3.3`;
+- ApplicationVersion: `0.3.4`;
+- GUI Version/FileVersion: `0.3.4` / `0.3.4.0`;
 - PowerShell ModuleVersion: `0.3.0`;
 - Backend Contract SchemaVersion: `1`;
 - BuildPlan SchemaVersion: `1`.
 
-Проект находится в feature freeze перед первым публичным `v1.0.0`: после v0.3.3 планируются только v0.3.4 Network/Proxy и RC hardening. History/Profiles и другие новые функции отложены.
+Проект находится в feature freeze перед первым публичным релизом. v0.3.4 завершает запланированный функциональный scope Network/Proxy; далее — только RC hardening, фактическая ручная проверка и подготовка public release. History/Profiles и другие продуктовые функции отложены.
 
 ## Возможности
 
@@ -30,6 +31,10 @@ GUI и PowerShell-клиент UUP dump для поиска, загрузки и
 - WPF GUI + сохранённые TUI/CLI;
 - RU/EN с English fallback;
 - System/Light/Dark theme;
+- единая Network Policy: System / Direct / Custom;
+- Custom HTTP и SOCKS5 proxy для UUP API, online preflight, conversion package, generated downloader/aria2 и GitHub update checks;
+- Windows DPAPI CurrentUser для сохранённого proxy password;
+- fail-closed Custom mode без silent Direct fallback;
 - sanitized diagnostics bundle;
 - GitHub Issue Forms и in-app feedback;
 - Stable/Prerelease update check через официальный GitHub Releases.
@@ -38,19 +43,33 @@ GUI и PowerShell-клиент UUP dump для поиска, загрузки и
 
 1. Распакуйте release ZIP полностью.
 2. Запустите `WindowsISOBuilder.exe` обычным пользователем.
-3. Выберите Windows 11/10 и рекомендуемую сборку либо откройте Catalog.
-4. Выберите язык, редакции, ESD/WIM и каталог результата.
-5. Запустите проверку готовности.
-6. Нажмите «Создать ISO» и подтвердите UAC, когда backend запросит повышение прав.
-7. После завершения откройте ISO или скопируйте SHA-256.
+3. При необходимости настройте `Настройки → Сеть`: System, Direct либо Custom HTTP/SOCKS5.
+4. Выберите Windows 11/10 и рекомендуемую сборку либо откройте Catalog.
+5. Выберите язык, редакции, ESD/WIM и каталог результата.
+6. Запустите проверку готовности.
+7. Нажмите «Создать ISO» и подтвердите UAC, когда backend запросит повышение прав.
+8. После завершения откройте ISO или скопируйте SHA-256.
 
 Release self-contained `win-x64`; отдельная установка .NET Runtime пользователю не нужна.
 
+## Сеть и proxy
+
+Одна глобальная policy применяется ко всем поддерживаемым исходящим путям приложения.
+
+- **System** — использовать системное proxy-поведение Windows/.NET.
+- **Direct** — явно обходить proxy; inherited `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY` очищаются для generated downloader.
+- **Custom HTTP** — использовать указанный HTTP proxy.
+- **Custom SOCKS5** — использовать SOCKS5 transport через локальный loopback bridge приложения.
+
+Для generated UUP downloader/aria2 System и Custom передаются только как ephemeral loopback HTTP endpoint `127.0.0.1:<port>`; upstream proxy host/user/password не попадают в command line. В Custom mode ошибка proxy считается ошибкой proxy и не приводит к скрытой повторной попытке Direct.
+
+Policy хранится отдельно от credential. Proxy password не записывается в `network.json`: он защищается Windows DPAPI CurrentUser. Диагностика дополнительно редактирует password/proxy credential assignments и URL.
+
 ## Обновления
 
-`Настройки → Обновления` поддерживает каналы Stable и Prerelease и ручную проверку официальных GitHub Releases. Stable не предлагает prerelease.
+`Настройки → Обновления` поддерживает каналы Stable и Prerelease и ручную проверку официальных GitHub Releases. Stable не предлагает prerelease. Update checker использует ту же глобальную Network Policy.
 
-Приложение **не скачивает и не устанавливает обновление автоматически**. Если новая версия найдена, оно показывает версию/краткие release notes и по согласию открывает проверенную HTTPS-страницу релиза на `github.com`. Это сознательный безопасный fallback для portable ZIP distribution.
+Приложение **не скачивает и не устанавливает обновление автоматически**. Если новая версия найдена, оно показывает версию/краткие release notes и по согласию открывает проверенную HTTPS-страницу релиза на `github.com`.
 
 Пока repository остаётся private, unauthenticated update check для обычного внешнего клиента может быть недоступен; внешний acceptance выполняется после подготовки public release channel.
 
@@ -58,7 +77,7 @@ Release self-contained `win-x64`; отдельная установка .NET Run
 
 В `О приложении` доступны «Сообщить об ошибке» и «Предложить улучшение». Они открывают GitHub Issue Forms в браузере без PAT/OAuth в клиенте. Диагностический пакет создаётся отдельно в Settings и никогда не прикладывается автоматически.
 
-Не публикуйте product keys, пароли, tokens, cookies, proxy credentials, private URLs или необработанные персональные данные. Пока tracker private, внешняя доступность feedback считается непроверенной.
+Не публикуйте product keys, пароли, tokens, cookies, proxy credentials, private URLs или необработанные персональные данные.
 
 ## Console / automation
 
@@ -66,7 +85,7 @@ Release self-contained `win-x64`; отдельная установка .NET Run
 .\Start-Builder.cmd
 ```
 
-или machine-readable entry point:
+Machine-readable entry point:
 
 ```powershell
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
@@ -75,6 +94,8 @@ powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
   -ResponseFile .\response.json `
   -EventFile .\events.ndjson
 ```
+
+Network Policy также доступна через PowerShell API: `Get-WibNetworkPolicy`, `Set-WibNetworkPolicy`, `Clear-WibProxyCredential`, `Test-WibNetworkConnection`.
 
 ## Разработка и release validation
 
@@ -92,15 +113,15 @@ Pull requests в `master` запускают ту же Full validation на owne
 
 ## Архитектура и безопасность
 
-PowerShell backend остаётся единственным владельцем UUP/build/elevation/cancellation workflow. GUI работает через Backend Contract v1.
+PowerShell backend остаётся единственным владельцем UUP/build/elevation/cancellation workflow. GUI работает через Backend Contract v1. Network Policy не добавляется в BuildPlan v1 и не меняет Backend Contract SchemaVersion.
 
-Update checker обращается только к официальному GitHub Releases endpoint без Authorization secret и не исполняет скачанные файлы. Requests/paths считаются недоверенными, backend dispatch allowlisted, GUI запускает PowerShell через безопасные process arguments, diagnostics/logging используют redaction.
+Requests/paths считаются недоверенными, backend dispatch allowlisted, GUI запускает PowerShell через безопасные process arguments, diagnostics/logging используют redaction. Custom proxy configuration/credential failures работают fail-closed.
 
 Подробнее: [архитектура](docs/ARCHITECTURE.md), [Backend Contract](docs/BACKEND_CONTRACT.md), [validation matrix](docs/VALIDATION_MATRIX.md), [security](SECURITY.md), [roadmap](docs/product/roadmap.md).
 
 ## Следующий обязательный этап
 
-`v0.3.4 — Network Access & Proxy`: единая System / Direct / Custom policy, HTTP/SOCKS5 и отсутствие silent Direct fallback. До её завершения custom proxy support **не заявляется**.
+RC hardening и подготовка публичного release: без новых продуктовых функций. Требуются фактический manual Network/Proxy acceptance, финальный packaged GUI ISO E2E и отдельный Git-history secret audit перед публикацией.
 
 ## Лицензия
 

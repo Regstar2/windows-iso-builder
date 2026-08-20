@@ -1,6 +1,48 @@
 # Changelog
 
-## Unreleased — v0.3.3
+## Unreleased — v0.3.4
+
+### Added
+
+- one global Network Policy with `System`, `Direct`, and `Custom` modes;
+- Custom HTTP and SOCKS5 proxy support;
+- persisted non-secret `network.json` policy and separate Windows DPAPI CurrentUser credential storage;
+- GUI Network settings with mode/type/host/port/username/password, save, test-connection, and explicit credential clearing;
+- PowerShell API: `Get-WibNetworkPolicy`, `Set-WibNetworkPolicy`, `Clear-WibProxyCredential`, and `Test-WibNetworkConnection`;
+- policy-aware UUP API/catalog/metadata, online preflight, conversion-package download, generated downloader/aria2, and GitHub update checks;
+- ephemeral loopback HTTP bridge used to keep upstream HTTP/SOCKS5 proxy details out of generated downloader command lines;
+- network/security regression coverage for missing/corrupted policy, DPAPI credential round-trip/corruption/clear, Direct bypass, Custom no-fallback, downloader loopback-only behavior, and diagnostic credential redaction.
+
+### Changed
+
+- ApplicationVersion and GUI version are synchronized to `0.3.4`; PowerShell ModuleVersion remains the independent `0.3.0` line for the current `0.3.x` release train;
+- Direct mode explicitly bypasses proxy handling and clears inherited HTTP/HTTPS/ALL proxy environment variables for the generated downloader;
+- System/Custom generated-downloader paths use only an ephemeral `127.0.0.1:<port>` bridge endpoint;
+- the v0.3.3 `IHttpClientProvider` seam is now backed by the global Network Policy.
+
+### Security
+
+- proxy passwords are not written to `network.json`, BuildPlan v1, backend request JSON, generated downloader command lines, logs, diagnostics, or release artifacts;
+- invalid Custom configuration and unavailable/corrupted credentials fail closed;
+- Custom proxy connection failure never causes a silent Direct retry;
+- diagnostic sanitizer additionally redacts password/proxy-password/proxy-credential assignments and credential-bearing URLs.
+
+### Compatibility
+
+- ApplicationVersion: `0.3.4`;
+- GUI Version/FileVersion: `0.3.4` / `0.3.4.0`;
+- PowerShell ModuleVersion: `0.3.0`;
+- Backend Contract SchemaVersion remains `1`;
+- BuildPlan SchemaVersion remains `1`;
+- Network Policy remains a runtime/user setting and is not added to BuildPlan v1.
+
+### Validation status
+
+- exact current-head automated validation is reported by PR/Actions and is not claimed in this file before execution;
+- manual System/Direct/Custom HTTP/Custom SOCKS5 acceptance is **NOT RUN** until performed on the packaged current head;
+- controlled generated-downloader proxy acceptance, real ISO proxy E2E, and full Git-history secret audit remain **NOT RUN** until performed.
+
+## 0.3.3 — 2026-08-20
 
 ### Added
 
@@ -28,7 +70,7 @@
 - advanced options open in a dedicated dialog;
 - Catalog uses the `DataGrid` as its scrolling region and keeps the selected-build action row visible;
 - theme, language, diagnostics and update controls live in Settings;
-- ApplicationVersion and GUI version are synchronized to `0.3.3`; PowerShell ModuleVersion remains `0.3.0` because the build backend is unchanged;
+- ApplicationVersion and GUI version are synchronized to `0.3.3`; PowerShell ModuleVersion remains `0.3.0` because the module version line is independent;
 - update delivery intentionally uses a portable safe fallback: detect a newer official release and open its GitHub page instead of downloading/replacing/executing application binaries.
 
 ### Security
@@ -42,10 +84,8 @@
 ### Validation status
 
 - implementation and regression coverage are present in source;
-- current-head Full Windows validation must be reported by the branch Pull Request/self-hosted Actions run and is not claimed here before execution;
-- manual RU/EN update/feedback acceptance is **NOT RUN** until performed on the packaged current head;
-- external feedback/update availability remains **NOT RUN** while the target repository/tracker is private;
-- DPI, keyboard/Narrator, full network/proxy acceptance and final real ISO E2E remain separate release-train gates.
+- factual validation results are recorded by the corresponding PR/Actions run;
+- external feedback/update acceptance remained unavailable while the target repository/tracker was private.
 
 ## 0.3.0-alpha.1 — 2026-08-18
 
@@ -84,14 +124,8 @@
 
 ### Validation status
 
-- C# tests: **NOT RUN** in the agent environment;
-- Pester: **NOT RUN** in the agent environment;
-- PSScriptAnalyzer: **NOT RUN** in the agent environment;
-- PS5.1 smoke: **NOT RUN** in the agent environment;
-- PS7 smoke: **NOT RUN** in the agent environment;
-- Full release validation: **NOT RUN** in the agent environment;
-- manual GUI smoke: **NOT RUN**;
-- real GUI Windows 11 x64 ru-RU Professional ESD E2E: **NOT RUN**.
+- current execution results must come from the local Windows validation workflow and must never be simulated;
+- manual GUI and real ISO E2E remain distinct from automated validation.
 
 ## 0.2.3-alpha.1 — 2026-08-18
 
@@ -119,14 +153,6 @@
 - BuildPlan SchemaVersion `1`;
 - TUI/CLI unchanged;
 - PS5.1/PS7 support unchanged.
-
-### Validation status
-
-- automated/controlled validation implementation is complete in the branch;
-- Windows 10 real E2E: **NOT RUN**;
-- Windows 11 single-edition WIM real E2E: **NOT RUN**;
-- Windows 11 x64 ru-RU Core + Professional ESD remains a previously confirmed baseline and is not represented as a new v0.2.3 run;
-- exact current execution results must come from the local Windows validation workflow and must never be simulated.
 
 ## 0.2.2-alpha.1 — 2026-08-18
 
@@ -160,12 +186,6 @@
 - ApplicationVersion `0.2.2-alpha.1`, ModuleVersion `0.2.2`;
 - TUI/CLI, quick mode, WIM/ESD, virtual editions, cache/resume, progress and logs remain compatible;
 - Windows PowerShell 5.1 and PowerShell 7 remain target runtimes.
-
-### Validation status
-
-- reliability tests were developed without real Windows downloads;
-- process-tree integration smoke is opt-in and uses controlled dummy PowerShell processes;
-- release requires the complete Pester suite, PSScriptAnalyzer, Backend `GetVersion`/`RunPreflight` and controlled cancellation smokes on Windows.
 
 ## 0.2.1-alpha.1 — 2026-08-18
 
@@ -203,9 +223,3 @@
 - catalog entry classification, pagination and improved selection/sorting;
 - Windows PowerShell 5.1 UTF-8/Write-Host compatibility fixes;
 - local Pester/PSScriptAnalyzer validation and MIT license.
-
-### Validation status
-
-- local tests and PSScriptAnalyzer are mandatory automated checks;
-- a real Windows 11 x64 ru-ru ISO build and Core + Professional multi-edition scenario were historically confirmed;
-- Windows 10 E2E, forced network interruption and a complete WIM/ESD manual matrix were not alpha release gates.

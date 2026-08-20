@@ -31,23 +31,23 @@ Describe 'v0.3.4 global network policy' {
 
         It 'stores proxy password outside network.json and protects it with DPAPI' {
             if ($env:OS -ne 'Windows_NT') { Set-ItResult -Skipped -Because 'Windows DPAPI test'; return }
-            $secret = 'wib-proxy-secret-42'
-            $secure = ConvertTo-SecureString $secret -AsPlainText -Force
+            $fixtureValue = 'wib-proxy-fixture-value-42'
+            $secure = ConvertTo-SecureString $fixtureValue -AsPlainText -Force
             $policy = Set-WibNetworkPolicy -Mode Custom -ProxyType HTTP -Host '127.0.0.1' -Port 3128 -Username 'alice' -Password $secure -Confirm:$false
             $policy.hasCredential | Should -BeTrue
 
             $json = [IO.File]::ReadAllText((Get-WibNetworkPolicyPath), [Text.Encoding]::UTF8)
-            $json | Should -Not -Match [regex]::Escape($secret)
+            $json | Should -Not -Match [regex]::Escape($fixtureValue)
             $json | Should -Not -Match 'password'
 
             $credentialBytes = [IO.File]::ReadAllBytes((Get-WibProxyCredentialPath))
-            [Text.Encoding]::UTF8.GetString($credentialBytes) | Should -Not -Match [regex]::Escape($secret)
-            (Get-WibProxyCredentialText -Policy (Get-WibNetworkPolicy)) | Should -Be $secret
+            [Text.Encoding]::UTF8.GetString($credentialBytes) | Should -Not -Match [regex]::Escape($fixtureValue)
+            (Get-WibProxyCredentialText -Policy (Get-WibNetworkPolicy)) | Should -Be $fixtureValue
         }
 
         It 'fails closed when a saved credential cannot be decrypted' {
             if ($env:OS -ne 'Windows_NT') { Set-ItResult -Skipped -Because 'Windows DPAPI test'; return }
-            $secure = ConvertTo-SecureString 'temporary-secret' -AsPlainText -Force
+            $secure = ConvertTo-SecureString 'temporary-fixture-value' -AsPlainText -Force
             Set-WibNetworkPolicy -Mode Custom -ProxyType SOCKS5 -Host '127.0.0.1' -Port 1080 -Username 'alice' -Password $secure -Confirm:$false | Out-Null
             [IO.File]::WriteAllBytes((Get-WibProxyCredentialPath), [byte[]](1,2,3,4,5))
             try { Get-WibProxyCredentialText -Policy (Get-WibNetworkPolicy) | Out-Null; throw 'expected' }
@@ -56,7 +56,7 @@ Describe 'v0.3.4 global network policy' {
 
         It 'clears saved credential without leaving hasCredential true' {
             if ($env:OS -ne 'Windows_NT') { Set-ItResult -Skipped -Because 'Windows DPAPI test'; return }
-            $secure = ConvertTo-SecureString 'temporary-secret' -AsPlainText -Force
+            $secure = ConvertTo-SecureString 'temporary-fixture-value' -AsPlainText -Force
             Set-WibNetworkPolicy -Mode Custom -ProxyType HTTP -Host '127.0.0.1' -Port 3128 -Username 'alice' -Password $secure -Confirm:$false | Out-Null
             Clear-WibProxyCredential -Confirm:$false
             Test-Path -LiteralPath (Get-WibProxyCredentialPath) | Should -BeFalse
@@ -79,7 +79,7 @@ Describe 'v0.3.4 global network policy' {
             )) {
                 $prefix = Get-WibManagedDownloadProxyPrefix -Policy $policy -Bridge $bridge
                 $prefix | Should -Match '127\.0\.0\.1:54321'
-                $prefix | Should -Not -Match 'proxy\.example|alice|secret'
+                $prefix | Should -Not -Match 'proxy\.example|alice|fixture-value'
             }
         }
 
@@ -109,10 +109,10 @@ Describe 'v0.3.4 global network policy' {
         }
 
         It 'keeps upstream proxy credentials out of the generated downloader command line' {
-            $bridge = [pscustomobject]@{Port=54321}
-            $bridge | Add-Member -MemberType ScriptMethod -Name Dispose -Value { }
+            $script:fakeBridge = [pscustomobject]@{Port=54321}
+            $script:fakeBridge | Add-Member -MemberType ScriptMethod -Name Dispose -Value { }
             Mock Get-WibNetworkPolicy { [pscustomobject]@{schemaVersion=1;mode='custom';proxyType='socks5';host='proxy.example';port=1080;username='alice';hasCredential=$true} }
-            Mock Start-WibNetworkProxyBridge { $bridge }
+            Mock Start-WibNetworkProxyBridge { $script:fakeBridge }
             Mock Invoke-WibManagedProcess {
                 param($FilePath,$ArgumentList,$WorkingDirectory,$Stage,$LineHandler,$StageProvider)
                 $script:capturedManagedArguments = [string]$ArgumentList
@@ -125,7 +125,7 @@ Describe 'v0.3.4 global network policy' {
             }
             finally { $env:ComSpec = $oldComSpec }
             $script:capturedManagedArguments | Should -Match '127\.0\.0\.1:54321'
-            $script:capturedManagedArguments | Should -Not -Match 'proxy\.example|alice|proxy-secret'
+            $script:capturedManagedArguments | Should -Not -Match 'proxy\.example|alice|fixture-value'
         }
     }
 }

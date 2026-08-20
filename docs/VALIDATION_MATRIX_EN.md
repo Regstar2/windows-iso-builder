@@ -1,4 +1,4 @@
-# Validation matrix v0.3.3
+# Validation matrix v0.3.4
 
 Implementation status and actual execution are separate. Manual/runtime checks remain **NOT RUN** until they are performed on the current SHA.
 
@@ -8,9 +8,15 @@ Before merge the current head must cover/pass, as applicable:
 
 - VERSION / GUI version / ModuleVersion / SchemaVersion consistency;
 - `dotnet restore/build/test`;
-- update SemVer/channel/API/security tests;
 - RU/EN localization key/placeholder parity;
 - Pester main suite;
+- network-policy persistence/default/invalid-state tests;
+- Windows DPAPI credential round-trip/corruption/clear tests;
+- Direct proxy bypass regression;
+- Custom fail-closed/no-silent-Direct-fallback regression;
+- generated-downloader loopback-only/credential command-line regression;
+- diagnostic proxy-password redaction tests;
+- update SemVer/channel/API/security tests through the policy-aware provider;
 - PSScriptAnalyzer;
 - PS5.1 backend/module/offline-preflight smoke;
 - PowerShell 7 backend smoke when available;
@@ -26,20 +32,33 @@ Main command:
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\tools\Invoke-ReleaseValidation.ps1 -Full
 ```
 
-## v0.3.3 update coverage
+## v0.3.4 Network/Proxy coverage
 
-Automated coverage must include installed == latest, newer release, installed newer than latest, Stable filtering prereleases, Prerelease selection, malformed/missing tags, no Authorization header, HTTPS github.com release URL validation, network/timeout failures, persisted channel and Stable default.
+Automated coverage must confirm:
 
-## Manual GUI acceptance — NOT RUN until executed
+- missing policy → System;
+- corrupted/invalid Custom policy → controlled failure;
+- credentials are stored separately from `network.json` and protected with DPAPI;
+- corrupted credential → controlled failure;
+- Direct bypasses proxy adapters and clears inherited downloader proxy variables;
+- a Custom HTTP failure is not retried as Direct;
+- UUP API, online preflight, conversion package, and generated downloader use the common policy layer;
+- generated-downloader command lines contain only the loopback endpoint and no upstream proxy host/user/password;
+- diagnostics redact password/proxy-credential assignments;
+- GUI update checks use the policy-aware `IHttpClientProvider`.
 
-On the packaged build, in RU and EN, verify Settings update controls, offline/error behavior, update-available messaging/release-notes summary, decline path, official release-page opening, and About feedback actions.
+## Manual GUI / network acceptance — NOT RUN until executed
 
-Feedback links are not considered externally accepted while the target tracker is private/inaccessible to target users.
+On a packaged build, in RU and EN, verify the Network Settings card, System/Direct/Custom switching, HTTP/SOCKS5 validation, password non-disclosure after restart, save/replace/clear behavior, Test connection for all modes, controlled failure for a broken Custom proxy with no Direct fallback, and policy use by GitHub update checks and Build/Catalog online operations.
+
+## Controlled downloader/proxy acceptance — NOT RUN until executed
+
+Run controlled HTTP-proxy and SOCKS5 tests with the generated `uup_download_windows.cmd`/aria2 path and verify that upstream credentials never appear in process command lines or logs.
 
 ## Core regression
 
-The existing Build/Catalog/theme/DPI/keyboard manual smoke and a final real packaged GUI ISO E2E remain stable-release gates. v0.3.3 does not replace them.
+The existing Build/Catalog/theme/DPI/keyboard manual smoke and one final real packaged GUI ISO E2E remain public-release gates. A real ISO build through each proxy mode is not a PASS until it is actually executed.
 
 ## Safety scope
 
-The built-in safety scan covers the current tracked tree and current release package. It is **not a Git-history audit**. A separate full-history secret scan is required before the public stable release.
+The built-in safety scan covers the current tracked tree and current release package. It is **not a Git-history audit**. A separate full-history secret scan is required before the public release.

@@ -1,14 +1,14 @@
-# Требования к Windows ISO Builder v0.3.3
+# Требования к Windows ISO Builder v0.3.4
 
 ## Версии
 
-- ApplicationVersion: `0.3.3`; source of truth — root `VERSION`.
-- GUI Version/FileVersion: `0.3.3` / `0.3.3.0`.
+- ApplicationVersion: `0.3.4`; source of truth — root `VERSION`.
+- GUI Version/FileVersion: `0.3.4` / `0.3.4.0`.
 - PowerShell ModuleVersion: `0.3.0`.
 - Backend Contract SchemaVersion: `1`.
 - BuildPlan SchemaVersion: `1`.
 
-GUI version должна совпадать с root `VERSION`; ModuleVersion и schema versions независимы.
+GUI/ApplicationVersion синхронизированы для v0.3.4. ModuleVersion и schema versions остаются независимыми; текущий `0.3.x` release train сохраняет ModuleVersion `0.3.0`.
 
 ## Runtime
 
@@ -22,33 +22,41 @@ GUI version должна совпадать с root `VERSION`; ModuleVersion и 
 - Recommendation/language/edition catalogs остаются dynamic и backend-owned.
 - BuildPlan создаётся только backend и preflight остаётся backend-owned.
 - Cancellation идёт через `CancelBuild`; GUI не kill-ит build processes.
+- Network Policy является runtime/user setting и не добавляется в BuildPlan v1.
 
-## Feedback — v0.3.3
+## Network Access & Proxy — v0.3.4
 
-Обязательны GitHub Issue Forms для bug report и feature request и встроенные About actions RU/EN. Клиент открывает browser forms и не содержит GitHub write token. Diagnostics не прикладываются автоматически. Issue URLs не должны автоматически включать секреты, product keys, proxy credentials, private URLs или personal paths.
+Обязательна одна глобальная политика для всех поддерживаемых outbound paths:
 
-До публичного beta/stable target tracker обязан быть доступен конечным пользователям; private inaccessible Issues не считаются acceptance.
+- `System` — системное proxy-поведение Windows/.NET;
+- `Direct` — явный bypass proxy;
+- `Custom HTTP`;
+- `Custom SOCKS5`.
 
-## Update Delivery — v0.3.3
+Policy должна применяться к UUP dump API/catalog/metadata, online preflight, conversion-package download, generated UUP downloader/aria2 и GitHub Releases update check.
 
-Источник: официальный GitHub Releases `Regstar2/windows-iso-builder` по HTTPS, без PAT/token/mirror/custom manifest.
+### Безопасность и отказоустойчивость
 
-Требуется:
+- отсутствие `network.json` означает System;
+- повреждённый/неполный Custom config завершается controlled `PROXY_CONFIGURATION_INVALID` и не превращается в Direct;
+- Custom connection failure завершается controlled proxy/network error и не запускает silent Direct retry;
+- proxy password не хранится plaintext в settings/BuildPlan/backend request/command line/logs/diagnostics/release artifact;
+- saved password защищается Windows DPAPI CurrentUser;
+- `network.json` хранит только non-secret policy fields и `hasCredential` flag;
+- generated downloader/aria2 получает System/Custom только через ephemeral loopback HTTP bridge `127.0.0.1:<port>`;
+- upstream proxy host/user/password не передаются в generated downloader command line;
+- Direct очищает inherited `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY` и lowercase variants для generated downloader;
+- diagnostics sanitizer редактирует URL, password, proxy-password/proxy-credential assignments и существующие token/secret classes.
 
-- Stable (default) и Prerelease channels;
-- Stable не предлагает prerelease;
-- SemVer comparison, не string comparison;
-- ручная команда Check for updates;
-- async network request с bounded timeout;
-- network/API/timeout failure не ломает приложение/Build flow;
-- номер новой версии и bounded release-notes summary;
-- пользователь может отказаться;
-- release link открывается только если это HTTPS `github.com`;
-- никакого автоматического download/self-replace/execute.
+### GUI / PowerShell API
 
-Safe fallback до v1.0.0: обнаружить update → предложить → открыть официальный GitHub release page. Причина отсутствия self-update зафиксирована в architecture.
+Settings должна предоставлять mode, proxy type, host, port, username, PasswordBox, Save, Test connection и явную очистку сохранённого credential. Существующий пароль обратно в UI не отображается.
 
-v0.3.3 вводит `IHttpClientProvider` только как минимальный seam. Полная System/Direct/Custom policy относится к v0.3.4 и не должна заявляться как готовая раньше.
+PowerShell API: `Get-WibNetworkPolicy`, `Set-WibNetworkPolicy`, `Clear-WibProxyCredential`, `Test-WibNetworkConnection`.
+
+## Feedback / Update Delivery
+
+GitHub Issue Forms и in-app feedback v0.3.3 сохраняются. Update checker использует ту же глобальную Network Policy. Источник обновлений остаётся официальный GitHub Releases `Regstar2/windows-iso-builder` по HTTPS без PAT/token/mirror/custom manifest. Автоматического download/self-replace/execute нет.
 
 ## Localization / accessibility
 
@@ -58,14 +66,16 @@ RU и EN обязательны, EN fallback. Новые strings добавля�
 
 - signed UUP URLs, tokens, product keys, secrets и arbitrary payloads не логируются;
 - diagnostics — fixed allowlist и sanitizer;
-- release package не содержит `.github`, `.project-rules`, tests, bin/obj, logs, local configs или PDB;
+- release package не содержит `.github`, `.project-rules`, tests, bin/obj, logs, local configs, `network.json`, credential store или PDB;
 - update checker не содержит Authorization secret;
 - full Git-history secret audit является отдельным pre-public gate.
 
 ## Validation
 
-Current-head Full validation обязательна перед merge. Фактические результаты фиксируются в PR/Actions и не подменяются implementation status. Manual external feedback/update acceptance, DPI/keyboard and real ISO E2E остаются `NOT RUN` до фактического выполнения.
+Current-head Full validation обязательна перед merge. Automated coverage включает version/schema consistency, C# tests, Pester network-policy/security regressions, PSScriptAnalyzer, PS5.1/PS7 backend smokes, process-tree smoke, package smoke и GUI startup smoke.
 
-## Out of scope v0.3.3
+Manual Network/Proxy acceptance и real ISO proxy E2E остаются `NOT RUN` до фактического выполнения. Их нельзя выводить из unit/integration PASS.
 
-Global proxy policy (следующая v0.3.4), History/Profiles, queue, installer/MSIX, USB writer, customization/debloat, drivers, TPM bypass, activation, accounts/cloud/telemetry/plugins и custom UUP downloader/converter.
+## Out of scope v0.3.4
+
+History/Profiles, queue/parallel builds, installer/MSIX, USB/Rufus, customization/debloat/unattended setup, driver injection, TPM bypass, activation, accounts/cloud/telemetry/plugins, custom UUP downloader/converter, VPN/WARP/Tor и system-wide proxy manager.
