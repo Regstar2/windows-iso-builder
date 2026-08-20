@@ -23,16 +23,16 @@
                     <ColumnDefinition Width="16"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBox Grid.Column="0" Text="{Binding SearchText}" AutomationProperties.Name="{services:Loc AutomationCatalogSearch}"/>
-                <ComboBox Grid.Column="2" SelectedValuePath="Tag" SelectedValue="{Binding Architecture}">
+                <TextBox Grid.Column="0" Height="36" VerticalAlignment="Center" Text="{Binding SearchText}" AutomationProperties.Name="{services:Loc AutomationCatalogSearch}"/>
+                <ComboBox Grid.Column="2" Height="36" VerticalAlignment="Center" SelectedValuePath="Tag" SelectedValue="{Binding Architecture}">
                     <ComboBoxItem Content="x64" Tag="amd64"/>
                     <ComboBoxItem Content="ARM64" Tag="arm64"/>
                     <ComboBoxItem Content="x86" Tag="x86"/>
                     <ComboBoxItem Content="{services:Loc CatalogAll}" Tag="all"/>
                 </ComboBox>
-                <CheckBox Grid.Column="4" Content="{services:Loc CatalogPreview}" IsChecked="{Binding IncludePreview}" ToolTip="{services:Loc TooltipPreview}"/>
-                <CheckBox Grid.Column="6" Content="{services:Loc CatalogServicing}" IsChecked="{Binding ShowServicing}" ToolTip="{services:Loc TooltipServicing}"/>
-                <Button Grid.Column="8" Content="{services:Loc ButtonSearch}" Command="{Binding SearchCommand}" MinWidth="88"/>
+                <CheckBox Grid.Column="4" VerticalAlignment="Center" Content="{services:Loc CatalogPreview}" IsChecked="{Binding IncludePreview}" ToolTip="{services:Loc TooltipPreview}"/>
+                <CheckBox Grid.Column="6" VerticalAlignment="Center" Content="{services:Loc CatalogServicing}" IsChecked="{Binding ShowServicing}" ToolTip="{services:Loc TooltipServicing}"/>
+                <Button Grid.Column="8" Height="36" VerticalAlignment="Center" Content="{services:Loc ButtonSearch}" Command="{Binding SearchCommand}" MinWidth="88" Padding="16,7"/>
             </Grid>
         </Border>
 
