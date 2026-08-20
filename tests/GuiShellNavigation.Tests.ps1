@@ -10,6 +10,7 @@ Describe 'v0.3.2 GUI shell navigation' {
         $script:quickXaml = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Views\QuickView.xaml') -Raw -Encoding UTF8
         $script:buildPanelXaml = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Views\BuildPanelView.xaml') -Raw -Encoding UTF8
         $script:stylesXaml = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Resources\Styles.xaml') -Raw -Encoding UTF8
+        $script:themeService = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Services\ThemeService.cs') -Raw -Encoding UTF8
     }
 
     It 'moves app identity into the sidebar and removes the internal top header row' {
@@ -41,6 +42,19 @@ Describe 'v0.3.2 GUI shell navigation' {
         $script:stylesXaml | Should -Match 'x:Key="WibPageBackgroundBrush"'
         $script:stylesXaml | Should -Match 'x:Key="WibCardBrush"'
         $script:mainXaml | Should -Match 'Background="\{DynamicResource WibPageBackgroundBrush\}"'
+    }
+
+    It 'keeps buttons and form controls readable in dark and disabled states' {
+        foreach ($resource in @('WibControlBrush','WibDisabledControlBrush','WibDisabledTextBrush')) {
+            $script:stylesXaml | Should -Match ('x:Key="{0}"' -f $resource)
+            $script:themeService | Should -Match ('resources\["{0}"\]' -f $resource)
+        }
+        foreach ($control in @('Button','TextBox','ComboBox','CheckBox')) {
+            $script:stylesXaml | Should -Match ('<Style TargetType="{0}">' -f $control)
+        }
+        $script:stylesXaml | Should -Match '<Setter Property="Foreground" Value="\{DynamicResource WibTextBrush\}"/>'
+        $script:stylesXaml | Should -Match '<Setter Property="Foreground" Value="\{DynamicResource WibDisabledTextBrush\}"/>'
+        $script:stylesXaml | Should -Match '<Setter Property="Background" Value="\{DynamicResource WibDisabledControlBrush\}"/>'
     }
 
     It 'guides the Build workflow through the next required action' {
