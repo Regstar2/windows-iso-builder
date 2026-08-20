@@ -6,8 +6,8 @@ Describe 'GUI startup page selection' {
         $script:mainXaml = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\MainWindow.xaml') -Raw -Encoding UTF8
     }
 
-    It 'opens Quick Mode instead of an empty page on first launch' {
-        $script:mainXaml | Should -Match '<RadioButton\s+x:Name="QuickNav"[^>]*IsChecked="True"'
+    It 'opens Build instead of an empty page on first launch' {
+        $script:mainXaml | Should -Match '<RadioButton\s+x:Name="BuildNav"[^>]*IsChecked="True"'
         $script:mainXaml | Should -Match '<TabControl\s+x:Name="Tabs"\s+SelectedIndex="0"'
     }
 }
