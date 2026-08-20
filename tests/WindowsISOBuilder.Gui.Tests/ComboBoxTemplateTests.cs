@@ -51,6 +51,7 @@ public sealed class ComboBoxTemplateTests
 
                 var toggle = comboBox.Template.FindName("PART_DropDownToggle", comboBox) as ToggleButton;
                 Assert.IsNotNull(toggle);
+                Assert.AreEqual(ClickMode.Release, toggle.ClickMode, "The ComboBox toggle must use normal release-click semantics.");
                 Assert.IsFalse(comboBox.IsDropDownOpen);
 
                 var onClick = typeof(ToggleButton).GetMethod("OnClick", BindingFlags.Instance | BindingFlags.NonPublic);
