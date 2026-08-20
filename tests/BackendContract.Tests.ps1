@@ -6,6 +6,7 @@ $expectedApplicationVersion = [IO.File]::ReadAllText((Join-Path $root 'VERSION')
 Describe 'Backend Contract v1' {
     InModuleScope WindowsISOBuilder -Parameters @{ ExpectedApplicationVersion = $expectedApplicationVersion } {
         param($ExpectedApplicationVersion)
+        $script:expectedApplicationVersionForTest = $ExpectedApplicationVersion
 
         BeforeEach {
             $script:testBuild = [pscustomobject]@{
@@ -27,8 +28,8 @@ Describe 'Backend Contract v1' {
             $response = Invoke-WibBackendRequestObject $request
             $response.success | Should -BeTrue
             $response.requestId | Should -Be 'get-version'
-            $response.applicationVersion | Should -Be $ExpectedApplicationVersion
-            $response.data.applicationVersion | Should -Be $ExpectedApplicationVersion
+            $response.applicationVersion | Should -Be $script:expectedApplicationVersionForTest
+            $response.data.applicationVersion | Should -Be $script:expectedApplicationVersionForTest
             $response.data.contractSchemaVersion | Should -Be 1
             $response.data.buildPlanSchemaVersion | Should -Be 1
         }
