@@ -120,9 +120,9 @@ public sealed class LocalDataTests
             var id = service.Begin(SampleHistory());
             service.Complete(id, SampleResult(root));
             var json = File.ReadAllText(service.StorePath);
-            StringAssert.DoesNotContain(json, "workDirectory");
-            StringAssert.DoesNotContain(json, "uuid");
-            StringAssert.DoesNotContain(json, "requestId");
+            Assert.IsFalse(json.Contains("workDirectory", StringComparison.Ordinal));
+            Assert.IsFalse(json.Contains("uuid", StringComparison.Ordinal));
+            Assert.IsFalse(json.Contains("requestId", StringComparison.Ordinal));
             StringAssert.Contains(json, "isoPath");
         });
     }
@@ -283,7 +283,10 @@ public sealed class LocalDataTests
         {
             var service = NewProfiles(root); var profile = SampleProfile(); profile.Name = "  My profile  "; service.Save(profile);
             Assert.AreEqual("My profile", service.GetProfiles().Single().Name);
-            Assert.ThrowsException<ArgumentException>(() => ProfileService.NormalizeName(new string('x', 81)));
+            var threw = false;
+            try { ProfileService.NormalizeName(new string('x', 81)); }
+            catch (ArgumentException) { threw = true; }
+            Assert.IsTrue(threw);
         });
     }
 
