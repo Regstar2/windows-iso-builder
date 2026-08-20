@@ -1,6 +1,6 @@
 # Validation matrix v0.4.0-alpha.1
 
-This matrix separates test implementation from actual execution. Manual checks must not be marked PASS from unit/Pester/package smoke results.
+This matrix separates test implementation from actual execution. Manual checks must not be marked PASS from unit/Pester/package smoke results. The current tracked-tree safety scan is not a Git-history audit.
 
 ## Automated
 
