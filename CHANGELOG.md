@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.4.0-alpha.1 — 2026-08-20
+
+### Added
+
+- Build History with versioned local storage, terminal statuses, details/actions, filtering, corruption recovery and bounded retention;
+- repeat-previous-configuration flow that re-resolves the historical build, languages and editions through the current backend catalog instead of executing a stored BuildPlan;
+- reusable Profiles with Recommended/Dynamic and explicit Pinned Build modes;
+- profile create/edit/delete flows plus creation from the current Build configuration and History;
+- stale build/language/edition detection without silent configuration mutation;
+- separate `%LOCALAPPDATA%\WindowsISOBuilder\history.json` and `profiles.json` stores with independent schema version `1`;
+- local-data/privacy documentation and automated History/Profile regression coverage.
+
+### Changed
+
+- sidebar navigation now includes History and Profiles between Catalog and Settings;
+- terminal `ExecuteBuildPlan` results are recorded locally by the GUI application layer;
+- public ApplicationVersion is `0.4.0-alpha.1` and GUI Assembly/File version is `0.4.0`;
+- README, requirements, architecture, implementation-status and validation documentation now reflect the post-v0.3.1/v0.3.2 GUI state;
+- release package includes local-data documentation while runtime-created History/Profile files remain outside the package.
+
+### Compatibility
+
+- Backend Contract SchemaVersion remains `1`;
+- BuildPlan SchemaVersion remains `1`;
+- PowerShell ModuleVersion remains `0.3.0` because the PowerShell backend was not functionally changed;
+- no Backend Contract command was added;
+- PowerShell build/elevation/download/converter/cancellation workflow remains backend-owned;
+- TUI/CLI remain supported.
+
+### Validation status
+
+- automated C#/Pester/PSScriptAnalyzer/full-package results are reported by the branch self-hosted validation and must not be inferred from this changelog entry;
+- manual History/Profile smoke, keyboard/Narrator/DPI acceptance and the real Windows 11 recommended x64 ru-RU Professional ESD E2E remain **NOT RUN** until actually performed.
+
 ## Unreleased
 
 ### Added
