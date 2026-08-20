@@ -44,6 +44,9 @@ internal static class ThemeService
         resources["WibBorderBrush"] = Brush(dark ? 0x4A : 0xD0, dark ? 0x4A : 0xD0, dark ? 0x4A : 0xD0);
         resources["WibTextBrush"] = Brush(dark ? 0xF2 : 0x1A, dark ? 0xF2 : 0x1A, dark ? 0xF2 : 0x1A);
         resources["WibMutedTextBrush"] = Brush(dark ? 0xB7 : 0x6B, dark ? 0xB7 : 0x6B, dark ? 0xB7 : 0x6B);
+        resources["WibControlBrush"] = Brush(dark ? 0x34 : 0xFF, dark ? 0x34 : 0xFF, dark ? 0x34 : 0xFF);
+        resources["WibDisabledControlBrush"] = Brush(dark ? 0x30 : 0xF0, dark ? 0x30 : 0xF0, dark ? 0x30 : 0xF0);
+        resources["WibDisabledTextBrush"] = Brush(dark ? 0xB0 : 0x6F, dark ? 0xB0 : 0x6F, dark ? 0xB0 : 0x6F);
     }
 
     private static bool IsWindowsAppThemeDark()
