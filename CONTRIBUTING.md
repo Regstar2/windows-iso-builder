@@ -12,4 +12,4 @@ Changes should normally be made in a dedicated branch and submitted through a pu
 - user-visible claims match completed validation;
 - unrelated refactoring is excluded from the same pull request.
 
-GitHub Actions are not used as a release gate. Verification is performed locally with the commands documented in the README.
+The repository uses an owner-controlled Windows self-hosted GitHub Actions runner as a thin orchestration layer over the same repository-owned validation tooling. The release-level automated entry point remains `tools/Invoke-ReleaseValidation.ps1 -Full`; CI does not replace manual DPI, Narrator, or real Windows ISO end-to-end acceptance.

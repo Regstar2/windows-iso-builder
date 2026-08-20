@@ -1,121 +1,163 @@
-# Требования к Windows ISO Builder v0.3.0-alpha.1
+# REQUIREMENTS — Windows ISO Builder v0.4.0-alpha.1
 
-## Версионирование
+## 1. Compatibility baseline
 
-- ApplicationVersion: `0.3.0-alpha.1`; source of truth — root `VERSION`.
-- ModuleVersion: `0.3.0`.
-- Backend Contract SchemaVersion: `1`.
-- BuildPlan SchemaVersion: `1`.
+- Windows 10/11 x64 user runtime;
+- Windows PowerShell 5.1 remains supported;
+- PowerShell 7 remains supported where existing validation covers it;
+- TUI/CLI remain supported;
+- Backend Contract SchemaVersion = `1`;
+- BuildPlan SchemaVersion = `1`;
+- PowerShell ModuleVersion remains `0.3.0` unless backend functionality changes;
+- GUI is WPF / .NET 10, self-contained `win-x64` in release package.
 
-GUI получает user-visible ApplicationVersion через backend `GetVersion`. Contract/BuildPlan schema не повышаются: GUI использует существующий v1 без breaking change.
+## 2. Backend ownership
 
-## Runtime requirements
+PowerShell backend remains the sole source of truth for:
 
-Пользовательский release рассчитан на Windows x64 и публикуется как self-contained `win-x64`, поэтому отдельный .NET Runtime не требуется.
+- UUP dump catalog/recommendation;
+- build identity/update UUID;
+- languages and editions;
+- BuildPlan construction/validation;
+- preflight;
+- UAC/elevation;
+- download/cache/resume;
+- converter/DISM;
+- ISO validation;
+- cancellation process tree.
 
-Backend сохраняет требования Windows PowerShell 5.1, Windows servicing tools, доступ к UUP dump/Microsoft Windows Update CDN, достаточный disk space и UAC approval для privileged build stage.
+GUI must not persist BuildPlan as a profile/history format and must not add a backend command solely for History/Profile convenience.
 
-GUI запускается без administrator manifest (`asInvoker`).
+## 3. GUI pages
 
-## Development requirements
+Primary navigation order:
 
-Для разработки/validation GUI требуется .NET 10 SDK. SDK автоматически не устанавливается.
+1. Build;
+2. Catalog;
+3. History;
+4. Profiles;
+5. Settings;
+6. Help;
+7. About.
 
-Поддерживаемые команды:
+No second navigation system or duplicate Quick/Catalog surface is allowed.
 
-```powershell
-dotnet restore .\WindowsISOBuilder.sln
-dotnet build .\WindowsISOBuilder.sln -c Release
-dotnet test .\WindowsISOBuilder.sln -c Release --no-build
-powershell.exe -File .\tools\Build-Gui.ps1
-```
+## 4. Build flow
 
-## GUI architecture requirements
+Every GUI build starts through the same path:
 
-1. C#, WPF, `net10.0-windows`, SDK-style project.
-2. No Electron/WebView UI and no heavy third-party UI framework.
-3. Backend communication only through `Invoke-WibBackend.ps1` + Backend Contract Schema v1.
-4. No direct module/private function calls, no parsing human console text and no duplicated UUP/conversion/preflight/cancellation engine.
-5. All backend operations asynchronous from the UI thread.
-6. Safe process arguments via `ProcessStartInfo.ArgumentList`; Windows PowerShell host resolves deterministically from the Windows system directory rather than PATH search order.
-7. Strongly typed System.Text.Json DTOs; unknown optional properties and additive event types must not crash the GUI.
-8. Startup handshake: locate backend → `GetVersion` → require Backend Contract SchemaVersion `1` **and** BuildPlan SchemaVersion `1` → ready.
-9. Packaged backend path is deterministic relative to the executable. Explicit dev/test override may be used only when deliberately supplied by the caller; ambient environment variables must not replace executable backend code.
-10. Request/response/event transport uses per-operation app-owned temp directories whose names are independent from requestId and does not delete build logs/cache/work/ISO.
-11. Successful Backend Contract responses must contain the required command payload; malformed nested build/plan/preflight/result data is a controlled protocol error, not a partially valid GUI state.
+`configuration → CreateBuildPlan → RunPreflight → user confirmation → ExecuteBuildPlan → terminal result`.
 
-## User flows
+History/Profile/Repeat must never auto-start `ExecuteBuildPlan`.
 
-Quick Mode:
+## 5. History
 
-`GetRecommendedBuild → GetLanguages → GetEditions → CreateBuildPlan → RunPreflight → ExecuteBuildPlan`.
+History records real terminal build operations only. GetVersion/Search/GetLanguages/GetEditions/Preflight are not entries.
 
-Catalog Mode:
+Required terminal statuses:
 
-`SearchBuilds → selected build → explicit activation → GetLanguages → GetEditions → shared build flow`.
+- Completed;
+- Failed;
+- Cancelled;
+- Interrupted.
 
-Recommendation, language and edition catalogs must remain backend-owned and dynamic. Merely highlighting a Catalog row must not start metadata requests.
+A real ExecuteBuildPlan may have an internal persisted `Pending` state. After GUI restart, remaining Pending records become Interrupted, not Failed.
 
-## Preflight
+History schema is independent version `1`; store is `%LOCALAPPDATA%\WindowsISOBuilder\history.json`; retention is 200 newest entries.
 
-GUI renders `ready` and structured checks (`status`, `severity`, `code`, `data`). `ready=false` disables ExecuteBuildPlan. Warning severity must remain distinct from fatal failures. Retry is supported.
+Controlled fields may include product/version/build/architecture, language, editions, format/options/output, timestamps/status, ISO/SHA-256, build/execution/metadata paths and stable error code. Do not store signed URLs, tokens, product keys, arbitrary backend responses, environment dumps, exceptions/stack traces or full BuildPlan JSON.
 
-Output/cache directory creation, writability and disk-space checks belong to backend preflight. GUI must not pre-create the output directory in a way that converts `PATH_NOT_WRITABLE` into an unrelated frontend exception.
+Deleting/clearing History removes records only; artifacts/cache/work/logs/metadata remain untouched.
 
-## Progress and events
+## 6. Repeat
 
-The NDJSON reader tails incrementally at byte level, keeps incomplete trailing data including a split inside a multibyte UTF-8 character, handles UTF-8 strictly, ignores malformed completed telemetry, unsupported event schemas, duplicate/out-of-order sequence telemetry and unknown additive event types, and updates WPF state asynchronously.
+Repeat resolves the historical exact build through current `SearchBuilds`, then current languages and editions, and returns to Build. If exact build is unavailable, replacement with current recommended build requires explicit user choice; Catalog and Cancel must remain available. Old BuildPlan must never execute directly.
 
-Overall progress/speed come from backend event fields; the final Backend response is the completion source of truth.
+## 7. Profiles
 
-## Cancellation
+Profile schema is independent version `1`; store is `%LOCALAPPDATA%\WindowsISOBuilder\profiles.json`.
 
-GUI sends `CancelBuild(targetRequestId, cacheDirectory)` and waits for target `BUILD_CANCELLED`/cancelled/final response semantics. It must not use `Process.Kill`, `taskkill`, `Stop-Process`, kill-by-name, or directly terminate aria2/DISM/backend trees.
+Profile identity is UUID. Name is required, trimmed, 1..80 characters; duplicate display names are allowed.
 
-Closing the GUI during an active build must explicitly offer to continue or cancel-and-exit; cancel-and-exit uses the same backend cancellation contract. If CancelBuild cannot be sent/accepted, the GUI remains open and returns to the active-build state.
+Supported modes:
 
-## Error handling
+- Recommended/Dynamic — current `GetRecommendedBuild` is resolved every use;
+- Pinned — controlled concrete build identity is resolved through current `SearchBuilds`.
 
-Classification uses `error.code`, never localized message matching. Known stable codes get user-friendly titles/actions; unknown v1 codes map to a generic failure. Technical details may show sanitized code/stage/backend message/log path/request correlation but not secrets or giant stack traces by default.
+Profile stores product/architecture/language/editions/format/build options/output directory. Cache directory, BuildPlan, UUP catalog snapshot, signed URLs and secrets are excluded.
 
-## Security/logging
+Create profile is user initiated from Profiles, current Build configuration, or History. History defaults to Recommended mode; pinning the exact historical build is explicit.
 
-GUI log location: `%LOCALAPPDATA%\WindowsISOBuilder\logs` when available. Logging is best-effort and must never prevent application startup or crash a GUI operation.
+## 8. Stale profile/configuration
 
-Log command names, request IDs, state transitions, version/schema state and frontend exception type/message after sanitization. Do not log signed UUP URLs, tokens, product keys, secrets or arbitrary full request payloads. Backend exceptions are logged by stable code/requestId rather than copying arbitrary backend messages.
+Saved build/language/edition availability must be checked against current backend data. Missing editions/language are reported; they are not silently dropped/substituted. Pinned-build fallback is explicit and does not silently mutate the saved profile.
 
-## Testing
+## 9. Local persistence
 
-C# tests cover DTO/envelopes, compatibility with unknown fields/codes/types, request generation/serialization, safe/deterministic process launch, deterministic backend path resolution, error mapping, state behavior and NDJSON tailing including partial lines/duplicates/UTF-8 splits/schema guards.
+History/Profile stores must:
 
-The C# test project is explicitly an MSTest project and includes `Microsoft.NET.Test.Sdk`; `dotnet test` must discover and execute the tests rather than only compiling them.
+- carry `schemaVersion`;
+- write temp in the same app-owned directory;
+- flush/close before replace;
+- use atomic replace/move semantics;
+- recover malformed current-schema JSON without crashing startup;
+- preserve a damaged copy when possible;
+- refuse to blindly overwrite unknown future schemas.
 
-A Windows integration smoke may invoke real `Invoke-WibBackend.ps1` only for safe operations such as `GetVersion` and offline preflight; it must not download Windows or request UAC.
+Settings remain separate in `AppSettingsService`.
 
-Existing Pester/PowerShell validation remains mandatory.
+## 10. Privacy/diagnostics/package
 
-## Publish/package
+History/Profile are local user data and are not sent to the network. They are excluded from diagnostics and release package. Diagnostics fixed allowlist remains:
 
-Release GUI: `win-x64`, `self-contained=true`. Reliability is preferred over single-file packaging. The package keeps `Start-Builder.cmd`, `Start-Builder.ps1`, `Invoke-WibBackend.ps1` and PowerShell backend.
+`app-version.txt`, `environment.json`, `execution.log`, `build.log`, `converter.log`.
 
-Release configuration does not publish GUI PDB files; `.pdb` is also forbidden by package safety policy.
+## 11. Localization/theme/accessibility
 
-Package-only `release-manifest.json` includes additive:
+- all new user-visible strings have RU/EN resources with key/placeholder parity;
+- schema values are not localized strings;
+- System/Light/Dark theme resources are reused;
+- new pages avoid hardcoded White/Black surfaces;
+- keyboard-only navigation, Tab/Shift+Tab, Enter/Space activation, Esc dialog close and visible focus remain expected;
+- primary History/Profile actions expose AutomationProperties;
+- card accessibility summary includes product/status/date/architecture/format for History and name/product/mode/language/editions for Profile;
+- PerMonitorV2 remains enabled; History/Profile use wrapping/scoped scrolling and must be manually checked at 100/125/150% DPI.
 
-```json
-"gui": { "included": true, "runtime": "win-x64", "selfContained": true }
-```
+## 12. Automated validation
 
-Full validation fails if GUI build/test/publish or packaged GUI backend handshake fails.
+Required automated coverage includes:
 
-## Self-hosted validation
+- History/Profile empty/save/load/round-trip/schema;
+- retention/newest ordering;
+- corruption/future schema/atomic save;
+- completed/failed/cancelled/interrupted lifecycle;
+- dynamic/pinned profile identity;
+- profile create/update/delete/UUID/name/output;
+- recommended vs exact pinned resolution;
+- unavailable build/language/edition detection;
+- no silent edition removal;
+- Repeat resolution and explicit recommended fallback boundary;
+- localization parity;
+- History/Profile shell/navigation/theme/AutomationProperties static regression;
+- diagnostics allowlist and package isolation;
+- existing Backend Contract/BuildPlan/NDJSON/cancellation/preflight/package/startup tests.
 
-`.github/workflows/windows-self-hosted-validation.yml` may orchestrate the existing `Invoke-ReleaseValidation.ps1 -Full` on the owner-controlled Windows self-hosted runner. It is development/release infrastructure, not product runtime functionality.
+`tools/Invoke-ReleaseValidation.ps1 -Full` remains the release-level automated entry point.
 
-The self-hosted workflow must use least-privilege repository permissions, avoid persisted checkout credentials, reject fork-PR execution on the owner-controlled runner, pin validation module versions, restore temporary PowerShell repository policy changes, cancel superseded PR validations, and keep `.github`/validation artifacts out of the release ZIP.
+## 13. Manual acceptance
 
-A PASS from an older commit does not validate the current PR head.
+Do not mark PASS without a real run:
 
-## Out of scope
+- History visual/actions;
+- Profile persistence/use/edit/delete;
+- keyboard-only Build/History/Profile flow;
+- ComboBox keyboard behavior;
+- Esc dialogs;
+- basic Narrator inspection;
+- Light/Dark visible focus;
+- DPI 100/125/150%;
+- real Windows 11 recommended x64 ru-RU Professional ESD GUI E2E.
 
-History, profiles, queue, cache-management GUI, updater, installer/MSIX, USB writer/Rufus, full theme/language settings, account/cloud features, Windows customization/debloat, drivers, TPM bypass, activation, custom UUP downloader/converter, hosted CI as a replacement for the owner-controlled Windows validation environment, and automated real-ISO/UAC E2E builds.
+## 14. Explicitly out of scope
+
+Queue/parallel builds/scheduling, updater, installer/MSIX, cache-management GUI, USB/Rufus, driver injection, customization/debloat, TPM bypass, activation, accounts, cloud sync, telemetry, profile import/export/sync, automatic history upload, custom UUP downloader/converter.

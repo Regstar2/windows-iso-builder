@@ -21,6 +21,8 @@
         'docs\BACKEND_CONTRACT_EN.md'
         'docs\GUI_ARCHITECTURE.md'
         'docs\GUI_ARCHITECTURE_EN.md'
+        'docs\LOCAL_DATA.md'
+        'docs\LOCAL_DATA_EN.md'
         'docs\VALIDATION_MATRIX.md'
         'docs\VALIDATION_MATRIX_EN.md'
         'docs\validation'
@@ -44,6 +46,8 @@
         'docs\BACKEND_CONTRACT_EN.md'
         'docs\GUI_ARCHITECTURE.md'
         'docs\GUI_ARCHITECTURE_EN.md'
+        'docs\LOCAL_DATA.md'
+        'docs\LOCAL_DATA_EN.md'
         'docs\VALIDATION_MATRIX.md'
         'docs\VALIDATION_MATRIX_EN.md'
     )

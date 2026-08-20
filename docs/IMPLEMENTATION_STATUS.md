@@ -1,67 +1,95 @@
-# Статус реализации
+# Implementation status
 
-## Текущая версия
+## Current target
 
-`0.3.0-alpha.1` — первый GUI MVP.
+`v0.4.0-alpha.1 — Build History & Profiles`
 
-- ApplicationVersion: `0.3.0-alpha.1`;
-- ModuleVersion: `0.3.0`;
-- Backend Contract SchemaVersion: `1`;
-- BuildPlan SchemaVersion: `1`.
+Version state:
 
-## Реализовано в source
+- root `VERSION`: `0.4.0-alpha.1`;
+- GUI Assembly/File version: `0.4.0`;
+- PowerShell ModuleVersion: `0.3.0` (unchanged);
+- Backend Contract SchemaVersion: `1` (unchanged);
+- BuildPlan SchemaVersion: `1` (unchanged);
+- History schema: `1`;
+- Profile schema: `1`.
 
-- WPF/.NET 10 GUI project и solution;
-- startup backend resolution + `GetVersion` schema handshake;
-- Quick Windows 11/10 через backend recommendation;
-- Catalog search, architecture, Preview и servicing display filter;
-- отдельное выделение/активация Catalog row без преждевременного metadata flow;
-- dynamic language/edition loading и multi-edition UI;
-- ESD/WIM, build options и output folder selection;
-- `CreateBuildPlan` + structured `RunPreflight` UI;
-- invalidation старого BuildPlan/preflight после изменения build options;
-- async `ExecuteBuildPlan`;
-- incremental NDJSON reader и normalized progress/speed display;
-- cooperative `CancelBuild` и close-during-build cancellation flow;
-- state rules для normal/retry/cancellation-failure paths;
-- structured mapping стабильной backend error taxonomy;
-- result path/SHA/log actions;
-- GUI local logging + frontend exception boundary;
-- hidden `--backend-smoke`, проверяющий Contract v1 + BuildPlan v1;
-- MSTest contract/state/event-reader/integration coverage;
-- explicit `Microsoft.NET.Test.Sdk` test runner configuration;
-- `Build-Gui.ps1` self-contained `win-x64` publish tooling;
-- release package integration preserving TUI/CLI/backend;
-- self-hosted Windows GitHub Actions workflow как thin wrapper над Full release validation.
+## Implemented
 
-## Сохранено
+### Existing v0.3.x GUI baseline
 
-Dynamic UUP catalog, recommendation engine, BuildPlan v1, preflight, elevation, UUP download/conversion/DISM, ISO validation, cancellation implementation, cache/resume, TUI/CLI, Backend Contract v1 and PowerShell validation remain backend-owned.
+- WPF/.NET 10 shell;
+- Build and responsive Catalog;
+- Settings/Help/About;
+- RU/EN localization;
+- System/Light/Dark themes;
+- window state persistence;
+- keyboard/accessibility groundwork;
+- guided next-action highlighting;
+- diagnostics package;
+- Backend Contract v1 client;
+- CreateBuildPlan/RunPreflight;
+- ExecuteBuildPlan NDJSON progress;
+- cooperative cancellation;
+- structured errors;
+- self-contained publish/package and self-hosted validation.
 
-## Validation terminology
+### v0.4.0 History
 
-`Implemented` означает наличие code/test/tooling, но не подтверждает фактический PASS. Фактический результат относится только к конкретному SHA и фиксируется отдельно в `VALIDATION_MATRIX`/PR/Actions run.
+- History page and navigation;
+- versioned `history.json` under LocalAppData;
+- controlled History DTO;
+- Pending → Completed/Failed/Cancelled lifecycle;
+- startup Pending → Interrupted normalization;
+- atomic writes/corruption recovery/future-schema write block;
+- 200-entry retention, newest-first display;
+- filters All/Completed/Failed/Cancelled+Interrupted;
+- details dialog with ISO/SHA/log/execution-log/metadata/error code;
+- missing-path detection and disabled path actions;
+- record delete and clear-history operations that do not delete artifacts;
+- Repeat through current SearchBuilds/languages/editions;
+- explicit stale-build recommended/Catalog/Cancel UX;
+- Create Profile from History defaults to Recommended.
 
-## Требует Windows execution перед release
+### v0.4.0 Profiles
 
-- успешный Full Windows validation текущего PR head на self-hosted runner;
-- manual GUI smoke;
-- желательно один real GUI E2E до ISO.
+- Profiles page and navigation;
+- separate versioned `profiles.json`;
+- UUID identity, 1..80-character trimmed name, duplicate display names allowed;
+- Recommended/Dynamic mode;
+- Pinned Build mode with controlled build identity;
+- create from Profiles/current Build/History;
+- edit/delete/persist across restart;
+- dynamic availability refresh through current backend catalog;
+- stale language/edition detection;
+- explicit pinned-build fallback without automatic profile mutation;
+- output directory persisted, cache directory omitted.
 
-Full validation включает .NET restore/build/test, Pester, PSScriptAnalyzer, PS5.1/PS7 backend smoke, process-tree smoke, `Build-Gui.ps1` publish, release package и packaged GUI/backend smoke.
+### Privacy/package
 
-Агент не должен переводить эти пункты в PASS без реального запуска соответствующего SHA.
+- History/Profile are local only;
+- diagnostics fixed allowlist unchanged and excludes local stores;
+- release ZIP contains local-data documentation but never runtime-created history/profile files.
 
-## Намеренно не реализовано
+## Automated regression coverage added
 
-History, profiles, queue, cache-management GUI, updater, installer/MSIX, USB writer/Rufus, full theme/language settings, accounts/cloud, Windows customization/debloat, driver injection, TPM bypass, activation и custom UUP downloader/converter.
+- LocalDataTests: history/profile schema, round-trip, retention, corruption, future schema, atomic temp cleanup, terminal status records, interruption normalization, controlled DTO, artifact-safe deletion, UUID/update/delete/name/output behavior, dynamic/pinned modes;
+- StoredConfigurationResolverTests: recommended and exact pinned resolution, unavailable build/language/edition, no silent edition removal, terminal-history repeat resolution, explicit fallback boundary;
+- Pester shell/history/profile regression tests for navigation, theme resources, AutomationProperties, single execution path, local store atomic primitives, package/diagnostics isolation and version compatibility;
+- existing localization parity test automatically includes `Strings.LocalData`.
 
-GitHub Actions не является частью продукта/runtime: workflow только отправляет существующую release validation на owner-controlled self-hosted Windows runner и исключён из release package.
+## Requires actual validation before review completion
 
-## Известные ограничения alpha.1
+The following are execution statuses, not implementation claims, and must be filled from real runs:
 
-- runtime localization полностью не реализована; основной GUI русский;
-- layout/UI polish ограничены MVP;
-- real build остаётся тяжёлой manual validation procedure;
-- Backend Contract transport остаётся local process + JSON/NDJSON files;
-- external UUP dump API/conversion package может измениться.
+- C# build/tests: pending self-hosted PR validation;
+- Pester/PSScriptAnalyzer: pending self-hosted PR validation;
+- Full release validation: pending self-hosted PR validation;
+- published GUI startup smoke: pending self-hosted PR validation;
+- manual History/Profile smoke: NOT RUN unless explicitly performed;
+- keyboard/Narrator/DPI acceptance: NOT RUN unless explicitly performed;
+- real Windows 11 recommended x64 ru-RU Professional ESD E2E: NOT RUN unless explicitly performed.
+
+## Out of scope
+
+Queue, parallel builds, scheduling, updater, installer/MSIX, cache-management UI, USB/Rufus, driver injection, customization/debloat, TPM bypass, activation, accounts/cloud sync/telemetry, profile import/export/sync, automatic history upload and custom UUP engine remain intentionally absent.

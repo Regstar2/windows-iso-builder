@@ -35,6 +35,9 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
                                 <Grid>
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -45,7 +48,10 @@
                                     <Run Text="Build "/><Run Text="{Binding Build}"/><Run Text=" · "/><Run Text="{Binding ArchitectureLabel}"/><Run Text=" · "/><Run Text="{Binding Language}"/><Run Text=" · "/><Run Text="{Binding EditionsText}"/><Run Text=" · "/><Run Text="{Binding ImageFormat}"/>
                                 </TextBlock>
                                 <TextBlock Grid.Row="2" Text="{Binding StartedDisplay}" Style="{StaticResource MutedText}" Margin="0,4,0,0"/>
-                                <WrapPanel Grid.Row="3" Margin="0,10,0,0">
+                                <TextBlock Grid.Row="3" Text="{Binding IsoPath}" Style="{StaticResource MutedText}" Margin="0,4,0,0" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Grid.Row="4" Text="{Binding Sha256}" Style="{StaticResource MutedText}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                <TextBlock Grid.Row="5" Text="{Binding ErrorCode}" Style="{StaticResource MutedText}" Margin="0,2,0,0"/>
+                                <WrapPanel Grid.Row="6" Margin="0,10,0,0">
                                     <Button Content="{services:Loc HistoryDetails}" Click="Details_Click" Tag="{Binding}" Margin="0,0,8,6"
                                             AutomationProperties.Name="{services:Loc AutomationHistoryDetails}"/>
                                     <Button Content="{services:Loc HistoryRepeat}" Click="Repeat_Click" Tag="{Binding}" Margin="0,0,8,6"

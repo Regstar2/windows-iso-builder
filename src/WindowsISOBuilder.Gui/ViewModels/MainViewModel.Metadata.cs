@@ -105,7 +105,25 @@ public sealed partial class MainViewModel
 
     private void InvalidatePlan()
     {
-        if (IsBuilding || _plan is null && State != UiState.ReadyToBuild) return;
+        if (IsBuilding) return;
+
+        if (_plan is null && State != UiState.ReadyToBuild)
+        {
+            // A stale stored configuration is deliberately applied in Idle state until
+            // the user repairs it. Once the warning has been acknowledged and at least
+            // one valid edition is selected, return to the normal preflight path.
+            if (State == UiState.Idle &&
+                _build is not null &&
+                SelectedLanguage is not null &&
+                Editions.Any(choice => choice.Selected) &&
+                !HasStoredConfigurationWarning)
+            {
+                State = UiState.ReadyToPreflight;
+                SetStatus("StatusParametersChanged");
+            }
+            return;
+        }
+
         _plan = null;
         Checks.Clear();
         RaisePreflightProperties();

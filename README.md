@@ -2,7 +2,7 @@
 
 # Windows ISO Builder
 
-GUI и PowerShell-клиент UUP dump для поиска, загрузки и сборки Windows ISO без ручной работы с UUID, SKU и `ConvertConfig.ini`.
+GUI и PowerShell-клиент UUP dump для поиска, проверки и сборки Windows ISO без ручной работы с UUID, SKU и `ConvertConfig.ini`.
 
 **Русский** · [English](README_EN.md)
 
@@ -10,49 +10,87 @@ GUI и PowerShell-клиент UUP dump для поиска, загрузки и
 
 ## Статус
 
-Текущая версия — **`0.3.0-alpha.1`**.
+Текущая версия — **`0.4.0-alpha.1`**.
 
-- ApplicationVersion: `0.3.0-alpha.1`;
+- ApplicationVersion: `0.4.0-alpha.1`;
+- GUI Assembly/File version: `0.4.0`;
 - PowerShell ModuleVersion: `0.3.0`;
 - Backend Contract SchemaVersion: `1`;
-- BuildPlan SchemaVersion: `1`.
+- BuildPlan SchemaVersion: `1`;
+- History schema: `1`;
+- Profile schema: `1`.
 
-`v0.3.0-alpha.1` добавляет первый WPF GUI. Существующие TUI, CLI и machine-readable Backend Contract сохраняются. GUI не является новым UUP/build backend: он работает через `Invoke-WibBackend.ps1` и Contract v1.
+`v0.4.0-alpha.1` добавляет локальную историю фактических сборок и сохраняемые профили конфигурации. PowerShell backend, TUI/CLI, Backend Contract v1 и BuildPlan v1 сохраняются. History/Profiles являются application-level возможностями GUI и не создают второй build pipeline.
 
-## Быстрый старт — GUI
+## Основной GUI-flow
 
-1. Скачайте release ZIP и распакуйте его полностью.
-2. Запустите `WindowsISOBuilder.exe` обычным пользователем.
-3. Выберите Windows 11 или Windows 10 и получите рекомендуемую сборку либо откройте «Каталог».
-4. Выберите язык, одну или несколько редакций, ESD/WIM и каталог результата.
-5. Выполните проверку готовности.
-6. Если fatal-проверок нет, нажмите «Создать ISO» и подтвердите UAC, когда backend запросит повышение прав.
-7. После завершения GUI покажет путь к ISO и SHA-256.
+1. **Сборка** — выбрать Windows/архитектуру, получить рекомендуемую сборку или применить сборку из каталога/истории/профиля.
+2. Выбрать язык, редакции, WIM/ESD, параметры и каталог результата.
+3. Выполнить `CreateBuildPlan` и `RunPreflight` через backend.
+4. Проверить итоговые параметры и явно подтвердить создание ISO.
+5. Backend выполняет существующий UAC/download/converter/DISM/ISO workflow.
+6. Терминальный результат записывается в **Историю**.
 
-Пользовательский release является `win-x64` self-contained: отдельная установка .NET Runtime не требуется. .NET 10 SDK нужен только для разработки/сборки GUI.
+Левая навигация: **Сборка → Каталог → История → Профили → Настройки → Справка → О программе**.
+
+## История сборок
+
+История хранит только controlled GUI DTO для фактических `ExecuteBuildPlan` операций: completed, failed, cancelled и interrupted. Metadata-запросы и preflight в историю не попадают.
+
+Для записи доступны сведения о Windows/build/архитектуре/языке/редакциях/формате, время, статус, ISO/SHA-256, журналы, metadata и error code. Удаление записи или очистка истории удаляет **только запись GUI** и не удаляет ISO, UUP cache, work directory, logs или metadata.
+
+**Повторить** не исполняет старый BuildPlan. GUI заново ищет сохранённую сборку в актуальном каталоге, получает текущие languages/editions и переводит пользователя на страницу «Сборка». Если exact build исчез, пользователь сам выбирает актуальную recommended build, Catalog или отмену. Автоматического запуска ISO нет.
+
+## Профили
+
+Профиль — это сохраняемое пользовательское намерение, а не исполнимый BuildPlan.
+
+Поддерживаются:
+
+- **Recommended / Dynamic** — хранит product/architecture/language/editions/format/options/output; при каждом использовании вызывает `GetRecommendedBuild` и использует актуальный backend catalog;
+- **Pinned Build** — дополнительно хранит controlled identity конкретной сборки и применяет её только если она всё ещё найдена через `SearchBuilds`.
+
+Recommended — режим по умолчанию, в том числе при создании профиля из History. Pinned выбирается явно. Профиль не хранит UUP catalog, signed URLs, cache directory, BuildPlan, tokens или secrets.
+
+Если сохранённый language/edition исчез, GUI показывает stale-state и не делает скрытую замену. Если pinned build исчез, fallback на recommended требует отдельного действия и не переписывает сохранённый профиль автоматически.
+
+## Локальные данные
+
+Пользовательские данные GUI находятся в `%LOCALAPPDATA%\WindowsISOBuilder`:
+
+- `settings.json` — язык, тема и состояние окна;
+- `history.json` — History schema v1, максимум 200 записей;
+- `profiles.json` — Profile schema v1;
+- `logs\` — GUI logs.
+
+History/Profile stores используют temp write + flush + atomic replace/move. Повреждённый JSON сохраняется как `*.damaged-*` при возможности, после чего GUI запускается с пустым store. Файл неизвестной будущей schema не перезаписывается автоматически.
+
+`history.json` и `profiles.json` не отправляются в сеть, не входят в release ZIP и не добавляются в diagnostics package. Подробнее: [docs/LOCAL_DATA.md](docs/LOCAL_DATA.md).
 
 ## GUI
 
-Первый GUI включает:
+GUI — C# / WPF / .NET 10 и работает через `Invoke-WibBackend.ps1` / Backend Contract v1. Реализованы:
 
-- Quick Mode с backend-командой `GetRecommendedBuild`;
-- Catalog Mode с `SearchBuilds`, Preview и display-фильтром служебных записей;
-- явное применение выбранной каталожной сборки без запуска metadata-запросов по одиночному клику;
-- динамические languages/editions из backend без встроенных списков;
-- multi-edition выбор;
-- ESD/WIM и базовые converter options;
-- `CreateBuildPlan` + `RunPreflight`;
-- asynchronous `ExecuteBuildPlan` и NDJSON progress/events;
-- cooperative `CancelBuild` без GUI-side kill процессов;
-- обработку стабильных backend error codes для preflight/download/converter/DISM/ISO/elevation/cancellation;
-- success screen с ISO, SHA-256, журналом и открытием папки;
-- GUI log в `%LOCALAPPDATA%\WindowsISOBuilder\logs`.
+- Build и responsive Catalog;
+- History и Profiles;
+- dynamic languages/editions;
+- ESD/WIM и converter options;
+- preflight;
+- asynchronous `ExecuteBuildPlan` и NDJSON progress;
+- cooperative `CancelBuild`;
+- structured errors;
+- RU/EN localization;
+- System/Light/Dark themes;
+- window state persistence;
+- keyboard/accessibility groundwork и AutomationProperties для основных действий;
+- sanitized diagnostics ZIP с фиксированным allowlist;
+- self-contained `win-x64` publish/package.
 
-GUI запускается с `asInvoker`. UAC остаётся частью существующего backend workflow непосредственно перед privileged build stage.
+GUI запускается как `asInvoker`. UAC остаётся частью backend workflow непосредственно перед privileged build stage.
 
 ## Console / automation
 
-TUI не deprecated. Для консольного интерактивного режима:
+TUI/CLI сохраняются:
 
 ```powershell
 .\Start-Builder.cmd
@@ -62,18 +100,6 @@ TUI не deprecated. Для консольного интерактивного 
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Start-Builder.ps1
-```
-
-Non-interactive пример:
-
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Start-Builder.ps1 `
-  -NonInteractive `
-  -Search 22H2 `
-  -Architecture amd64 `
-  -Language ru-ru `
-  -Editions Core,Professional `
-  -ImageFormat ESD
 ```
 
 Machine entry point:
@@ -88,13 +114,18 @@ powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
 
 ## Архитектурная граница
 
-PowerShell backend остаётся единственным владельцем UUP catalog, recommendation, BuildPlan, preflight, UAC/elevation, download, converter/DISM, ISO validation и cancellation process tree.
+PowerShell backend остаётся единственным владельцем:
 
-GUI не импортирует `WindowsISOBuilder.psm1`, не вызывает private functions, не парсит `Write-Host`, transcript, aria2/converter output и не классифицирует ошибку по локализованному `message`.
+- UUP catalog/recommendation;
+- languages/editions;
+- BuildPlan v1;
+- preflight;
+- UAC/elevation;
+- download/converter/DISM;
+- ISO validation;
+- cancellation process tree.
 
-Совместимость GUI определяется schema interfaces, а не совпадением ApplicationVersion. Для `v0.3.0-alpha.1` требуются Backend Contract SchemaVersion `1` и BuildPlan SchemaVersion `1`; packaged GUI smoke проверяет оба значения.
-
-Полный контракт: [docs/BACKEND_CONTRACT.md](docs/BACKEND_CONTRACT.md). Архитектура GUI: [docs/GUI_ARCHITECTURE.md](docs/GUI_ARCHITECTURE.md).
+History/Profile/Repeat не расширяют Backend Contract и не сохраняют BuildPlan как профиль. Совместимость GUI определяется Backend Contract SchemaVersion `1` и BuildPlan SchemaVersion `1`, а не совпадением ApplicationVersion.
 
 ## Требования
 
@@ -109,7 +140,7 @@ GUI не импортирует `WindowsISOBuilder.psm1`, не вызывает 
 
 Для разработки GUI требуется .NET 10 SDK.
 
-## Сборка и тесты GUI
+## Сборка и тесты
 
 ```powershell
 dotnet restore .\WindowsISOBuilder.sln
@@ -118,58 +149,44 @@ dotnet test .\WindowsISOBuilder.sln -c Release --no-build
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\tools\Build-Gui.ps1
 ```
 
-`Build-Gui.ps1` делает restore/build/test/publish `win-x64 --self-contained` и не устанавливает SDK автоматически.
-
-## Проверка релиза
+Полная release validation:
 
 ```powershell
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
   -File .\tools\Invoke-ReleaseValidation.ps1 -Full
 ```
 
-Full validation должна проверять GUI build/test/publish, Pester, PSScriptAnalyzer, backend smokes, release package, manifest/checksum и packaged `WindowsISOBuilder.exe --backend-smoke`. Ни один автоматический smoke не скачивает Windows и не открывает UAC.
-
-Репозиторий также содержит `.github/workflows/windows-self-hosted-validation.yml`. Для pull request в `master` он запускает тот же Full validation на Windows self-hosted runner с labels `self-hosted`, `Windows`, `X64`; superseded PR runs отменяются через `concurrency`. `validation-result.json` публикуется как Actions artifact даже при падении validation.
-
-Фактические результаты конкретной среды нельзя подменять статусом implementation. См. [docs/VALIDATION_MATRIX.md](docs/VALIDATION_MATRIX.md).
+Pull request в `master` запускает ту же Full validation на owner-controlled Windows self-hosted runner и отдельный published-GUI startup smoke. Automated validation не скачивает Windows и не имитирует manual DPI/Narrator/E2E acceptance.
 
 ## Release package
 
-ZIP содержит:
+ZIP содержит application runtime, PowerShell backend/TUI/CLI и пользовательскую документацию. Локальные `%LOCALAPPDATA%` data files, `.github`, tests, `bin`/`obj`, validation artifacts, ISO/WIM/ESD/logs и developer-only файлы в release ZIP не попадают.
 
-- `WindowsISOBuilder.exe` и self-contained `win-x64` runtime;
-- `Invoke-WibBackend.ps1`;
-- PowerShell module/backend;
-- `Start-Builder.cmd` / `Start-Builder.ps1`;
-- документацию;
-- package-only `release-manifest.json`.
+## Безопасность и приватность
 
-Manifest содержит версии приложения/модуля/schema и additive GUI metadata; локальные developer paths, username и machine name не включаются. `.github`, tests, `bin`/`obj`, validation artifacts и другие developer-only файлы в release ZIP не попадают.
-
-## Безопасность
-
-- requests считаются недоверенными данными;
-- backend dispatch использует allowlist;
-- C# запускает PowerShell через `ProcessStartInfo.ArgumentList`;
-- пользовательские строки не исполняются как PowerShell;
-- cancellation выполняется через `CancelBuild`, а не `taskkill`/`Stop-Process` из GUI;
-- signed UUP URLs, tokens и product keys не должны попадать в GUI log;
-- backend path определяется относительно package root; сетевой executable/backend code не загружается.
+- requests рассматриваются как недоверенные данные;
+- backend command dispatch использует allowlist;
+- C# использует `ProcessStartInfo.ArgumentList`;
+- cancellation выполняется через `CancelBuild`, а не kill-by-name;
+- signed UUP URLs, tokens, product keys и raw backend payloads не сохраняются в History/Profile;
+- diagnostics имеет фиксированный allowlist `app-version.txt`, `environment.json`, `execution.log`, `build.log`, `converter.log` и проходит sanitizer;
+- History/Profiles локальны и не включаются в diagnostics автоматически.
 
 ## Документация
 
 - [Backend Contract v1](docs/BACKEND_CONTRACT.md)
 - [GUI architecture](docs/GUI_ARCHITECTURE.md)
 - [Архитектура проекта](docs/ARCHITECTURE.md)
+- [Локальные данные и privacy](docs/LOCAL_DATA.md)
 - [Статус реализации](docs/IMPLEMENTATION_STATUS.md)
 - [Матрица проверки](docs/VALIDATION_MATRIX.md)
 - [Требования](REQUIREMENTS.md)
 - [История изменений](CHANGELOG.md)
-- [Release notes](docs/releases/v0.3.0-alpha.1.md)
+- [Release notes v0.4.0-alpha.1](docs/releases/v0.4.0-alpha.1.md)
 
-## Ограничения v0.3.0
+## Не входит в v0.4.0
 
-В GUI MVP намеренно нет history, profiles, queue, cache-management UI, updater, installer/MSIX, USB writer/Rufus, full theme/language settings, customization/debloat, driver injection, TPM bypass, activation и custom UUP engine/downloader/converter. GitHub Actions используется только как thin orchestration layer над существующей локальной Full validation на self-hosted Windows runner и не входит в runtime/release package.
+Queue/parallel builds/scheduling, updater, installer/MSIX, cache-management GUI, USB/Rufus, driver injection, customization/debloat, TPM bypass, activation, accounts/cloud sync/telemetry, profile import/export/sync, custom UUP downloader/converter.
 
 ## Лицензия
 

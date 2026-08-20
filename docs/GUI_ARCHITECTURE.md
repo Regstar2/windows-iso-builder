@@ -1,170 +1,154 @@
-# Архитектура GUI v0.3.0-alpha.1
+# Архитектура GUI v0.4.0-alpha.1
 
-## Цель
+## Граница ответственности
 
-`WindowsISOBuilder.Gui` — тонкий WPF-клиент над существующим PowerShell backend. Он не содержит альтернативного UUP/build workflow.
+`WindowsISOBuilder.Gui` — WPF/.NET 10 application layer над существующим PowerShell backend.
 
 ```text
-WPF / MVVM
-   │
+WPF shell
+  ├─ Build
+  ├─ Catalog
+  ├─ History ───── HistoryService ─── %LOCALAPPDATA%\WindowsISOBuilder\history.json
+  ├─ Profiles ──── ProfileService ─── %LOCALAPPDATA%\WindowsISOBuilder\profiles.json
+  ├─ Settings
+  ├─ Help
+  └─ About
+        │
+        ▼
 BackendClient
-   │ JSON files + process
-   ▼
+        │ Backend Contract v1
+        ▼
 Invoke-WibBackend.ps1
-   │
-Backend Contract Schema v1
-   ▼
+        │
+        ▼
 PowerShell backend
-   ├─ catalog/recommendation
-   ├─ BuildPlan v1 / preflight
-   ├─ UAC/elevated worker
-   ├─ download/converter/DISM
-   ├─ ISO validation
-   └─ cooperative cancellation
+  ├─ catalog / recommended build
+  ├─ languages / editions
+  ├─ BuildPlan v1
+  ├─ preflight
+  ├─ elevation
+  ├─ download / converter / DISM
+  ├─ ISO validation
+  └─ cooperative cancellation
 ```
 
-## Технологии
+History и Profiles не являются Backend Contract DTO и не являются BuildPlan.
 
-- C# / WPF / .NET 10 (`net10.0-windows`);
-- SDK-style project;
-- `System.Text.Json`;
-- стандартные WPF resources/styles;
-- минимальный собственный MVVM infrastructure;
-- без Electron, WebView, Avalonia, MahApps и MaterialDesignInXaml.
+## Existing backend flow
 
-## Слои
+Backend Contract SchemaVersion остаётся `1`, BuildPlan SchemaVersion остаётся `1`. GUI использует существующие команды:
 
-`MainWindow` отвечает только за view-specific behavior: навигацию, folder picker, явное применение выбранной Catalog row, clipboard/open-path actions и close confirmation.
+`GetVersion`, `SearchBuilds`, `GetRecommendedBuild`, `GetLanguages`, `GetEditions`, `CreateBuildPlan`, `ValidateBuildPlan`, `RunPreflight`, `ExecuteBuildPlan`, `CancelBuild`.
 
-`MainViewModel` управляет пользовательским flow и UI state. Backend-specific transport находится отдельно.
+Новой command для History/Profile нет.
 
-`Models/ContractDtos.cs` содержит strongly typed DTO Backend Contract v1.
+## Shell/navigation
 
-`BackendClient` создаёт requestId, отдельный app-owned temporary transport directory с независимым непредсказуемым GUID, сериализует JSON, запускает public backend entry point, валидирует envelope/data/schema handshake и очищает только transport data. Имя transport directory не выводится из requestId.
+Существующая sidebar + hidden `TabControl` остаётся единственной системой навигации. Порядок страниц:
 
-`BackendProcessRunner` использует `ProcessStartInfo.ArgumentList`, чтобы пользовательские строки не попадали в shell command concatenation.
+1. Build;
+2. Catalog;
+3. History;
+4. Profiles;
+5. Settings;
+6. Help;
+7. About.
 
-`NdjsonEventReader` tail-ит event file incrementally на уровне bytes. Незавершённые bytes последней строки, включая разрыв внутри multibyte UTF-8 символа, сохраняются до `\n`; malformed completed telemetry не определяет результат build. Duplicate/out-of-order sequence игнорируются.
+Build остаётся стартовой страницей. История/профили используют существующие WPF resources и не создают новый header/theme framework.
 
-`BackendPathResolver` сначала ищет `Invoke-WibBackend.ps1` рядом с packaged executable. Explicit override допускается только когда caller сознательно передаёт root (например `--backend-root` smoke). Ambient environment variable не может подменить executable backend. Parent search используется как development fallback.
+## История
 
-`GuiLogger` выбирает `%LOCALAPPDATA%\WindowsISOBuilder\logs` без обязательного создания каталога в constructor. Создание/запись best-effort и не может само уронить GUI. Backend exceptions логируются по code/requestId без backend message; URL и product-key patterns редактируются.
+`HistoryService` владеет History schema v1, retention и persistent lifecycle. При реальном старте `ExecuteBuildPlan` GUI создаёт controlled `Pending` entry. Terminal result переводит его в `Completed`, `Failed` или `Cancelled`. При следующем startup остаточный `Pending` нормализуется в `Interrupted`.
 
-## Startup handshake
+History DTO содержит только выбранную конфигурацию и terminal artifacts/error code. Произвольный backend response или BuildPlan не сериализуется.
+
+### Repeat
 
 ```text
-start as normal user
-   ↓
-resolve packaged/dev backend
-   ↓
-GetVersion
-   ↓
-response envelope schema == 1
-   ↓
-contractSchemaVersion == 1 AND buildPlanSchemaVersion == 1 ?
-   ├─ no → UNSUPPORTED_SCHEMA / blocking failure
-   └─ yes → Ready
+History entry
+  ↓
+SearchBuilds(saved build identity)
+  ├─ exact found ──────────────┐
+  └─ missing → explicit UX     │
+          ├─ current recommended
+          ├─ open Catalog
+          └─ cancel
+                               ▼
+GetLanguages(current updateId)
+  ↓
+validate saved language
+  ↓
+GetEditions(current updateId, language)
+  ↓
+validate saved editions
+  ↓
+Build page (no automatic build)
+  ↓
+CreateBuildPlan → RunPreflight → user confirmation → ExecuteBuildPlan
 ```
 
-ApplicationVersion не участвует в compatibility decision. User-visible version берётся из `GetVersion`.
+Старый BuildPlan и старый UUP UUID не исполняются напрямую.
 
-Normal startup создаёт `MainWindow` вручную только после выхода из backend-smoke path. В `App.xaml` нет `StartupUri`, поэтому `WindowsISOBuilder.exe --backend-smoke` не может открыть обычное GUI окно.
+## Профили
 
-## Request lifecycle
+`ProfileService` владеет Profile schema v1. UUID является identity профиля; display names могут повторяться. Имя trim-ится и ограничено 1..80 символами.
 
-Для каждой operation создаются новый `requestId` и независимый `%TEMP%\WindowsISOBuilder\backend\<operation-guid>\` с request/response/event transport files.
+### Recommended / Dynamic
 
-Весь owned transport lifecycle находится под `finally`: cleanup выполняется и после response processing, и после ранней serialization/write/process ошибки. Build logs, cache, work directory и ISO не принадлежат transport cleanup.
+Хранит intent: product, architecture, language, editions, format, options, output. При `Use` вызывает `GetRecommendedBuild`, затем актуальные languages/editions.
 
-Successful response без `data` считается `INTERNAL_ERROR`. Final Backend response остаётся source of truth для результата operation.
+### Pinned
 
-## Quick Mode
+Дополнительно хранит controlled build identity. Exact build разрешается через `SearchBuilds`. Если build исчез, fallback только явный и не меняет сохранённый профиль автоматически.
+
+### Stale values
+
+Недоступный saved language или edition не заменяется молча. GUI применяет только совместимую часть, показывает предупреждение и оставляет конфигурацию неготовой к preflight до явного пользовательского выбора.
+
+## StoredConfigurationResolver
+
+Resolver отделяет динамическое catalog resolution от storage:
+
+- `ResolveRecommendedAsync`;
+- `ResolvePinnedAsync`/`ResolveHistoryAsync`;
+- `ResolveValuesAsync` для current languages/editions и missing values.
+
+Production adapter вызывает существующий `BackendClient`; tests используют fake catalog без Windows download.
+
+## Storage
+
+`AtomicJsonStore<T>` выполняет version check, temp write, `WriteThrough`, disk flush, atomic replace/move, corruption recovery и write-block для unknown future schema. Подробно: `docs/LOCAL_DATA.md`.
+
+`AppSettingsService` остаётся отдельным маленьким settings store; массивы History/Profile в него не помещаются.
+
+## Build execution integration
+
+Единственный фактический execution path остаётся `MainViewModel.BuildAsync()`:
 
 ```text
-product / architecture
-  ↓
-GetRecommendedBuild
-  ↓
-GetLanguages(updateId)
-  ↓
-GetEditions(updateId, language)
-  ↓
-CreateBuildPlan
-  ↓
-RunPreflight
-  ↓
-ExecuteBuildPlan
+configuration
+→ CreateBuildPlan
+→ RunPreflight
+→ confirmation
+→ ExecuteBuildPlan
+→ terminal response/error
+→ HistoryService terminal update
 ```
 
-Recommendation logic не переносится в C#. Language/edition values не зашиты в GUI.
+Не существуют отдельные `ExecuteBuildPlanFromHistory/Profile/Catalog` pipelines.
 
-## Catalog Mode
+## Threading/cancellation
 
-`SearchBuilds` возвращает backend DTO. GUI может скрыть non-Windows/servicing rows display-фильтром, но хранит исходный response и не создаёт собственный ranking engine.
+Backend process/file operations остаются async. Active build requestId, NDJSON progress и cooperative `CancelBuild` используют существующую state machine. Навигация не уничтожает MainViewModel, поэтому progress/cancel/result не теряются.
 
-Одиночное выделение строки не меняет active build и не запускает metadata. Double-click или `Использовать выбранную` синхронизирует product/architecture, назначает active build и переводит пользователя в тот же configuration/preflight/build flow, что Quick Mode.
+## Localization/theme/accessibility
 
-## State machine
+Новые строки находятся в парных `Strings.LocalData.resx` / `Strings.LocalData.ru.resx` и включены в общий `LocalizationService` snapshot parity test. Schema хранит enum/code values, а не локализованные строки.
 
-Основной happy path:
+History/Profile XAML использует `Card`, theme-owned brushes/control templates, normal WPF keyboard activation и AutomationProperties на основных actions. Card-level accessibility summary не превращает каждую строку карточки в отдельный tab stop.
 
-`Idle → LoadingBuild → LoadingLanguages → LoadingEditions → ReadyToPreflight → Preflighting → ReadyToBuild → Building → Completed`.
+PerMonitorV2 и существующие light/dark/system resources сохраняются; History/Profile pages используют wrapping и собственный vertical scrolling.
 
-Failure/cancellation branches: `PreflightFailed`, `Failed`, `Cancelling`, `Cancelled`.
+## Privacy/diagnostics/package
 
-Cooperative cancellation допускает `Cancelling → Building`, если CancelBuild не был принят/отправлен и target build всё ещё жив. Retry из `Failed` возвращает UI в состояние той operation, которая упала (`ReadyToBuild`, `ReadyToPreflight`, metadata loading и т.д.).
-
-## Threading
-
-Backend process calls, file I/O и event polling выполняются async. WPF continuations возвращаются на UI synchronization context для обновления bindable state. GUI не блокирует UI thread ожиданием backend process.
-
-## Event lifecycle
-
-`ExecuteBuildPlan` получает отдельный active build requestId. Event reader:
-
-- читает только appended bytes;
-- не перечитывает весь файл;
-- сохраняет incomplete trailing bytes/line;
-- корректно переживает UTF-8 split внутри символа;
-- игнорирует malformed completed telemetry;
-- отбрасывает duplicate/out-of-order `sequence`;
-- позволяет безопасно игнорировать неизвестные additive event types;
-- использует backend `stage`, `percent`, `detailPercent`, `speedText`, `speedBytesPerSecond`.
-
-100% progress не означает completion. Source of truth — final Backend response.
-
-## Cancellation lifecycle
-
-```text
-Building
-  ↓ user cancel
-CancelBuild(targetRequestId, cacheDirectory)
-  ↓ acknowledgement
-Cancelling
-  ↓ target ExecuteBuildPlan final result/event
-BUILD_CANCELLED / cancelled
-  ↓
-Cancelled
-```
-
-Если запрос отмены не принят/не отправлен, UI возвращается в `Building` и не закрывается поверх активной сборки.
-
-GUI не вызывает `Process.Kill`, `taskkill`, `Stop-Process` и не завершает aria2/DISM по имени. Закрытие окна во время build использует тот же cancellation flow и ждёт terminal target state перед exit.
-
-## UAC boundary
-
-GUI manifest — `asInvoker`. `RunPreflight` выполняется до build. `ExecuteBuildPlan` передаёт управление backend, а существующий backend самостоятельно выполняет elevation. `ELEVATION_CANCELLED` является обычным structured failure, а не frontend crash.
-
-## Error handling
-
-Frontend классифицирует backend failures только по `error.code`. Stable backend taxonomy имеет явные user-facing mappings для schema/preflight/network/UUP/download/converter/DISM/ISO/elevation/cancellation/build failures. Неизвестный v1 code отображается generic failure.
-
-Code, stage, backend message, log path и requestId находятся в раскрываемых technical details. Application-level exception boundary пишет безопасный GUI log и завершает приложение после critical frontend exception.
-
-## Publish/package layout
-
-`tools/Build-Gui.ps1` выполняет restore/build/test и `win-x64 --self-contained true` publish. Release configuration не публикует PDB; `.pdb` также запрещён package safety policy.
-
-Release staging помещает `WindowsISOBuilder.exe` и published runtime в package root рядом с `Invoke-WibBackend.ps1`. Поэтому packaged backend location deterministic и не зависит от source checkout/environment override.
-
-Release ZIP также сохраняет TUI/CLI. Package manifest содержит additive `gui.included/runtime/selfContained` metadata. `.github`, tests, build outputs и validation artifacts не входят в runtime package. Installer/MSIX не входит в v0.3.0.
+History/Profile files находятся в `%LOCALAPPDATA%`, не рядом с EXE. Diagnostics сохраняет прежний фиксированный allowlist и не читает History/Profile. Release package содержит runtime/docs, но не локальные user data.
