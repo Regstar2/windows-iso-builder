@@ -1,0 +1,76 @@
+name: Сообщить об ошибке / Bug report
+description: Сообщить о воспроизводимой проблеме / Report a reproducible problem
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Спасибо за сообщение. Не публикуйте ключи Windows, токены, пароли, cookies, proxy credentials, приватные URL, необработанные персональные пути или приватные документы.
+
+        Thank you for the report. Do not publish Windows product keys, tokens, passwords, cookies, proxy credentials, private URLs, unsanitized personal paths, or private documents.
+  - type: input
+    id: version
+    attributes:
+      label: Версия Windows ISO Builder / Windows ISO Builder version
+      placeholder: 0.3.3
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Версия Windows / Windows version
+      placeholder: Windows 11 25H2
+    validations:
+      required: true
+  - type: input
+    id: architecture
+    attributes:
+      label: Архитектура / Architecture
+      placeholder: x64 / amd64
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Шаги воспроизведения / Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Ожидаемое поведение / Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Фактическое поведение / Actual behavior
+    validations:
+      required: true
+  - type: input
+    id: error_code
+    attributes:
+      label: Stable error code, если есть / Stable error code, if available
+      placeholder: UUP_API_UNAVAILABLE
+    validations:
+      required: false
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Диагностика / Diagnostics
+      description: Прикладывайте диагностический пакет или логи только по своему решению и только после проверки содержимого. / Attach a diagnostics package or logs only by explicit choice and after reviewing the contents.
+    validations:
+      required: false
+  - type: checkboxes
+    id: sensitive
+    attributes:
+      label: Проверка приватности / Privacy check
+      options:
+        - label: Я проверил текст и вложения на отсутствие ключей Windows, токенов, паролей, proxy credentials и приватных данных. / I checked the report and attachments for Windows keys, tokens, passwords, proxy credentials, and private data.
+          required: true

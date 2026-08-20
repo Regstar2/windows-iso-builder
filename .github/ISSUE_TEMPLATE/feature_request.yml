@@ -1,0 +1,41 @@
+name: Предложить улучшение / Feature request
+description: Предложить улучшение или новую возможность / Suggest an improvement or new capability
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Проблема / Problem
+      description: Какую реальную проблему или ограничение нужно решить? / What real problem or limitation should be solved?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Предлагаемое решение / Proposed solution
+      description: Опишите желаемое поведение без требования конкретной реализации, если она не принципиальна. / Describe the desired behavior without prescribing an implementation unless necessary.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Альтернативы / Alternatives
+      description: Какие обходные пути или альтернативы уже существуют? / What workarounds or alternatives already exist?
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: Версия / Version
+      placeholder: 0.3.3
+    validations:
+      required: false
+  - type: checkboxes
+    id: sensitive
+    attributes:
+      label: Проверка приватности / Privacy check
+      options:
+        - label: Запрос не содержит токенов, паролей, proxy credentials или приватных данных. / The request contains no tokens, passwords, proxy credentials, or private data.
+          required: true

@@ -14,52 +14,78 @@
             <TextBlock Text="{services:Loc SettingsSubtitle}" Style="{StaticResource MutedText}" Margin="0,2,0,0" TextWrapping="Wrap"/>
         </StackPanel>
 
-        <Grid Grid.Row="1" MaxWidth="760" HorizontalAlignment="Left">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="12"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <Grid MaxWidth="760" HorizontalAlignment="Left">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="12"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="12"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-            <Border Grid.Row="0" Style="{StaticResource Card}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-                    <TextBlock Text="{services:Loc SettingsInterfaceTitle}" Style="{StaticResource SectionTitle}"/>
-                    <TextBlock Grid.Row="1" Text="{services:Loc SettingsLanguageLabel}" Style="{StaticResource FieldLabel}" Margin="0,14,0,5"/>
-                    <ComboBox x:Name="LanguageCombo" Grid.Row="2" Width="260" HorizontalAlignment="Left" SelectedValuePath="Tag"
-                              SelectionChanged="LanguageCombo_SelectionChanged">
-                        <ComboBoxItem Tag="ru" Content="{services:Loc LanguageRussian}"/>
-                        <ComboBoxItem Tag="en" Content="{services:Loc LanguageEnglish}"/>
-                    </ComboBox>
-                    <TextBlock Grid.Row="3" Text="{services:Loc SettingsThemeLabel}" Style="{StaticResource FieldLabel}" Margin="0,14,0,5"/>
-                    <ComboBox x:Name="ThemeCombo" Grid.Row="4" Width="260" HorizontalAlignment="Left" SelectedValuePath="Tag"
-                              SelectionChanged="ThemeCombo_SelectionChanged">
-                        <ComboBoxItem Tag="system" Content="{services:Loc ThemeSystem}"/>
-                        <ComboBoxItem Tag="light" Content="{services:Loc ThemeLight}"/>
-                        <ComboBoxItem Tag="dark" Content="{services:Loc ThemeDark}"/>
-                    </ComboBox>
-                </Grid>
-            </Border>
+                <Border Grid.Row="0" Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="{services:Loc SettingsInterfaceTitle}" Style="{StaticResource SectionTitle}"/>
+                        <TextBlock Grid.Row="1" Text="{services:Loc SettingsLanguageLabel}" Style="{StaticResource FieldLabel}" Margin="0,14,0,5"/>
+                        <ComboBox x:Name="LanguageCombo" Grid.Row="2" Width="260" HorizontalAlignment="Left" SelectedValuePath="Tag"
+                                  SelectionChanged="LanguageCombo_SelectionChanged">
+                            <ComboBoxItem Tag="ru" Content="{services:Loc LanguageRussian}"/>
+                            <ComboBoxItem Tag="en" Content="{services:Loc LanguageEnglish}"/>
+                        </ComboBox>
+                        <TextBlock Grid.Row="3" Text="{services:Loc SettingsThemeLabel}" Style="{StaticResource FieldLabel}" Margin="0,14,0,5"/>
+                        <ComboBox x:Name="ThemeCombo" Grid.Row="4" Width="260" HorizontalAlignment="Left" SelectedValuePath="Tag"
+                                  SelectionChanged="ThemeCombo_SelectionChanged">
+                            <ComboBoxItem Tag="system" Content="{services:Loc ThemeSystem}"/>
+                            <ComboBoxItem Tag="light" Content="{services:Loc ThemeLight}"/>
+                            <ComboBoxItem Tag="dark" Content="{services:Loc ThemeDark}"/>
+                        </ComboBox>
+                    </Grid>
+                </Border>
 
-            <Border Grid.Row="2" Style="{StaticResource Card}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-                    <TextBlock Text="{services:Loc SettingsDiagnosticsTitle}" Style="{StaticResource SectionTitle}"/>
-                    <TextBlock Grid.Row="1" Text="{services:Loc SettingsDiagnosticsDescription}" TextWrapping="Wrap" Margin="0,8,0,12" MaxWidth="680"/>
-                    <Button Grid.Row="2" Content="{services:Loc ButtonCreateDiagnostics}" HorizontalAlignment="Left" MinWidth="220"
-                            Click="CreateDiagnostics_Click" ToolTip="{services:Loc TooltipDiagnostics}"/>
-                </Grid>
-            </Border>
-        </Grid>
+                <Border Grid.Row="2" Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="{services:Loc SettingsUpdatesTitle}" Style="{StaticResource SectionTitle}"/>
+                        <TextBlock Grid.Row="1" Text="{services:Loc SettingsUpdatesDescription}" TextWrapping="Wrap" Margin="0,8,0,12" MaxWidth="680"/>
+                        <TextBlock Grid.Row="2" Text="{services:Loc SettingsUpdateChannelLabel}" Style="{StaticResource FieldLabel}" Margin="0,0,0,5"/>
+                        <ComboBox x:Name="UpdateChannelCombo" Grid.Row="3" Width="260" HorizontalAlignment="Left" SelectedValuePath="Tag"
+                                  SelectionChanged="UpdateChannelCombo_SelectionChanged">
+                            <ComboBoxItem Tag="stable" Content="{services:Loc UpdateChannelStable}"/>
+                            <ComboBoxItem Tag="prerelease" Content="{services:Loc UpdateChannelPrerelease}"/>
+                        </ComboBox>
+                        <Button x:Name="CheckUpdatesButton" Grid.Row="4" Content="{services:Loc ButtonCheckUpdates}" HorizontalAlignment="Left" MinWidth="220" Margin="0,12,0,0"
+                                Click="CheckUpdates_Click" ToolTip="{services:Loc TooltipCheckUpdates}" AutomationProperties.Name="{services:Loc ButtonCheckUpdates}"/>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="4" Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="{services:Loc SettingsDiagnosticsTitle}" Style="{StaticResource SectionTitle}"/>
+                        <TextBlock Grid.Row="1" Text="{services:Loc SettingsDiagnosticsDescription}" TextWrapping="Wrap" Margin="0,8,0,12" MaxWidth="680"/>
+                        <Button Grid.Row="2" Content="{services:Loc ButtonCreateDiagnostics}" HorizontalAlignment="Left" MinWidth="220"
+                                Click="CreateDiagnostics_Click" ToolTip="{services:Loc TooltipDiagnostics}"/>
+                    </Grid>
+                </Border>
+            </Grid>
+        </ScrollViewer>
     </Grid>
 </UserControl>
