@@ -287,11 +287,17 @@ try {
     Write-Host ''
 
     Invoke-RequiredCheck -Id 'version-and-schema' -Required $true -Action {
-        if ($version -ne '0.3.0-alpha.1') { throw ('VERSION is {0}; expected 0.3.0-alpha.1.' -f $version) }
+        if ($version -notmatch '^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$') {
+            throw ('VERSION is not a supported SemVer value: {0}.' -f $version)
+        }
+        $guiProjectPath = Join-Path $projectRoot 'src\WindowsISOBuilder.Gui\WindowsISOBuilder.Gui.csproj'
+        $guiProjectText = [IO.File]::ReadAllText($guiProjectPath, [Text.Encoding]::UTF8)
+        $guiVersionPattern = '<Version>\s*' + [regex]::Escape($version) + '\s*</Version>'
+        if ($guiProjectText -notmatch $guiVersionPattern) { throw 'GUI project Version does not match root VERSION.' }
         if ($moduleVersion -ne '0.3.0') { throw ('ModuleVersion is {0}; expected 0.3.0.' -f $moduleVersion) }
         if ([int]$manifestData.backendContractSchemaVersion -ne 1) { throw 'Backend Contract SchemaVersion must remain 1.' }
         if ([int]$manifestData.buildPlanSchemaVersion -ne 1) { throw 'BuildPlan SchemaVersion must remain 1.' }
-        [ordered]@{ applicationVersion=$version; moduleVersion=$moduleVersion; backendContractSchemaVersion=1; buildPlanSchemaVersion=1 }
+        [ordered]@{ applicationVersion=$version; guiVersion=$version; moduleVersion=$moduleVersion; backendContractSchemaVersion=1; buildPlanSchemaVersion=1 }
     }
 
     Invoke-RequiredCheck -Id 'release-file-manifest' -Required $true -Action {

@@ -17,21 +17,13 @@ TestResults/
 .DS_Store
 Thumbs.db
 
-# -----------------------------------------------------------------------------
-# Private project governance files
-# These files are copied locally into each project and must not be committed.
-# If the project already has a .gitignore, merge this block instead of replacing it.
-# -----------------------------------------------------------------------------
+# Project governance is intentionally tracked for the public release train.
+# Release packaging still excludes .project-rules through its explicit denylist.
 
-/AGENTS.md
-/.project-rules/
-# Private README governance and templates
-# `.project-rules/` is already ignored above; explicit template patterns also
-# protect temporary copies placed in the repository root.
+# Private README governance and temporary templates
 /README_TEMPLATE.md
 /README_TEMPLATE_EN.md
 /README_*_TEMPLATE.md
-# Private release and changelog templates
 /RELEASE_TEMPLATE.md
 /RELEASE_TEMPLATE_EN.md
 /RELEASE_*_TEMPLATE.md

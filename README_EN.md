@@ -10,50 +10,63 @@ A GUI and PowerShell UUP dump client for searching, downloading, and building Wi
 
 ## Status
 
-Current version: **`0.3.0-alpha.1`**.
+Current release-train source version: **`0.3.3`**.
 
-- ApplicationVersion: `0.3.0-alpha.1`;
+- ApplicationVersion: `0.3.3`;
 - PowerShell ModuleVersion: `0.3.0`;
 - Backend Contract SchemaVersion: `1`;
 - BuildPlan SchemaVersion: `1`.
 
-`v0.3.0-alpha.1` adds the first WPF GUI. The existing TUI, CLI, and machine-readable Backend Contract remain supported. The GUI is not a second UUP/build backend: it uses `Invoke-WibBackend.ps1` and Contract v1.
+The project is feature-frozen before its first public `v1.0.0`. After v0.3.3 only the v0.3.4 network/proxy milestone and RC hardening are planned. History/Profiles and unrelated features are deferred.
 
-## Quick start — GUI
+## Features
 
-1. Download the release ZIP and extract it completely.
+- Windows 11 / Windows 10 through a dynamic UUP dump catalog without hardcoded build numbers;
+- recommended build and full Catalog;
+- dynamic languages/editions and multi-edition selection;
+- WIM/ESD and existing converter options;
+- structured preflight before UAC;
+- progress, logs, cancellation, SHA-256 and result actions;
+- WPF GUI with preserved TUI/CLI;
+- RU/EN localization with English fallback;
+- System/Light/Dark theme;
+- sanitized diagnostics bundle;
+- GitHub Issue Forms and in-app feedback;
+- Stable/Prerelease update checking through official GitHub Releases.
+
+## GUI quick start
+
+1. Fully extract the release ZIP.
 2. Run `WindowsISOBuilder.exe` as a normal user.
-3. Select Windows 11/10 and request the recommended build, or open Catalog mode.
-4. Select language, one or more editions, ESD/WIM, and the output directory.
+3. Choose Windows 11/10 and the recommended build, or open Catalog.
+4. Choose language, editions, ESD/WIM and output directory.
 5. Run readiness checks.
-6. If no fatal check blocks the build, choose Create ISO and approve UAC when the backend requests elevation.
-7. On completion, the GUI shows the ISO path and SHA-256.
+6. Choose Create ISO and approve UAC when the backend requests elevation.
+7. On completion, open the ISO location or copy SHA-256.
 
-The user release is self-contained `win-x64`; installing a separate .NET Runtime is not required. The .NET 10 SDK is a development/build dependency only.
+The release is self-contained `win-x64`; users do not need a separate .NET Runtime.
 
-## GUI scope
+## Updates
 
-The first GUI includes Quick Mode, Catalog Mode with explicit build activation, dynamic languages/editions, multi-edition selection, ESD/WIM, build options, `CreateBuildPlan`, `RunPreflight`, async `ExecuteBuildPlan`, NDJSON progress, cooperative `CancelBuild`, stable backend error-code UX for preflight/download/converter/DISM/ISO/elevation/cancellation failures, result actions, and a local GUI log.
+`Settings → Updates` provides Stable and Prerelease channels and a manual check of official GitHub Releases. Stable never selects a prerelease.
 
-Catalog row highlighting does not start metadata requests. The selected row is activated by double-click or the explicit use-selected action and then enters the same Quick configuration/build flow.
+The application **does not automatically download or install updates**. When a newer version exists, it shows the version and bounded release-note summary and, with user consent, opens a validated HTTPS release page on `github.com`. This is the deliberate safe fallback for portable ZIP distribution.
 
-The GUI manifest uses `asInvoker`. Elevation remains owned by the existing backend immediately before the privileged build stage.
+While the source repository remains private, an unauthenticated external client may not be able to query its releases; external acceptance is performed after a public release channel exists.
+
+## Feedback
+
+About contains Report a bug and Request a feature actions that open GitHub Issue Forms in the browser without a PAT/OAuth token in the client. The diagnostics package is created separately in Settings and is never attached automatically.
+
+Do not publish product keys, passwords, tokens, cookies, proxy credentials, private URLs, or unsanitized personal data. External feedback availability remains unverified while the tracker is private.
 
 ## Console / automation
-
-The TUI is not deprecated:
 
 ```powershell
 .\Start-Builder.cmd
 ```
 
-or:
-
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Start-Builder.ps1
-```
-
-Machine entry point:
+Machine-readable entry point:
 
 ```powershell
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
@@ -63,59 +76,31 @@ powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
   -EventFile .\events.ndjson
 ```
 
-## Architecture boundary
+## Development and release validation
 
-The PowerShell backend remains the sole owner of UUP catalog/recommendation, BuildPlan, preflight, UAC/elevation, download, converter/DISM, ISO validation, and cancellation process-tree management.
-
-The GUI does not import `WindowsISOBuilder.psm1`, invoke private functions, parse `Write-Host`/transcripts/aria2/converter output, or classify failures from localized messages.
-
-Compatibility is schema-based rather than tied to exact ApplicationVersion matching. `v0.3.0-alpha.1` requires Backend Contract SchemaVersion `1` and BuildPlan SchemaVersion `1`; the packaged GUI smoke checks both values.
-
-See [Backend Contract v1](docs/BACKEND_CONTRACT_EN.md) and [GUI architecture](docs/GUI_ARCHITECTURE_EN.md).
-
-## Requirements
-
-User runtime: Windows 10/11 x64, Windows PowerShell 5.1, standard Windows servicing tools, network access to UUP dump/Microsoft CDN, enough disk space, and administrator approval only for the privileged build stage.
-
-Development requires the .NET 10 SDK.
-
-## GUI build
+GUI development requires the .NET 10 SDK.
 
 ```powershell
 dotnet restore .\WindowsISOBuilder.sln
 dotnet build .\WindowsISOBuilder.sln -c Release
 dotnet test .\WindowsISOBuilder.sln -c Release --no-build
-powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\tools\Build-Gui.ps1
-```
-
-`Build-Gui.ps1` restores, builds, tests, and publishes self-contained `win-x64`. It never installs the SDK automatically.
-
-## Release validation
-
-```powershell
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
   -File .\tools\Invoke-ReleaseValidation.ps1 -Full
 ```
 
-Full validation covers GUI build/test/publish, Pester, PSScriptAnalyzer, backend smokes, packaging, checksum/manifest validation, and packaged `WindowsISOBuilder.exe --backend-smoke`. Safe automated smoke does not download Windows or request UAC.
+Pull requests to `master` run the same Full validation on the owner-controlled Windows self-hosted runner. A PASS applies only to the exact tested SHA.
 
-The repository also contains `.github/workflows/windows-self-hosted-validation.yml`. Pull requests targeting `master` run the same Full validation on a Windows self-hosted runner labeled `self-hosted`, `Windows`, `X64`; superseded PR runs are cancelled through workflow concurrency. `validation-result.json` is uploaded as an Actions artifact even when validation fails.
+## Architecture and security
 
-Actual execution status must remain separate from implementation status. See [VALIDATION_MATRIX_EN.md](docs/VALIDATION_MATRIX_EN.md).
+The PowerShell backend remains the only owner of UUP/build/elevation/cancellation behavior. The GUI communicates through Backend Contract v1.
 
-## Release package
+The update checker uses only the official GitHub Releases endpoint without an Authorization secret and does not execute downloaded files. Requests and paths are untrusted; backend dispatch is allowlisted; GUI PowerShell launch uses safe process arguments; diagnostics/logging apply redaction.
 
-The release ZIP contains `WindowsISOBuilder.exe` plus its self-contained runtime, the existing PowerShell backend/TUI/CLI, documentation, and a package-only `release-manifest.json` with application/module/schema versions and additive GUI metadata.
+See [architecture](docs/ARCHITECTURE.md), [Backend Contract](docs/BACKEND_CONTRACT_EN.md), [validation matrix](docs/VALIDATION_MATRIX_EN.md), [security](SECURITY.md), and [roadmap](docs/product/roadmap.md).
 
-`.github`, tests, `bin`/`obj`, validation artifacts, and other developer-only files are excluded from the release ZIP.
+## Next required milestone
 
-## Security
-
-Requests are untrusted data; backend dispatch is allowlisted; C# uses `ProcessStartInfo.ArgumentList`; user strings are not executed as PowerShell; GUI cancellation uses `CancelBuild` instead of process killing; signed URLs/tokens/product keys are not GUI-log data; backend code is resolved deterministically from the package and never downloaded at runtime.
-
-## v0.3.0 limitations
-
-History, profiles, queue, cache-management GUI, updater, installer/MSIX, USB/Rufus integration, full theme/language settings, customization/debloat, driver injection, TPM bypass, activation, and a custom UUP engine/downloader/converter are intentionally outside this GUI MVP. GitHub Actions is used only as a thin orchestration layer over the existing local Full validation on the owner's self-hosted Windows runner and is not part of the runtime/release package.
+`v0.3.4 — Network Access & Proxy`: one System / Direct / Custom policy, HTTP/SOCKS5, and no silent Direct fallback. Custom proxy support is **not claimed** before that milestone is complete.
 
 ## License
 

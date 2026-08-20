@@ -1,6 +1,4 @@
 ﻿BeforeAll {
-    # Pester 5 separates discovery from test execution. Resolve the repository
-    # root during the run phase so it remains available to every It block.
     if (-not [string]::IsNullOrWhiteSpace($env:WIB_REPOSITORY_ROOT)) {
         $script:RepositoryRoot = $env:WIB_REPOSITORY_ROOT
     }
@@ -12,9 +10,6 @@
         throw 'Не удалось определить корневой каталог репозитория для статических тестов.'
     }
 
-    # Only inspect source-controlled PowerShell areas. A recursive scan from the
-    # repository root can accidentally traverse local/generated directories and
-    # consume a large amount of memory on a developer machine.
     $powerShellFiles = @(
         Get-ChildItem -LiteralPath $script:RepositoryRoot -File -ErrorAction Stop |
             Where-Object { $_.Extension -in @('.ps1', '.psm1') }
@@ -44,39 +39,24 @@ Describe 'Repository safety rules' {
             $source = Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8
             $tokens = $null
             $parseErrors = $null
-            $ast = [System.Management.Automation.Language.Parser]::ParseInput(
-                $source,
-                $file.FullName,
-                [ref]$tokens,
-                [ref]$parseErrors
-            )
-
-            foreach ($parseError in $parseErrors) {
-                throw ('Не удалось разобрать {0}: {1}' -f $file.FullName, $parseError.Message)
-            }
-
-            $commands = $ast.FindAll({
-                param($node)
-                $node -is [System.Management.Automation.Language.CommandAst] -and
-                    $node.GetCommandName() -ieq 'Set-ExecutionPolicy'
-            }, $true)
-
-            foreach ($command in $commands) {
-                '{0}:{1} {2}' -f $file.FullName, $command.Extent.StartLineNumber, $command.Extent.Text
-            }
+            $ast = [System.Management.Automation.Language.Parser]::ParseInput($source, $file.FullName, [ref]$tokens, [ref]$parseErrors)
+            foreach ($parseError in $parseErrors) { throw ('Не удалось разобрать {0}: {1}' -f $file.FullName, $parseError.Message) }
+            $commands = $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.CommandAst] -and $node.GetCommandName() -ieq 'Set-ExecutionPolicy' }, $true)
+            foreach ($command in $commands) { '{0}:{1} {2}' -f $file.FullName, $command.Extent.StartLineNumber, $command.Extent.Text }
         }
-
         @($violations).Count | Should -Be 0
     }
 
-    It 'keeps generated output and cache out of Git' {
+    It 'keeps generated output and local secrets out of Git while tracking public governance rules' {
         $gitignore = Get-Content -LiteralPath (Join-Path $script:RepositoryRoot '.gitignore') -Raw -Encoding UTF8
         $gitignore = $gitignore -replace "`r`n?", "`n"
         $gitignore | Should -Match '(?m)^output/$'
         $gitignore | Should -Match '(?m)^\.private/$'
-        $gitignore | Should -Match '(?m)^/AGENTS\.md$'
-        $gitignore | Should -Match '(?m)^/\.project-rules/$'
+        $gitignore | Should -Not -Match '(?m)^/AGENTS\.md$'
+        $gitignore | Should -Not -Match '(?m)^/\.project-rules/$'
         $gitignore | Should -Match '(?m)^/docs/ai-prompts/$'
+        Test-Path -LiteralPath (Join-Path $script:RepositoryRoot 'AGENTS.md') | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $script:RepositoryRoot '.project-rules') | Should -BeTrue
     }
 
     It 'uses the lowercase kebab-case repository URL' {
@@ -92,31 +72,15 @@ Describe 'Repository safety rules' {
             $source = Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8
             $tokens = $null
             $parseErrors = $null
-
-            [System.Management.Automation.Language.Parser]::ParseInput(
-                $source,
-                $file.FullName,
-                [ref]$tokens,
-                [ref]$parseErrors
-            ) | Out-Null
-
-            foreach ($parseError in $parseErrors) {
-                '{0}:{1}:{2} {3}' -f @(
-                    $file.FullName,
-                    $parseError.Extent.StartLineNumber,
-                    $parseError.Extent.StartColumnNumber,
-                    $parseError.Message
-                )
-            }
+            [System.Management.Automation.Language.Parser]::ParseInput($source, $file.FullName, [ref]$tokens, [ref]$parseErrors) | Out-Null
+            foreach ($parseError in $parseErrors) { '{0}:{1}:{2} {3}' -f $file.FullName, $parseError.Extent.StartLineNumber, $parseError.Extent.StartColumnNumber, $parseError.Message }
         }
-
         @($errors).Count | Should -Be 0
     }
 
     It 'loads private module scripts explicitly as UTF-8 for Windows PowerShell 5.1' {
         $modulePath = Join-Path $script:RepositoryRoot 'src\WindowsISOBuilder\WindowsISOBuilder.psm1'
         $moduleSource = Get-Content -LiteralPath $modulePath -Raw -Encoding UTF8
-
         $moduleSource | Should -Match 'Get-Content\s+-LiteralPath\s+\$privatePath\s+-Raw\s+-Encoding\s+UTF8'
         $moduleSource | Should -Match '\[scriptblock\]::Create\(\$privateSource\)'
     }

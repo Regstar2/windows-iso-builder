@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## Unreleased — v0.3.3
 
 ### Added
 
@@ -9,27 +9,43 @@
 - safe window bounds/maximized-state persistence with current-monitor validation;
 - localized accessibility names and explanatory tooltips for the main workflow;
 - sanitized `windows-iso-builder-diagnostics.zip` generation with a fixed five-file allowlist;
-- GUI regression coverage for localization parity, diagnostics sanitization/package contents, window settings, theme/DPI and compact-layout invariants.
+- dedicated Settings, Help, and About shell pages plus compact guided Build navigation;
+- GitHub Bug Report and Feature Request Issue Forms;
+- in-app `Report a bug` / `Request a feature` actions that open browser forms without PAT/OAuth;
+- persisted update channel with Stable default and explicit Prerelease opt-in;
+- manual GitHub Releases update check;
+- SemVer-aware version precedence including prerelease identifiers;
+- bounded release-notes summary and validated HTTPS `github.com` release-page transition;
+- injectable `IHttpClientProvider` seam reserved for the v0.3.4 global network policy;
+- tracked project-adapted v10 governance rules and a feature-frozen roadmap to v1.0.0;
+- regression coverage for localization, diagnostics, update channels/SemVer/API security, settings, theme/DPI, feedback and compact-layout invariants.
 
 ### Changed
 
 - Quick Mode is reorganized into a compact responsive grid without page-level vertical scrolling;
-- build progress/status/actions now live in a persistent bottom panel instead of appending cards below the viewport;
+- build progress/status/actions live in a persistent bottom panel;
 - successful preflight is summarized in the main window while complete details open separately;
-- advanced options open in a separate WPF dialog instead of expanding the Quick page;
-- Catalog Mode uses the `DataGrid` as its scrolling region and keeps the selected-build action row visible;
-- GUI assembly/file version is `0.3.1`; root ApplicationVersion and PowerShell ModuleVersion remain unchanged until a separate release/versioning step.
+- advanced options open in a dedicated dialog;
+- Catalog uses the `DataGrid` as its scrolling region and keeps the selected-build action row visible;
+- theme, language, diagnostics and update controls live in Settings;
+- ApplicationVersion and GUI version are synchronized to `0.3.3`; PowerShell ModuleVersion remains `0.3.0` because the build backend is unchanged;
+- update delivery intentionally uses a portable safe fallback: detect a newer official release and open its GitHub page instead of downloading/replacing/executing application binaries.
 
 ### Security
 
 - GUI logs and diagnostics share one sanitizer for HTTP/HTTPS URLs, user-profile paths, usernames, bearer/token/API-key/secret assignments and Windows product keys before diagnostic archive writes;
-- `environment.json` uses an explicit diagnostic allowlist instead of dumping process environment variables.
+- `environment.json` uses an explicit diagnostic allowlist instead of dumping process environment variables;
+- update requests contain no GitHub Authorization credential and accept an openable release target only on HTTPS `github.com`;
+- feedback does not automatically copy logs, diagnostics, secrets or personal data into GitHub Issues;
+- project governance is tracked in source but `.project-rules` remains denied from the end-user release package.
 
 ### Validation status
 
-- static source/XML/localization checks were performed during implementation;
-- Windows self-hosted CI and executable WPF validation are reported by the branch Pull Request and are not represented here until completed;
-- manual DPI, multi-monitor, keyboard, Narrator and real ISO end-to-end checks are not represented as completed by this changelog entry.
+- implementation and regression coverage are present in source;
+- current-head Full Windows validation must be reported by the branch Pull Request/self-hosted Actions run and is not claimed here before execution;
+- manual RU/EN update/feedback acceptance is **NOT RUN** until performed on the packaged current head;
+- external feedback/update availability remains **NOT RUN** while the target repository/tracker is private;
+- DPI, keyboard/Narrator, full network/proxy acceptance and final real ISO E2E remain separate release-train gates.
 
 ## 0.3.0-alpha.1 — 2026-08-18
 
@@ -93,7 +109,7 @@
 ### Changed
 
 - release packaging is self-validated;
-- source validation and package validation are explicitly separate;
+- source validation and release-package validation are explicitly separate;
 - backend integration boundary is frozen as GUI baseline;
 - validation claims are separated from implementation claims.
 
@@ -116,116 +132,80 @@
 
 ### Added
 
-- Backend command `RunPreflight` и reusable aggregated preflight engine;
-- structured preflight report со stable check ids, status/severity/code и machine-readable disk/path data;
+- Backend command `RunPreflight` and reusable aggregated preflight engine;
+- structured preflight report with stable check ids, status/severity/code and machine-readable disk/path data;
 - optional bounded official UUP dump API reachability check;
-- Backend command `CancelBuild` и SHA-256-based runtime cancellation control;
-- cooperative cancellation helpers, cancellable retry delays и runtime forwarding через elevation boundary;
-- `cancelled` Backend Contract event и отдельное cancelled job state;
-- extended structured error taxonomy, включая `UNSUPPORTED_HOST`, `REQUIRED_COMPONENT_MISSING`, `PATH_NOT_WRITABLE`, `DISK_SPACE_LOW`, `NETWORK_ERROR`, `UUP_PACKAGE_DOWNLOAD_FAILED`, `UUP_PACKAGE_INVALID`, `DOWNLOAD_FAILED`, `CONVERTER_FAILED`, `DISM_FAILED`, `ISO_NOT_FOUND`, `ISO_VALIDATION_FAILED`, `ELEVATION_CANCELLED`, `BUILD_CANCELLED`;
-- managed child-process runner с PID-rooted process-tree cancellation;
-- reliability/cancellation Pester tests и opt-in controlled Windows process-tree smoke test.
+- Backend command `CancelBuild` and SHA-256-based runtime cancellation control;
+- cooperative cancellation helpers, cancellable retry delays and runtime forwarding through the elevation boundary;
+- `cancelled` Backend Contract event and a separate cancelled job state;
+- extended structured error taxonomy including host/path/disk/network/download/converter/DISM/ISO/elevation/cancellation failures;
+- managed child-process runner with PID-rooted process-tree cancellation;
+- reliability/cancellation Pester tests and an opt-in controlled Windows process-tree smoke test.
 
 ### Changed
 
-- local preflight выполняется до UAC, поэтому fatal environment failure больше не открывает elevation prompt;
-- elevated worker повторяет critical preflight через тот же reusable engine;
-- прежние assert-style host/disk/tool checks сведены к общему preflight source of truth;
-- retry delays поддерживают cancellation вместо blind `Start-Sleep`;
-- `uup_download_windows.cmd` выполняется через managed root process с сохранением existing compact progress и `converter-*.log`;
-- UUP/converter process tree может быть остановлен без kill-by-name и без orphan aria2/converter descendants;
-- elevated result protocol передаёт optional structured error details;
-- cancellation сохраняет UUP cache/work data и aria2 resume state.
+- local preflight runs before UAC, so fatal environment failures do not open an elevation prompt;
+- elevated worker repeats critical preflight through the same reusable engine;
+- prior host/disk/tool checks share one preflight source of truth;
+- retry delays support cancellation;
+- `uup_download_windows.cmd` executes through the managed root process while preserving compact progress and `converter-*.log`;
+- UUP/converter process tree can be stopped without kill-by-name and without selecting unrelated aria2/DISM processes;
+- elevated result protocol carries optional structured error details;
+- cancellation preserves UUP cache/work data and aria2 resume state.
 
 ### Compatibility
 
-- Backend Contract SchemaVersion остаётся `1`;
-- BuildPlan SchemaVersion остаётся `1`;
-- ApplicationVersion — `0.2.2-alpha.1`, ModuleVersion — `0.2.2`;
-- TUI/CLI, quick mode, WIM/ESD, virtual editions, cache/resume, progress и logs остаются совместимыми;
-- Windows PowerShell 5.1 и PowerShell 7 остаются целевыми runtime;
-- GUI, WPF/WinUI, C#, updater, queue/history/profiles, USB/Rufus, dynamic disk estimator и GitHub Actions не добавлены.
+- Backend Contract SchemaVersion remains `1`;
+- BuildPlan SchemaVersion remains `1`;
+- ApplicationVersion `0.2.2-alpha.1`, ModuleVersion `0.2.2`;
+- TUI/CLI, quick mode, WIM/ESD, virtual editions, cache/resume, progress and logs remain compatible;
+- Windows PowerShell 5.1 and PowerShell 7 remain target runtimes.
 
 ### Validation status
 
-- reliability tests разработаны без реальной загрузки Windows;
-- process-tree integration smoke является opt-in и использует controlled dummy PowerShell process;
-- перед release требуется локально выполнить полный Pester suite, PSScriptAnalyzer, Backend `GetVersion`/`RunPreflight` и controlled cancellation smokes в Windows PowerShell 5.1 и, если доступен, PowerShell 7.
+- reliability tests were developed without real Windows downloads;
+- process-tree integration smoke is opt-in and uses controlled dummy PowerShell processes;
+- release requires the complete Pester suite, PSScriptAnalyzer, Backend `GetVersion`/`RunPreflight` and controlled cancellation smokes on Windows.
 
 ## 0.2.1-alpha.1 — 2026-08-18
 
 ### Added
 
-- Backend Contract Schema v1 как отдельный машиночитаемый слой над существующим PowerShell backend;
-- ASCII-only `Invoke-WibBackend.ps1` для Windows PowerShell 5.1 и PowerShell 7;
-- UTF-8 JSON request/response transport с атомарной записью final response;
-- optional UTF-8 NDJSON event stream со `stage`, `progress`, `completed`, `failed` и extensible `warning`/`info` events;
-- stable structured error codes: `INVALID_REQUEST`, `UNSUPPORTED_SCHEMA`, `INVALID_COMMAND`, `INVALID_ARGUMENT`, `BUILD_NOT_FOUND`, `LANGUAGE_NOT_FOUND`, `EDITION_NOT_FOUND`, `UUP_API_ERROR`, `UUP_API_UNAVAILABLE`, `INVALID_BUILD_PLAN`, `ELEVATION_FAILED`, `BUILD_FAILED`, `INTERNAL_ERROR`;
-- Backend Contract commands `GetVersion`, `SearchBuilds`, `GetRecommendedBuild`, `GetLanguages`, `GetEditions`, `CreateBuildPlan`, `ValidateBuildPlan`, `ExecuteBuildPlan`;
-- controlled camelCase DTO conversion for builds, languages, editions, build plans, build results, errors and events;
-- Backend Contract/Event Pester tests using mocks instead of real Windows downloads;
-- `docs/BACKEND_CONTRACT.md` and `docs/BACKEND_CONTRACT_EN.md`;
-- release notes for `0.2.1-alpha.1`.
+- Backend Contract Schema v1 as a machine-readable layer over the existing PowerShell backend;
+- ASCII-only `Invoke-WibBackend.ps1` for Windows PowerShell 5.1 and PowerShell 7;
+- UTF-8 JSON request/response transport with atomic final response;
+- optional UTF-8 NDJSON events;
+- stable structured error codes and allowlisted Backend Contract commands;
+- controlled DTO conversion for builds, languages, editions, build plans, build results, errors and events;
+- Backend Contract/Event Pester tests using mocks;
+- Backend Contract documentation RU/EN.
 
 ### Changed
 
-- ApplicationVersion is centralized in root `VERSION`; UI, metadata, Backend Contract and HTTP User-Agent now use the same runtime source;
-- module manifest version raised to `0.2.1`; ApplicationVersion remains independently versioned as `0.2.1-alpha.1`;
-- BuildPlan schema version is explicitly independent and remains `1`;
-- quick-mode recommendation logic moved into a reusable service used by both TUI and Backend Contract without hardcoded Windows release/build numbers;
-- converter output parsing now produces normalized progress state consumed by the existing console renderer and the optional structured event sink; no second aria2 parser was added;
-- existing elevated plan/result protocol can forward Backend Contract request/event context while preserving the same build/elevation workflow;
-- UUP API/package User-Agent no longer contains the stale manually maintained `WindowsISOBuilder/0.1` value;
-- release packaging reads its default version from `VERSION` and includes the machine entry point and Backend Contract documentation.
+- ApplicationVersion is centralized in root `VERSION`;
+- module and schema versions remain independently versioned;
+- recommendation logic is reusable by TUI and Backend Contract without hardcoded Windows releases;
+- converter parsing produces normalized progress consumed by console and structured event sinks;
+- existing elevation protocol forwards optional Backend Contract event context;
+- network User-Agent reads the runtime application version;
+- release packaging includes machine entry point and Backend Contract documentation.
 
 ### Compatibility
 
-- existing `Start-Builder.cmd`, `Start-Builder.ps1`, interactive TUI, non-interactive CLI, quick mode, UAC/elevation, console progress, logs, caching and resume behavior are preserved by design;
-- Windows PowerShell 5.1 remains a required target; PowerShell 7 is also supported;
-- no GUI, WPF, WinUI, C# rewrite, updater, USB/Rufus integration, queue/history/profiles, full cancellation subsystem, custom UUP downloader/converter, or GitHub Actions were added.
-
-### Validation status
-
-- Backend Contract tests are designed to run without downloading Windows by mocking external/build operations;
-- release verification still requires the complete local Pester suite, PSScriptAnalyzer and `GetVersion` smoke tests in Windows PowerShell 5.1 and, when available, PowerShell 7;
-- previous real Windows 11 end-to-end build validation belongs to the preserved build pipeline and does not replace current-version automated verification.
+- existing TUI/CLI/quick mode/UAC/elevation/log/cache/resume behavior is preserved;
+- Windows PowerShell 5.1 remains required and PowerShell 7 remains supported.
 
 ## 0.2.0-alpha.1 — 2026-08-17
 
-- в главное меню добавлен быстрый сценарий `Быстро скачать последнюю Windows`: для Windows 11 и Windows 10 приложение принудительно обновляет каталог UUP dump, динамически выбирает рекомендуемую стабильную полноценную x64-сборку без зашитого номера версии и затем предлагает выбрать язык, редакции и формат; недоступные Windows 7/8 удалены из быстрого меню;
-- быстрый режим Windows 11 предпочитает последний стабильный H2-релиз как массовую ветку ежегодного feature-update цикла и не выбирает специализированный H1-релиз только из-за большего номера версии; если H2-релиз в каталоге отсутствует, используется последняя стабильная сборка с предупреждением;
-- подробный вывод `aria2` и UUP-конвертера больше не засоряет консоль: во время загрузки и конвертации показывается одна обновляемая полоса прогресса с процентом/скоростью, а полный вывод сохраняется рядом с build-log в `converter-*.log`;
-- запуск `uup_download_windows.cmd` переведён на вложенный PowerShell с `Out-String -Stream` и явной передачей exit code, чтобы родительский процесс дождался дочерних процессов конвертера перед поиском ISO; готовый ISO ищется во всём рабочем каталоге, а ошибка без ISO содержит путь к подробному `converter-*.log`;
-- после успешной интерактивной сборки родительское окно явно показывает блок `Сборка завершена`, сообщение `ISO успешно создан`, полный путь к ISO и доступные диагностические логи;
-- каждый запуск `Start-Builder.ps1` пишет отдельный transcript-лог в `logs\execution-<timestamp>-<pid>.log`; elevated-процесс получает отдельный `logs\elevated-<operation-id>.log`;
-- повышенный процесс сборки передаёт родительскому процессу структурированный JSON-результат с `success`, этапом, сообщением, стеком, путём к логу, рабочим каталогом и путём к ISO; вместо общего `Exit code: 1` показывается реальная причина ошибки;
-- каталог классифицирует полноценные сборки Windows, servicing-обновления и прочие записи; cumulative/.NET/OOBE-пакеты скрыты в интерактивном режиме по умолчанию;
-- в таблицу добавлен столбец `Тип`, а в меню сортировки — сортировка по типу записи с полноценными сборками Windows впереди;
-- неинтерактивный режим предпочитает полноценную сборку Windows, если API одновременно возвращает servicing-пакеты;
-- добавлена постраничная навигация по каталогу сборок: следующие/предыдущие 40 записей, переход к странице, новый поиск и возврат в главное меню;
-- изменён порядок актуальности: сначала сравнивается семейство Windows-релиза, затем servicing date/build number, чтобы старые LTSC/development-ветки не вытесняли актуальный массовый выпуск;
-- исправлены проблемы Windows PowerShell 5.1 с UTF-8 private scripts и обёрткой `Write-Host`;
-- статические тесты ограничены исходниками и тестами проекта и используют UTF-8-safe разбор PowerShell;
-- добавлены локальные Pester-тесты elevated-result, execution-log, сообщения об успешной сборке, quick mode, compact converter progress, ожидания UUP-процессов, UTF-8 loader, `Write-Host` compatibility и политики выбора рекомендуемого Windows 11 H2;
-- русская и английская документация обновлена под публичную alpha и явно отделяет реализованные возможности от непроверенных вручную сценариев;
-- GitHub Actions исключены из релизного процесса; используются локальные Pester и PSScriptAnalyzer;
-- добавлена MIT License;
-- версия проекта повышена до `0.2.0-alpha.1`, версия PowerShell-модуля — до `0.2.0`.
+- added a dynamic quick-download path for recommended Windows 11/10 without hardcoded release numbers;
+- compact converter/aria2 progress and detailed converter logs;
+- structured elevated-process result and execution logging;
+- catalog entry classification, pagination and improved selection/sorting;
+- Windows PowerShell 5.1 UTF-8/Write-Host compatibility fixes;
+- local Pester/PSScriptAnalyzer validation and MIT license.
 
 ### Validation status
 
-- локальные тесты и PSScriptAnalyzer используются как обязательная автоматическая проверка;
-- подтверждён real end-to-end сценарий Windows 11 x64 ru-ru до готового ISO;
-- подтверждён multi-edition сценарий Core + Professional на реальной сборке;
-- отдельный Windows 10 end-to-end, принудительный обрыв сети и полная ручная WIM/ESD-матрица не являются release gates для этой alpha.
-
-## 0.1.0-alpha.1 — 2026-08-06
-
-- заменён фиксированный сценарий Windows 10/11 на динамический каталог UUP dump;
-- добавлен интерактивный выбор сборки, архитектуры, языка и редакций;
-- добавлены virtual editions, WIM/ESD и параметры интеграции обновлений;
-- добавлен постоянный кеш и восстановление загрузок aria2;
-- добавлены план сборки, повышение прав после выбора параметров и подробные состояния задания;
-- добавлены SHA-256, JSON-метаданные и проверка структуры ISO;
-- проект разделён на PowerShell-модуль и покрыт локальными тестами;
-- добавлена русская и английская документация.
+- local tests and PSScriptAnalyzer are mandatory automated checks;
+- a real Windows 11 x64 ru-ru ISO build and Core + Professional multi-edition scenario were historically confirmed;
+- Windows 10 E2E, forced network interruption and a complete WIM/ESD manual matrix were not alpha release gates.
