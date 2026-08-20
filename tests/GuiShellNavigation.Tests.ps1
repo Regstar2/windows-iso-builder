@@ -44,12 +44,22 @@ Describe 'v0.3.2 GUI shell navigation' {
         $script:mainXaml | Should -Match 'Background="\{DynamicResource WibPageBackgroundBrush\}"'
     }
 
-    It 'keeps buttons and form controls readable in dark and disabled states' {
-        foreach ($resource in @('WibControlBrush','WibDisabledControlBrush','WibDisabledTextBrush')) {
+    It 'keeps all button surfaces dark and readable in dark mode' {
+        foreach ($resource in @('WibControlBrush','WibControlHoverBrush','WibControlPressedBrush','WibDisabledControlBrush','WibDisabledTextBrush','WibPrimaryButtonBrush','WibPrimaryButtonTextBrush')) {
             $script:stylesXaml | Should -Match ('x:Key="{0}"' -f $resource)
             $script:themeService | Should -Match ('resources\["{0}"\]' -f $resource)
         }
-        foreach ($control in @('Button','TextBox','ComboBox','CheckBox')) {
+        $script:stylesXaml | Should -Match '<ControlTemplate TargetType="Button">'
+        $script:stylesXaml | Should -Match 'x:Name="ButtonSurface"'
+        $script:stylesXaml | Should -Match 'TargetName="ButtonSurface" Property="Background" Value="\{DynamicResource WibDisabledControlBrush\}"'
+        $script:stylesXaml | Should -Match '<Setter Property="Background" Value="\{DynamicResource WibPrimaryButtonBrush\}"/>'
+        $script:stylesXaml | Should -Match '<Setter Property="Foreground" Value="\{DynamicResource WibPrimaryButtonTextBrush\}"/>'
+        $script:themeService | Should -Match 'resources\["WibPrimaryButtonBrush"\] = dark'
+        $script:themeService | Should -Match 'Brush\(0x34, 0x34, 0x34\)'
+    }
+
+    It 'keeps form controls readable in dark and disabled states' {
+        foreach ($control in @('TextBox','ComboBox','CheckBox')) {
             $script:stylesXaml | Should -Match ('<Style TargetType="{0}">' -f $control)
         }
         $script:stylesXaml | Should -Match '<Setter Property="Foreground" Value="\{DynamicResource WibTextBrush\}"/>'
