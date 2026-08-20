@@ -17,7 +17,7 @@ Describe 'GUI MVP regression boundaries' {
 
     It 'keeps read-only progress and inline text bindings one-way' {
         $buildPanelXaml = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Views\BuildPanelView.xaml') -Raw -Encoding UTF8
-        $viewModel = @('MainViewModel.cs','MainViewModel.Metadata.cs','MainViewModel.Build.cs') | ForEach-Object { Get-Content -LiteralPath (Join-Path $script:projectRoot ('src\WindowsISOBuilder.Gui\ViewModels\' + $_)) -Raw -Encoding UTF8 } | Out-String
+        $viewModel = @('MainViewModel.cs','MainViewModel.Metadata.cs','MainViewModel.Build.cs','MainViewModel.Guidance.cs') | ForEach-Object { Get-Content -LiteralPath (Join-Path $script:projectRoot ('src\WindowsISOBuilder.Gui\ViewModels\' + $_)) -Raw -Encoding UTF8 } | Out-String
         $buildPanelXaml | Should -Match 'ProgressBar\s+Value="\{Binding Progress,\s*Mode=OneWay\}"'
         $buildPanelXaml | Should -Match '<Run\s+Text="\{Binding Status,\s*Mode=OneWay\}"'
         $buildPanelXaml | Should -Match '<Run\s+Text="\{Binding Speed,\s*Mode=OneWay\}"'
@@ -33,13 +33,13 @@ Describe 'GUI MVP regression boundaries' {
     }
 
     It 'keeps output directory creation and writability in backend preflight' {
-        $viewModel = @('MainViewModel.cs','MainViewModel.Metadata.cs','MainViewModel.Build.cs') | ForEach-Object { Get-Content -LiteralPath (Join-Path $script:projectRoot ('src\WindowsISOBuilder.Gui\ViewModels\' + $_)) -Raw -Encoding UTF8 } | Out-String
+        $viewModel = @('MainViewModel.cs','MainViewModel.Metadata.cs','MainViewModel.Build.cs','MainViewModel.Guidance.cs') | ForEach-Object { Get-Content -LiteralPath (Join-Path $script:projectRoot ('src\WindowsISOBuilder.Gui\ViewModels\' + $_)) -Raw -Encoding UTF8 } | Out-String
         $viewModel | Should -Not -Match 'Directory\.CreateDirectory\(\s*OutputDirectory\s*\)'
         $viewModel | Should -Match 'RunPreflight'
     }
 
     It 'gates the interactive GUI on the startup backend handshake' {
-        $viewModel = @('MainViewModel.cs','MainViewModel.Metadata.cs','MainViewModel.Build.cs') | ForEach-Object { Get-Content -LiteralPath (Join-Path $script:projectRoot ('src\WindowsISOBuilder.Gui\ViewModels\' + $_)) -Raw -Encoding UTF8 } | Out-String
+        $viewModel = @('MainViewModel.cs','MainViewModel.Metadata.cs','MainViewModel.Build.cs','MainViewModel.Guidance.cs') | ForEach-Object { Get-Content -LiteralPath (Join-Path $script:projectRoot ('src\WindowsISOBuilder.Gui\ViewModels\' + $_)) -Raw -Encoding UTF8 } | Out-String
         $viewModel | Should -Match 'State\s*=\s*UiState\.LoadingBuild'
         $viewModel | Should -Match 'InvokeAsync<VersionData>\("GetVersion"'
     }
@@ -54,7 +54,7 @@ Describe 'GUI MVP regression boundaries' {
     }
 
     It 'sanitizes technical diagnostics through one reusable sanitizer' {
-        $viewModel = @('MainViewModel.cs','MainViewModel.Metadata.cs','MainViewModel.Build.cs') | ForEach-Object { Get-Content -LiteralPath (Join-Path $script:projectRoot ('src\WindowsISOBuilder.Gui\ViewModels\' + $_)) -Raw -Encoding UTF8 } | Out-String
+        $viewModel = @('MainViewModel.cs','MainViewModel.Metadata.cs','MainViewModel.Build.cs','MainViewModel.Guidance.cs') | ForEach-Object { Get-Content -LiteralPath (Join-Path $script:projectRoot ('src\WindowsISOBuilder.Gui\ViewModels\' + $_)) -Raw -Encoding UTF8 } | Out-String
         $logger = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Services\GuiLogger.cs') -Raw -Encoding UTF8
         $sanitizer = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Services\DiagnosticSanitizer.cs') -Raw -Encoding UTF8
         $viewModel | Should -Match 'DiagnosticSanitizer\.Sanitize\(backendException\.Message\)'
@@ -110,6 +110,7 @@ Describe 'GUI polish regression boundaries' {
         $catalogCode = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Views\CatalogView.xaml.cs') -Raw -Encoding UTF8
         $catalogXaml | Should -Match 'x:Name="CatalogGrid"'
         $catalogXaml | Should -Match '<RowDefinition Height="\*"/>'
+        $catalogXaml | Should -Match '<WrapPanel Orientation="Horizontal">'
         $catalogCode | Should -Match 'UseCatalogBuild_Click'
     }
 
@@ -137,9 +138,12 @@ Describe 'GUI polish regression boundaries' {
         $theme | Should -Match 'ThemeMode\.System'
         $theme | Should -Match 'ThemeMode\.Light'
         $theme | Should -Match 'ThemeMode\.Dark'
+        $theme | Should -Match 'WibPageBackgroundBrush'
+        $theme | Should -Match 'AppsUseLightTheme'
         $styles | Should -Not -Match 'PresentationFramework\.Fluent;component/Themes/Fluent\.xaml'
         $styles | Should -Match '<Style TargetType="UserControl">'
-        $styles | Should -Match 'SystemColors\.WindowTextBrushKey'
+        $styles | Should -Match 'WibTextBrush'
+        $styles | Should -Match 'WibCardBrush'
         $styles | Should -Not -Match '#F5F5F5|#EEEEEE|Background="White"'
     }
 
@@ -150,14 +154,19 @@ Describe 'GUI polish regression boundaries' {
         $build = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Views\BuildPanelView.xaml') -Raw -Encoding UTF8
         $styles | Should -Match 'x:Key="NavigationRadio"'
         $styles | Should -Match 'x:Key="PrimaryButton"'
+        $styles | Should -Match 'x:Key="GuidedActionButton"'
         foreach ($nav in @('BuildNav','CatalogNav','SettingsNav','HelpNav','AboutNav')) { $script:mainXaml | Should -Match ('x:Name="{0}"' -f $nav) }
         $script:mainXaml | Should -Match '<views:SettingsView x:Name="SettingsPage"/>'
         $script:mainXaml | Should -Match '<views:HelpView/>'
         $script:mainXaml | Should -Match '<views:AboutView/>'
         $quick | Should -Match 'Style="\{StaticResource StatusBanner\}"'
         $quick | Should -Match 'Style="\{StaticResource FieldLabel\}"'
+        $quick | Should -Match 'Tag="\{Binding HighlightRecommended\}"'
+        $quick | Should -Match 'Tag="\{Binding HighlightEditions\}"'
+        $quick | Should -Match 'Tag="\{Binding HighlightPreflight\}"'
         $catalog | Should -Match 'Style="\{StaticResource PrimaryButton\}"'
-        $build | Should -Match 'Style="\{StaticResource PrimaryButton\}"'
+        $build | Should -Match 'Style="\{StaticResource GuidedActionButton\}"'
+        $build | Should -Match 'Tag="\{Binding HighlightBuild\}"'
     }
 
     It 'keeps diagnostics archive entries controlled and sanitized before ZIP writes' {
