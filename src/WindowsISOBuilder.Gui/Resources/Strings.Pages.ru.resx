@@ -10,20 +10,46 @@
   <data name="NavAbout" xml:space="preserve"><value>_О приложении</value></data>
   <data name="BuildPageTitle" xml:space="preserve"><value>Сборка</value></data>
   <data name="SettingsTitle" xml:space="preserve"><value>Настройки</value></data>
-  <data name="SettingsSubtitle" xml:space="preserve"><value>Настройте интерфейс, проверку обновлений и диагностику.</value></data>
+  <data name="SettingsSubtitle" xml:space="preserve"><value>Настройте интерфейс, сеть, проверку обновлений и диагностику.</value></data>
   <data name="SettingsInterfaceTitle" xml:space="preserve"><value>Интерфейс</value></data>
   <data name="SettingsLanguageLabel" xml:space="preserve"><value>Язык интерфейса</value></data>
   <data name="SettingsThemeLabel" xml:space="preserve"><value>Тема</value></data>
   <data name="ThemeSystem" xml:space="preserve"><value>Как в Windows</value></data>
   <data name="ThemeLight" xml:space="preserve"><value>Светлая</value></data>
   <data name="ThemeDark" xml:space="preserve"><value>Тёмная</value></data>
+  <data name="SettingsNetworkTitle" xml:space="preserve"><value>Сеть</value></data>
+  <data name="SettingsNetworkDescription" xml:space="preserve"><value>Единая сетевая политика применяется к UUP dump, загрузкам Microsoft и проверке обновлений. Неисправный Custom-прокси никогда не переключается на Direct.</value></data>
+  <data name="NetworkModeLabel" xml:space="preserve"><value>Режим подключения</value></data>
+  <data name="NetworkModeSystem" xml:space="preserve"><value>Системный</value></data>
+  <data name="NetworkModeDirect" xml:space="preserve"><value>Напрямую</value></data>
+  <data name="NetworkModeCustom" xml:space="preserve"><value>Пользовательский</value></data>
+  <data name="ProxyTypeLabel" xml:space="preserve"><value>Тип прокси</value></data>
+  <data name="ProxyHostLabel" xml:space="preserve"><value>Хост</value></data>
+  <data name="ProxyPortLabel" xml:space="preserve"><value>Порт</value></data>
+  <data name="ProxyUsernameLabel" xml:space="preserve"><value>Имя пользователя (необязательно)</value></data>
+  <data name="ProxyPasswordLabel" xml:space="preserve"><value>Пароль</value></data>
+  <data name="ProxyCredentialSaved" xml:space="preserve"><value>Учётные данные безопасно сохранены для текущего пользователя Windows.</value></data>
+  <data name="ProxyCredentialNotSaved" xml:space="preserve"><value>Пароль прокси не сохранён.</value></data>
+  <data name="ButtonSaveNetwork" xml:space="preserve"><value>Сохранить настройки сети</value></data>
+  <data name="ButtonTestNetwork" xml:space="preserve"><value>Проверить подключение</value></data>
+  <data name="ButtonClearCredential" xml:space="preserve"><value>Удалить сохранённый пароль</value></data>
+  <data name="NetworkSettingsSaved" xml:space="preserve"><value>Настройки сети сохранены.</value></data>
+  <data name="NetworkSettingsInvalid" xml:space="preserve"><value>Настройки прокси некорректны. Исправьте их перед сетевыми операциями.</value></data>
+  <data name="NetworkCredentialUnavailable" xml:space="preserve"><value>Сохранённые учётные данные прокси недоступны или не расшифровываются.</value></data>
+  <data name="NetworkCredentialCleared" xml:space="preserve"><value>Сохранённый пароль прокси удалён.</value></data>
+  <data name="NetworkTestRunning" xml:space="preserve"><value>Проверяется выбранная сетевая политика…</value></data>
+  <data name="NetworkTestSuccess" xml:space="preserve"><value>Подключение через выбранную сетевую политику успешно.</value></data>
+  <data name="NetworkProxyUnavailable" xml:space="preserve"><value>Настроенный пользовательский прокси не смог выполнить запрос.</value></data>
+  <data name="NetworkProxyAuthenticationFailed" xml:space="preserve"><value>Прокси отклонил указанные учётные данные.</value></data>
+  <data name="NetworkTimeout" xml:space="preserve"><value>Время проверки подключения истекло.</value></data>
+  <data name="NetworkTestFailed" xml:space="preserve"><value>Проверка подключения завершилась ошибкой. Резервное прямое подключение не использовалось.</value></data>
   <data name="SettingsUpdatesTitle" xml:space="preserve"><value>Обновления</value></data>
-  <data name="SettingsUpdatesDescription" xml:space="preserve"><value>Проверяет наличие новой версии в официальных GitHub Releases. Windows ISO Builder не скачивает и не устанавливает обновления автоматически.</value></data>
+  <data name="SettingsUpdatesDescription" xml:space="preserve"><value>Проверяет новую версию в официальных GitHub Releases через общую сетевую политику. Windows ISO Builder не скачивает и не устанавливает обновления автоматически.</value></data>
   <data name="SettingsUpdateChannelLabel" xml:space="preserve"><value>Канал обновлений</value></data>
   <data name="UpdateChannelStable" xml:space="preserve"><value>Стабильные</value></data>
   <data name="UpdateChannelPrerelease" xml:space="preserve"><value>Предварительные</value></data>
   <data name="ButtonCheckUpdates" xml:space="preserve"><value>Проверить обновления</value></data>
-  <data name="TooltipCheckUpdates" xml:space="preserve"><value>Проверить официальный GitHub Releases с выбранным каналом.</value></data>
+  <data name="TooltipCheckUpdates" xml:space="preserve"><value>Проверить официальный GitHub Releases через выбранный канал и общую сетевую политику.</value></data>
   <data name="UpdateCheckTitle" xml:space="preserve"><value>Обновления</value></data>
   <data name="UpdateAvailableTitle" xml:space="preserve"><value>Доступно обновление</value></data>
   <data name="UpdateAvailableMessageFormat" xml:space="preserve"><value>Доступна версия {1} (установлена: {0}).&#10;&#10;{2}&#10;&#10;Открыть страницу официального релиза на GitHub?</value></data>
@@ -31,7 +57,7 @@
   <data name="UpdateUpToDateMessageFormat" xml:space="preserve"><value>Версия {0} актуальна для выбранного канала.</value></data>
   <data name="UpdateNoPublishedReleaseMessage" xml:space="preserve"><value>Для выбранного канала не найден подходящий опубликованный релиз.</value></data>
   <data name="UpdateCheckFailedTitle" xml:space="preserve"><value>Не удалось проверить обновления</value></data>
-  <data name="UpdateCheckFailedMessage" xml:space="preserve"><value>Не удалось получить данные GitHub Releases. Проверьте подключение к сети и повторите попытку.</value></data>
+  <data name="UpdateCheckFailedMessage" xml:space="preserve"><value>Не удалось получить данные GitHub Releases через текущую сетевую политику. Проверьте настройки сети и повторите попытку.</value></data>
   <data name="UpdateOpenReleaseFailedTitle" xml:space="preserve"><value>Не удалось открыть релиз</value></data>
   <data name="UpdateOpenReleaseFailedMessage" xml:space="preserve"><value>Не удалось открыть страницу официального релиза на GitHub.</value></data>
   <data name="SettingsDiagnosticsTitle" xml:space="preserve"><value>Диагностика</value></data>
