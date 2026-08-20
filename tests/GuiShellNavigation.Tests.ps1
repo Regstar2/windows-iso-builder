@@ -58,6 +58,16 @@ Describe 'v0.3.2 GUI shell navigation' {
         $script:themeService | Should -Match 'Brush\(0x34, 0x34, 0x34\)'
     }
 
+    It 'keeps ComboBox fields and dropdown items on theme-owned surfaces' {
+        $script:stylesXaml | Should -Match '<ControlTemplate TargetType="ComboBox">'
+        $script:stylesXaml | Should -Match 'x:Name="ComboSurface"'
+        $script:stylesXaml | Should -Match 'Background="\{TemplateBinding Background\}"'
+        $script:stylesXaml | Should -Match 'Background="\{DynamicResource WibCardBrush\}"'
+        $script:stylesXaml | Should -Match '<ControlTemplate TargetType="ComboBoxItem">'
+        $script:stylesXaml | Should -Match 'TargetName="ComboSurface" Property="Background" Value="\{DynamicResource WibDisabledControlBrush\}"'
+        $script:stylesXaml | Should -Match 'TargetName="DropDownArrow" Property="Stroke" Value="\{DynamicResource WibDisabledTextBrush\}"'
+    }
+
     It 'keeps form controls readable in dark and disabled states' {
         foreach ($control in @('TextBox','ComboBox','CheckBox')) {
             $script:stylesXaml | Should -Match ('<Style TargetType="{0}">' -f $control)
