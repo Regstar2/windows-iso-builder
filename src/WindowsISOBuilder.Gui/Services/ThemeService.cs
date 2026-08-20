@@ -59,9 +59,9 @@ internal static class ThemeService
         }
     }
 
-    private static SolidColorBrush Brush(byte red, byte green, byte blue)
+    private static SolidColorBrush Brush(int red, int green, int blue)
     {
-        var brush = new SolidColorBrush(Color.FromRgb(red, green, blue));
+        var brush = new SolidColorBrush(Color.FromRgb((byte)red, (byte)green, (byte)blue));
         brush.Freeze();
         return brush;
     }
