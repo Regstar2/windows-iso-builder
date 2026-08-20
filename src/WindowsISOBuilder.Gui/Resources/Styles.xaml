@@ -1,20 +1,28 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="WibPageBackgroundBrush" Color="#F3F3F3"/>
+    <SolidColorBrush x:Key="WibSurfaceBrush" Color="#F3F3F3"/>
+    <SolidColorBrush x:Key="WibCardBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="WibSubtleBrush" Color="#F7F7F7"/>
+    <SolidColorBrush x:Key="WibBorderBrush" Color="#D0D0D0"/>
+    <SolidColorBrush x:Key="WibTextBrush" Color="#1A1A1A"/>
+    <SolidColorBrush x:Key="WibMutedTextBrush" Color="#6B6B6B"/>
+
     <Style TargetType="Window">
         <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI"/>
         <Setter Property="FontSize" Value="13"/>
-        <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"/>
-        <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.ControlBrushKey}}"/>
+        <Setter Property="Foreground" Value="{DynamicResource WibTextBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource WibPageBackgroundBrush}"/>
         <Setter Property="UseLayoutRounding" Value="True"/>
         <Setter Property="SnapsToDevicePixels" Value="True"/>
     </Style>
 
     <Style TargetType="UserControl">
-        <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"/>
+        <Setter Property="Foreground" Value="{DynamicResource WibTextBrush}"/>
         <Setter Property="Background" Value="Transparent"/>
     </Style>
     <Style TargetType="TextBlock">
-        <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"/>
+        <Setter Property="Foreground" Value="{DynamicResource WibTextBrush}"/>
     </Style>
 
     <Style TargetType="Button">
@@ -45,29 +53,29 @@
     <Style x:Key="Card" TargetType="Border">
         <Setter Property="Padding" Value="16"/>
         <Setter Property="CornerRadius" Value="10"/>
-        <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"/>
+        <Setter Property="Background" Value="{DynamicResource WibCardBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource WibBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
     </Style>
     <Style x:Key="StatusBanner" TargetType="Border">
         <Setter Property="Padding" Value="12,9"/>
         <Setter Property="CornerRadius" Value="7"/>
-        <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.ControlLightBrushKey}}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"/>
+        <Setter Property="Background" Value="{DynamicResource WibSubtleBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource WibBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
     </Style>
     <Style x:Key="SectionTitle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="17"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"/>
+        <Setter Property="Foreground" Value="{DynamicResource WibTextBrush}"/>
     </Style>
     <Style x:Key="PageTitle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="25"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"/>
+        <Setter Property="Foreground" Value="{DynamicResource WibTextBrush}"/>
     </Style>
     <Style x:Key="MutedText" TargetType="TextBlock">
-        <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"/>
+        <Setter Property="Foreground" Value="{DynamicResource WibMutedTextBrush}"/>
     </Style>
     <Style x:Key="FieldLabel" TargetType="TextBlock" BasedOn="{StaticResource MutedText}">
         <Setter Property="Margin" Value="0,0,0,5"/>
@@ -82,8 +90,33 @@
         <Setter Property="Padding" Value="16,7"/>
     </Style>
 
+    <Style x:Key="GuidedActionButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="True">
+                <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
+                <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.HighlightTextBrushKey}}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="GuidedStepBorder" TargetType="Border">
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="2"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="Padding" Value="4,2"/>
+        <Setter Property="Margin" Value="-4,-2,0,-2"/>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="True">
+                <Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
+                <Setter Property="Background" Value="{DynamicResource WibSubtleBrush}"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
     <Style x:Key="NavigationRadio" TargetType="RadioButton">
-        <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"/>
+        <Setter Property="Foreground" Value="{DynamicResource WibTextBrush}"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderBrush" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="1"/>
@@ -106,11 +139,11 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="NavigationSurface" Property="Background" Value="{DynamicResource {x:Static SystemColors.ControlLightBrushKey}}"/>
+                            <Setter TargetName="NavigationSurface" Property="Background" Value="{DynamicResource WibSubtleBrush}"/>
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="NavigationSurface" Property="Background" Value="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"/>
-                            <Setter TargetName="NavigationSurface" Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"/>
+                            <Setter TargetName="NavigationSurface" Property="Background" Value="{DynamicResource WibCardBrush}"/>
+                            <Setter TargetName="NavigationSurface" Property="BorderBrush" Value="{DynamicResource WibBorderBrush}"/>
                             <Setter Property="FontWeight" Value="SemiBold"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
@@ -122,20 +155,13 @@
         </Setter>
     </Style>
 
-    <Style x:Key="FooterButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-        <Setter Property="Padding" Value="10,4"/>
-        <Setter Property="MinHeight" Value="30"/>
-        <Setter Property="Margin" Value="6,0,0,0"/>
-        <Setter Property="VerticalAlignment" Value="Center"/>
-    </Style>
-
     <Style TargetType="DataGrid">
-        <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"/>
-        <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"/>
+        <Setter Property="Background" Value="{DynamicResource WibCardBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource WibTextBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource WibBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="GridLinesVisibility" Value="Horizontal"/>
-        <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"/>
+        <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource WibBorderBrush}"/>
         <Setter Property="RowHeight" Value="34"/>
         <Setter Property="HeadersVisibility" Value="Column"/>
     </Style>
