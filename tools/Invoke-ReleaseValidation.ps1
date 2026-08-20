@@ -69,7 +69,7 @@ function Add-ValidationResult {
         message = Protect-ValidationText $Message
         details = $Details
     }
-    Write-Host ('[{0}] {1} - {2}' -f $Status.ToUpperInvariant(), $Id, (Protect-ValidationText $Message))
+    Write-Host ('[{0}] {1} - {2}' -f $status.ToUpperInvariant(), $Id, (Protect-ValidationText $Message))
 }
 
 function Invoke-RequiredCheck {
@@ -287,7 +287,7 @@ try {
     Write-Host ''
 
     Invoke-RequiredCheck -Id 'version-and-schema' -Required $true -Action {
-        if ($version -ne '0.3.0-alpha.1') { throw ('VERSION is {0}; expected 0.3.0-alpha.1.' -f $version) }
+        if ($version -ne '0.4.0-alpha.1') { throw ('VERSION is {0}; expected 0.4.0-alpha.1.' -f $version) }
         if ($moduleVersion -ne '0.3.0') { throw ('ModuleVersion is {0}; expected 0.3.0.' -f $moduleVersion) }
         if ([int]$manifestData.backendContractSchemaVersion -ne 1) { throw 'Backend Contract SchemaVersion must remain 1.' }
         if ([int]$manifestData.buildPlanSchemaVersion -ne 1) { throw 'BuildPlan SchemaVersion must remain 1.' }
