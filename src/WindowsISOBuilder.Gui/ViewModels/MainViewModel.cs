@@ -159,6 +159,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             if (!Set(ref _build, value)) return;
             Raise(nameof(SelectedBuildSummary));
+            RaiseWorkflowGuidance();
             if (value is not null)
             {
                 _ = LoadLanguagesAsync();
@@ -219,6 +220,7 @@ public sealed partial class MainViewModel : ObservableObject
             Raise(nameof(ActiveBuildRequestId));
             Raise(nameof(PreflightSummary));
             RaiseBuildPanelProperties();
+            RaiseWorkflowGuidance();
             LoadRecommendedCommand.RaiseCanExecuteChanged();
             SearchCommand.RaiseCanExecuteChanged();
             PreflightCommand.RaiseCanExecuteChanged();
