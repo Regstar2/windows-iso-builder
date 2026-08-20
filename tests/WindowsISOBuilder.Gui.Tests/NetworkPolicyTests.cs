@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using WindowsISOBuilder.Gui.Models;
 using WindowsISOBuilder.Gui.Services;
@@ -38,12 +39,14 @@ public sealed class NetworkPolicyTests
         var handler = NetworkHttpClientProvider.CreateHandler(policy, "secret");
         Assert.IsTrue(handler.UseProxy);
         Assert.IsNotNull(handler.Proxy);
-        var proxyUri = handler.Proxy.GetProxy(new Uri("https://example.test/"));
-        Assert.AreEqual("http", proxyUri.Scheme);
+        var proxy = handler.Proxy!;
+        var proxyUri = proxy.GetProxy(new Uri("https://example.test/"));
+        Assert.IsNotNull(proxyUri);
+        Assert.AreEqual("http", proxyUri!.Scheme);
         Assert.AreEqual("proxy.example", proxyUri.Host);
         Assert.AreEqual(8080, proxyUri.Port);
         Assert.IsTrue(string.IsNullOrEmpty(proxyUri.UserInfo));
-        Assert.IsInstanceOfType(handler.Proxy.Credentials, typeof(NetworkCredential));
+        Assert.IsInstanceOfType(proxy.Credentials, typeof(NetworkCredential));
         handler.Dispose();
     }
 
@@ -51,8 +54,10 @@ public sealed class NetworkPolicyTests
     public void CustomSocks5UsesSocks5Scheme()
     {
         var handler = NetworkHttpClientProvider.CreateHandler(Custom("socks5", "127.0.0.1", 1080, null, false), null);
+        Assert.IsNotNull(handler.Proxy);
         var proxyUri = handler.Proxy!.GetProxy(new Uri("https://example.test/"));
-        Assert.AreEqual("socks5", proxyUri.Scheme);
+        Assert.IsNotNull(proxyUri);
+        Assert.AreEqual("socks5", proxyUri!.Scheme);
         Assert.AreEqual(1080, proxyUri.Port);
         handler.Dispose();
     }
@@ -101,7 +106,7 @@ public sealed class NetworkPolicyTests
             var path = Path.Combine(root, "credential.bin");
             var store = new ProxyCredentialStore(path);
             store.Save("one-secret");
-            CollectionAssert.DoesNotContain(File.ReadAllBytes(path), (byte)'o');
+            Assert.IsFalse(ContainsSequence(File.ReadAllBytes(path), Encoding.UTF8.GetBytes("one-secret")));
             Assert.AreEqual("one-secret", store.Load());
             store.Save("two-secret");
             Assert.AreEqual("two-secret", store.Load());
@@ -124,6 +129,23 @@ public sealed class NetworkPolicyTests
             Assert.AreEqual("PROXY_CREDENTIAL_UNAVAILABLE", exception.Code);
         }
         finally { Directory.Delete(root, true); }
+    }
+
+    private static bool ContainsSequence(byte[] haystack, byte[] needle)
+    {
+        if (needle.Length == 0 || haystack.Length < needle.Length) return false;
+        for (var i = 0; i <= haystack.Length - needle.Length; i++)
+        {
+            var matches = true;
+            for (var j = 0; j < needle.Length; j++)
+            {
+                if (haystack[i + j] == needle[j]) continue;
+                matches = false;
+                break;
+            }
+            if (matches) return true;
+        }
+        return false;
     }
 
     private static NetworkPolicy Custom(string type, string host, int port, string? username, bool hasCredential) => new()

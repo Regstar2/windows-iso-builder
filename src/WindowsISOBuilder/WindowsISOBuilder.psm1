@@ -29,6 +29,8 @@ $privateFiles = @(
     'Private\Elevation.ps1',
     'Private\Application.ps1',
     'Private\ConsoleProgress.ps1',
+    'Private\Network.ps1',
+    'Private\NetworkIntegration.ps1',
     'Private\BackendContract.ps1',
     'Private\BackendCommands.ps1'
 )
@@ -57,5 +59,9 @@ Export-ModuleMember -Function @(
     'New-WibBuildPlan',
     'Invoke-WibBuildPlan',
     'Get-WibCacheInfo',
-    'Clear-WibCache'
+    'Clear-WibCache',
+    'Get-WibNetworkPolicy',
+    'Set-WibNetworkPolicy',
+    'Clear-WibProxyCredential',
+    'Test-WibNetworkConnection'
 )
