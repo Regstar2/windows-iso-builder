@@ -55,6 +55,8 @@ public partial class App : Application
 
         var settingsService = new AppSettingsService(_logger);
         var settings = settingsService.Load();
+        settings.Theme = ThemeService.Normalize(settings.Theme);
+        ThemeService.Apply(settings.Theme);
         LocalizationService.Instance.Initialize(settings.Language);
         MainWindow = new MainWindow(settingsService, settings);
         MainWindow.Show();
