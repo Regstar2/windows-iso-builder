@@ -1,0 +1,42 @@
+<?xml version='1.0' encoding='utf-8'?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="NavBuild" xml:space="preserve"><value>_Сборка</value></data>
+  <data name="NavSettings" xml:space="preserve"><value>_Настройки</value></data>
+  <data name="NavHelp" xml:space="preserve"><value>_Помощь</value></data>
+  <data name="NavAbout" xml:space="preserve"><value>_О приложении</value></data>
+  <data name="BuildPageTitle" xml:space="preserve"><value>Сборка</value></data>
+  <data name="SettingsTitle" xml:space="preserve"><value>Настройки</value></data>
+  <data name="SettingsSubtitle" xml:space="preserve"><value>Настройте интерфейс и при необходимости создайте очищенный диагностический пакет.</value></data>
+  <data name="SettingsInterfaceTitle" xml:space="preserve"><value>Интерфейс</value></data>
+  <data name="SettingsLanguageLabel" xml:space="preserve"><value>Язык интерфейса</value></data>
+  <data name="SettingsThemeLabel" xml:space="preserve"><value>Тема</value></data>
+  <data name="ThemeSystem" xml:space="preserve"><value>Как в Windows</value></data>
+  <data name="ThemeLight" xml:space="preserve"><value>Светлая</value></data>
+  <data name="ThemeDark" xml:space="preserve"><value>Тёмная</value></data>
+  <data name="SettingsDiagnosticsTitle" xml:space="preserve"><value>Диагностика</value></data>
+  <data name="SettingsDiagnosticsDescription" xml:space="preserve"><value>Создаёт ZIP с данными приложения и журналами сборки. Перед записью архива удаляются персональные пути, имена пользователей, URL, токены, секреты и ключи продукта.</value></data>
+  <data name="HelpTitle" xml:space="preserve"><value>Помощь</value></data>
+  <data name="HelpSubtitle" xml:space="preserve"><value>Как создать ISO Windows с помощью Windows ISO Builder.</value></data>
+  <data name="HelpBuildTitle" xml:space="preserve"><value>Создание ISO</value></data>
+  <data name="HelpBuildStep1" xml:space="preserve"><value>1. Откройте «Сборка», выберите Windows и архитектуру, затем получите рекомендуемую сборку или выберите её в «Каталоге».</value></data>
+  <data name="HelpBuildStep2" xml:space="preserve"><value>2. Выберите язык образа, редакции, формат WIM или ESD и каталог для результата.</value></data>
+  <data name="HelpBuildStep3" xml:space="preserve"><value>3. Запустите проверку готовности и устраните найденные блокирующие проблемы.</value></data>
+  <data name="HelpBuildStep4" xml:space="preserve"><value>4. Нажмите «Создать ISO». Если требуются повышенные права, подтвердите запрос UAC Windows.</value></data>
+  <data name="HelpBuildStep5" xml:space="preserve"><value>5. Следите за ходом работы в блоке «Сборка». После завершения можно открыть папку результата или скопировать SHA-256.</value></data>
+  <data name="HelpCatalogTitle" xml:space="preserve"><value>Каталог</value></data>
+  <data name="HelpCatalogDescription" xml:space="preserve"><value>Каталог загружает актуальные записи UUP dump. Preview показывает предварительные сборки. Служебные записи выводятся для справки и не могут использоваться как полноценный источник ISO Windows.</value></data>
+  <data name="HelpTroubleshootingTitle" xml:space="preserve"><value>Если сборка завершилась ошибкой</value></data>
+  <data name="HelpTroubleshootingDescription" xml:space="preserve"><value>Откройте журнал сборки из блока ошибки. Если данных недостаточно, откройте «Настройки» и создайте диагностический пакет перед отправкой сообщения о проблеме.</value></data>
+  <data name="AboutTitle" xml:space="preserve"><value>О приложении</value></data>
+  <data name="AboutSubtitle" xml:space="preserve"><value>Информация о Windows ISO Builder.</value></data>
+  <data name="AboutDescription" xml:space="preserve"><value>Windows ISO Builder — настольный интерфейс для выбора сборок Windows из UUP dump, проверки локального окружения и создания установочных ISO Windows через существующий PowerShell backend.</value></data>
+  <data name="AboutVersionLabel" xml:space="preserve"><value>Версия</value></data>
+  <data name="AboutRepositoryLabel" xml:space="preserve"><value>Исходный код и страница проекта</value></data>
+  <data name="AboutOpenGitHub" xml:space="preserve"><value>Открыть репозиторий GitHub</value></data>
+  <data name="AboutOpenGitHubErrorTitle" xml:space="preserve"><value>Не удалось открыть GitHub</value></data>
+  <data name="AboutOpenGitHubErrorMessage" xml:space="preserve"><value>Не удалось открыть страницу проекта в браузере по умолчанию.</value></data>
+</root>
