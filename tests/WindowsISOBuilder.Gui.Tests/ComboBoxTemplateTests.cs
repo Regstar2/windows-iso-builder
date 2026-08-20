@@ -18,6 +18,7 @@ public sealed class ComboBoxTemplateTests
 
         var thread = new Thread(() =>
         {
+            Window? window = null;
             try
             {
                 var resourcePath = FindRepositoryFile("src", "WindowsISOBuilder.Gui", "Resources", "ComboBoxStyles.xaml");
@@ -35,7 +36,18 @@ public sealed class ComboBoxTemplateTests
                 comboBox.Items.Add("One");
                 comboBox.Items.Add("Two");
                 comboBox.SelectedIndex = 0;
+
+                window = new Window
+                {
+                    Width = 320,
+                    Height = 160,
+                    ShowInTaskbar = false,
+                    WindowStyle = WindowStyle.None,
+                    Content = comboBox
+                };
+                window.Show();
                 comboBox.ApplyTemplate();
+                Assert.IsTrue(comboBox.IsLoaded);
 
                 var toggle = comboBox.Template.FindName("PART_DropDownToggle", comboBox) as ToggleButton;
                 Assert.IsNotNull(toggle);
@@ -45,7 +57,8 @@ public sealed class ComboBoxTemplateTests
                 Assert.IsNotNull(onClick);
                 onClick.Invoke(toggle, null);
 
-                Assert.IsTrue(comboBox.IsDropDownOpen, "The themed ComboBox toggle must open the dropdown.");
+                Assert.AreEqual(true, toggle.IsChecked, "The themed toggle must switch to checked on click.");
+                Assert.IsTrue(comboBox.IsDropDownOpen, "The themed ComboBox toggle must open the dropdown while the control is loaded.");
                 comboBox.IsDropDownOpen = false;
             }
             catch (Exception ex)
@@ -54,6 +67,7 @@ public sealed class ComboBoxTemplateTests
             }
             finally
             {
+                window?.Close();
                 completed = true;
             }
         });
