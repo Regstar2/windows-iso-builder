@@ -87,12 +87,13 @@ Describe 'GUI polish regression boundaries' {
         $script:mainXaml = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\MainWindow.xaml') -Raw -Encoding UTF8
     }
 
-    It 'keeps Quick Mode page-level scrolling removed and the build panel persistent' {
+    It 'keeps Build page-level scrolling removed and the build panel persistent' {
         $quickXaml = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Views\QuickView.xaml') -Raw -Encoding UTF8
         $buildPanelXaml = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Views\BuildPanelView.xaml') -Raw -Encoding UTF8
         $script:mainXaml | Should -Not -Match '<TabItem[^>]*Header='
         $quickXaml | Should -Not -Match '<ScrollViewer\s+VerticalScrollBarVisibility="Auto">\s*<StackPanel\s+Margin="24"'
         $quickXaml | Should -Match 'x:Name="QuickLayout"'
+        $quickXaml | Should -Match 'BuildPageTitle'
         $quickXaml | Should -Match '<views:BuildPanelView'
         $buildPanelXaml | Should -Match 'x:Name="BuildPanel"'
         foreach ($state in @('ShowBuildIdle','ShowBuildProgress','ShowBuildError','ShowBuildResult')) { $buildPanelXaml | Should -Match $state }
@@ -115,7 +116,7 @@ Describe 'GUI polish regression boundaries' {
     It 'uses centralized RU and EN localization with English fallback' {
         $project = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\WindowsISOBuilder.Gui.csproj') -Raw -Encoding UTF8
         $localization = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Services\LocalizationService.cs') -Raw -Encoding UTF8
-        foreach ($group in @('Core','Automation','Errors','Status')) {
+        foreach ($group in @('Core','Pages','Automation','Errors','Status')) {
             Test-Path -LiteralPath (Join-Path $script:projectRoot ("src\WindowsISOBuilder.Gui\Resources\Strings.{0}.resx" -f $group)) | Should -BeTrue
             Test-Path -LiteralPath (Join-Path $script:projectRoot ("src\WindowsISOBuilder.Gui\Resources\Strings.{0}.ru.resx" -f $group)) | Should -BeTrue
         }
@@ -123,30 +124,36 @@ Describe 'GUI polish regression boundaries' {
         $localization | Should -Match 'RussianCulture'
         $localization | Should -Match 'return "en"'
         $script:mainXaml | Should -Match 'services:Loc'
-        $project | Should -Match '<Version>0\.3\.1</Version>'
+        $project | Should -Match '<Version>0\.3\.2</Version>'
     }
 
-    It 'uses the system WPF theme and PerMonitorV2 manifest DPI awareness' {
+    It 'uses application ThemeMode with persisted System Light and Dark choices' {
         $app = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\App.xaml') -Raw -Encoding UTF8
         $manifest = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\app.manifest') -Raw -Encoding UTF8
         $styles = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Resources\Styles.xaml') -Raw -Encoding UTF8
+        $theme = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Services\ThemeService.cs') -Raw -Encoding UTF8
         $app | Should -Match 'ThemeMode="System"'
         $manifest | Should -Match 'PerMonitorV2'
-        $styles | Should -Match 'PresentationFramework\.Fluent;component/Themes/Fluent\.xaml'
+        $theme | Should -Match 'ThemeMode\.System'
+        $theme | Should -Match 'ThemeMode\.Light'
+        $theme | Should -Match 'ThemeMode\.Dark'
+        $styles | Should -Not -Match 'PresentationFramework\.Fluent;component/Themes/Fluent\.xaml'
         $styles | Should -Match '<Style TargetType="UserControl">'
         $styles | Should -Match 'SystemColors\.WindowTextBrushKey'
         $styles | Should -Not -Match '#F5F5F5|#EEEEEE|Background="White"'
     }
 
-    It 'keeps the approved mockup hierarchy and selected navigation treatment' {
+    It 'keeps the compact shell hierarchy and complete navigation' {
         $styles = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Resources\Styles.xaml') -Raw -Encoding UTF8
         $quick = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Views\QuickView.xaml') -Raw -Encoding UTF8
         $catalog = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Views\CatalogView.xaml') -Raw -Encoding UTF8
         $build = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Views\BuildPanelView.xaml') -Raw -Encoding UTF8
         $styles | Should -Match 'x:Key="NavigationRadio"'
         $styles | Should -Match 'x:Key="PrimaryButton"'
-        $script:mainXaml | Should -Match 'x:Name="QuickNav"'
-        $script:mainXaml | Should -Match 'x:Name="CatalogNav"'
+        foreach ($nav in @('BuildNav','CatalogNav','SettingsNav','HelpNav','AboutNav')) { $script:mainXaml | Should -Match ('x:Name="{0}"' -f $nav) }
+        $script:mainXaml | Should -Match '<views:SettingsView x:Name="SettingsPage"/>'
+        $script:mainXaml | Should -Match '<views:HelpView/>'
+        $script:mainXaml | Should -Match '<views:AboutView/>'
         $quick | Should -Match 'Style="\{StaticResource StatusBanner\}"'
         $quick | Should -Match 'Style="\{StaticResource FieldLabel\}"'
         $catalog | Should -Match 'Style="\{StaticResource PrimaryButton\}"'
@@ -160,7 +167,7 @@ Describe 'GUI polish regression boundaries' {
         $diagnostics | Should -Not -Match 'CreateFromDirectory'
     }
 
-    It 'persists window state in a small tolerant settings service' {
+    It 'persists window state language and theme in a tolerant settings service' {
         $settings = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Services\AppSettingsService.cs') -Raw -Encoding UTF8
         $model = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Models\AppSettings.cs') -Raw -Encoding UTF8
         $settings | Should -Match 'settings\.json'
@@ -168,6 +175,7 @@ Describe 'GUI polish regression boundaries' {
         $settings | Should -Match 'MonitorFromRect'
         $model | Should -Match 'IsMaximized'
         $model | Should -Match 'Language'
+        $model | Should -Match 'Theme'
         $model | Should -Not -Match 'Minimized'
     }
 }
