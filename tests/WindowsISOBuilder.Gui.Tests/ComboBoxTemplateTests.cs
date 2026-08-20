@@ -3,6 +3,7 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Markup;
 
 namespace WindowsISOBuilder.Gui.Tests;
 
@@ -19,10 +20,9 @@ public sealed class ComboBoxTemplateTests
         {
             try
             {
-                var resources = new ResourceDictionary
-                {
-                    Source = new Uri("/WindowsISOBuilder;component/Resources/ComboBoxStyles.xaml", UriKind.Relative)
-                };
+                var resourcePath = FindRepositoryFile("src", "WindowsISOBuilder.Gui", "Resources", "ComboBoxStyles.xaml");
+                using var stream = File.OpenRead(resourcePath);
+                var resources = (ResourceDictionary)XamlReader.Load(stream);
 
                 var style = resources[typeof(ComboBox)] as Style;
                 Assert.IsNotNull(style);
@@ -67,5 +67,19 @@ public sealed class ComboBoxTemplateTests
         {
             Assert.Fail(failure.ToString());
         }
+    }
+
+    private static string FindRepositoryFile(params string[] segments)
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        {
+            var candidate = Path.Combine(new[] { directory.FullName }.Concat(segments).ToArray());
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        throw new FileNotFoundException($"Could not locate repository file: {Path.Combine(segments)}");
     }
 }
