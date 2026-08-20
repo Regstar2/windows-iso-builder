@@ -8,4 +8,5 @@ internal sealed class AppSettings
     public double? Height { get; set; }
     public bool IsMaximized { get; set; }
     public string? Language { get; set; }
+    public string? Theme { get; set; }
 }

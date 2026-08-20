@@ -30,11 +30,21 @@ public sealed class GuiPolishTests
         {
             service.SetCulture("de-DE");
             Assert.AreEqual("en", service.CurrentLanguage);
-            Assert.AreEqual("Quick build", service.Get("QuickTitle"));
+            Assert.AreEqual("Build", service.Get("BuildPageTitle"));
             service.SetCulture("ru-RU");
-            Assert.AreEqual("Быстрая сборка", service.Get("QuickTitle"));
+            Assert.AreEqual("Сборка", service.Get("BuildPageTitle"));
         }
         finally { service.SetCulture(original); }
+    }
+
+    [TestMethod]
+    public void ThemePreferenceUsesSystemAsFallback()
+    {
+        Assert.AreEqual(ThemeService.SystemTheme, ThemeService.Normalize(null));
+        Assert.AreEqual(ThemeService.SystemTheme, ThemeService.Normalize("unknown"));
+        Assert.AreEqual(ThemeService.SystemTheme, ThemeService.Normalize("SYSTEM"));
+        Assert.AreEqual(ThemeService.LightTheme, ThemeService.Normalize(" Light "));
+        Assert.AreEqual(ThemeService.DarkTheme, ThemeService.Normalize("dark"));
     }
 
     [TestMethod]
@@ -125,10 +135,14 @@ public sealed class GuiPolishTests
             File.WriteAllText(path, "{ definitely not json");
             var service = new AppSettingsService(new GuiLogger(), path);
             Assert.IsNull(service.Load().Language);
-            var expected = new AppSettings { Left = 120, Top = 80, Width = 1100, Height = 700, IsMaximized = true, Language = "ru" };
+            var expected = new AppSettings { Left = 120, Top = 80, Width = 1100, Height = 700, IsMaximized = true, Language = "ru", Theme = "dark" };
             service.Save(expected);
             var actual = service.Load();
-            Assert.AreEqual(expected.Width, actual.Width); Assert.AreEqual(expected.Height, actual.Height); Assert.AreEqual("ru", actual.Language); Assert.IsTrue(actual.IsMaximized);
+            Assert.AreEqual(expected.Width, actual.Width);
+            Assert.AreEqual(expected.Height, actual.Height);
+            Assert.AreEqual("ru", actual.Language);
+            Assert.AreEqual("dark", actual.Theme);
+            Assert.IsTrue(actual.IsMaximized);
         }
         finally { Directory.Delete(root, true); }
     }

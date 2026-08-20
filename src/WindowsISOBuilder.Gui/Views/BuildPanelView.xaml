@@ -13,7 +13,7 @@
                     <ProgressBar Value="{Binding Progress, Mode=OneWay}" Margin="0,8,0,0" Minimum="0" Maximum="100" AutomationProperties.Name="{services:Loc AutomationProgress}"/>
                 </StackPanel>
                 <Button Grid.Column="2" Content="{services:Loc ButtonBuild}" Command="{Binding BuildCommand}" MinWidth="124" VerticalAlignment="Center"
-                        Style="{StaticResource PrimaryButton}" AutomationProperties.Name="{services:Loc AutomationBuild}"/>
+                        Style="{StaticResource GuidedActionButton}" Tag="{Binding HighlightBuild}" AutomationProperties.Name="{services:Loc AutomationBuild}"/>
             </Grid>
 
             <Grid Margin="0,30,0,0" Visibility="{Binding ShowBuildProgress, Converter={StaticResource BooleanToVisibilityConverter}}">

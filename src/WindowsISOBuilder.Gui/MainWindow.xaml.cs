@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Windows;
-using System.Windows.Controls;
 using WindowsISOBuilder.Gui.Models;
 using WindowsISOBuilder.Gui.Services;
 using WindowsISOBuilder.Gui.ViewModels;
@@ -12,44 +11,59 @@ public partial class MainWindow : Window
     private readonly AppSettingsService _settingsService;
     private readonly GuiLogger _log = new();
     private bool _allowClose;
+    private string _theme;
     private MainViewModel ViewModel => (MainViewModel)DataContext;
     private LocalizationService Loc => LocalizationService.Instance;
 
     internal MainWindow(AppSettingsService settingsService, AppSettings settings)
     {
         _settingsService = settingsService;
+        _theme = ThemeService.Normalize(settings.Theme);
         InitializeComponent();
         DataContext = new MainViewModel();
         RestoreWindow(settings);
-        UiLanguageCombo.SelectedValue = Loc.CurrentLanguage;
+
+        SettingsPage.LanguageChanged += OnLanguageChanged;
+        SettingsPage.ThemeChanged += OnThemeChanged;
+        SettingsPage.DiagnosticsRequested += CreateDiagnostics;
+        SettingsPage.Initialize(Loc.CurrentLanguage, _theme);
+
         Closing += OnClosing;
     }
 
-    private void Quick_Click(object sender, RoutedEventArgs e)
+    private void Build_Click(object sender, RoutedEventArgs e)
     {
         if (ViewModel.Architecture.Equals("all", StringComparison.OrdinalIgnoreCase)) ViewModel.Architecture = "amd64";
-        Tabs.SelectedIndex = 0;
-        QuickNav.IsChecked = true;
+        SelectPage(0, BuildNav);
     }
 
-    private void Catalog_Click(object sender, RoutedEventArgs e)
+    private void Catalog_Click(object sender, RoutedEventArgs e) => SelectPage(1, CatalogNav);
+    private void Settings_Click(object sender, RoutedEventArgs e) => SelectPage(2, SettingsNav);
+    private void Help_Click(object sender, RoutedEventArgs e) => SelectPage(3, HelpNav);
+    private void About_Click(object sender, RoutedEventArgs e) => SelectPage(4, AboutNav);
+
+    private void CatalogView_BuildActivated(object? sender, EventArgs e) => SelectPage(0, BuildNav);
+
+    private void SelectPage(int index, System.Windows.Controls.RadioButton navigationItem)
     {
-        Tabs.SelectedIndex = 1;
-        CatalogNav.IsChecked = true;
+        Tabs.SelectedIndex = index;
+        navigationItem.IsChecked = true;
     }
 
-    private void CatalogView_BuildActivated(object? sender, EventArgs e)
+    private void OnLanguageChanged(string language)
     {
-        Tabs.SelectedIndex = 0;
-        QuickNav.IsChecked = true;
+        Loc.SetCulture(language);
+        SaveWindowSettings();
     }
 
-    private void UiLanguage_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void OnThemeChanged(string theme)
     {
-        if (UiLanguageCombo.SelectedValue is string language) Loc.SetCulture(language);
+        _theme = ThemeService.Normalize(theme);
+        ThemeService.Apply(_theme);
+        SaveWindowSettings();
     }
 
-    private void CreateDiagnostics_Click(object sender, RoutedEventArgs e) => UiActions.CreateDiagnostics(this, ViewModel, _log);
+    private void CreateDiagnostics() => UiActions.CreateDiagnostics(this, ViewModel, _log);
 
     private void RestoreWindow(AppSettings settings)
     {
@@ -74,7 +88,8 @@ public partial class MainWindow : Window
             Width = bounds.Width,
             Height = bounds.Height,
             IsMaximized = WindowState == WindowState.Maximized,
-            Language = Loc.CurrentLanguage
+            Language = Loc.CurrentLanguage,
+            Theme = _theme
         });
     }
 

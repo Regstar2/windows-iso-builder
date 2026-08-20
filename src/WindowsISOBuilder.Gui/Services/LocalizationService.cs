@@ -12,6 +12,7 @@ internal sealed class LocalizationService : INotifyPropertyChanged
     private static readonly ResourceManager[] ResourceManagers =
     [
         CreateManager("Core"),
+        CreateManager("Pages"),
         CreateManager("Automation"),
         CreateManager("Errors"),
         CreateManager("Status")

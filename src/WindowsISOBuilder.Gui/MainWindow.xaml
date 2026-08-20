@@ -7,48 +7,54 @@
         Width="1100" Height="700" MinWidth="960" MinHeight="600"
         WindowStartupLocation="CenterScreen"
         KeyboardNavigation.TabNavigation="Continue"
-        Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
+        Background="{DynamicResource WibPageBackgroundBrush}">
     <Grid>
-        <Grid.RowDefinitions><RowDefinition Height="52"/><RowDefinition Height="*"/><RowDefinition Height="38"/></Grid.RowDefinitions>
-        <Grid.ColumnDefinitions><ColumnDefinition Width="176"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="38"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="190"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
 
-        <Border Grid.Row="0" Grid.ColumnSpan="2"
-                Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
-                BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
-                BorderThickness="0,0,0,1">
-            <Grid Margin="18,0">
-                <TextBlock Text="{services:Loc AppTitle}" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                <TextBlock Text="{Binding Version}" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource MutedText}"/>
-            </Grid>
-        </Border>
-
-        <Border Grid.Row="1" Grid.Column="0"
-                Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}"
-                BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+        <Border Grid.Row="0" Grid.Column="0"
+                Background="{DynamicResource WibSurfaceBrush}"
+                BorderBrush="{DynamicResource WibBorderBrush}"
                 BorderThickness="0,0,1,0">
-            <Grid Margin="12,18,10,12">
-                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                <RadioButton x:Name="QuickNav" Grid.Row="0" GroupName="MainNavigation" IsChecked="True"
-                             Content="{services:Loc NavQuick}" Style="{StaticResource NavigationRadio}" Click="Quick_Click"
-                             AutomationProperties.Name="{services:Loc AutomationNavQuick}"/>
-                <RadioButton x:Name="CatalogNav" Grid.Row="1" GroupName="MainNavigation"
-                             Content="{services:Loc NavCatalog}" Style="{StaticResource NavigationRadio}" Click="Catalog_Click"
-                             AutomationProperties.Name="{services:Loc AutomationNavCatalog}"/>
-                <Separator Grid.Row="2" Margin="2,14,2,14"/>
-                <StackPanel Grid.Row="3" Margin="7,0,4,0">
-                    <TextBlock Text="{services:Loc SidebarState}" Style="{StaticResource MutedText}" FontSize="12"/>
-                    <Grid Margin="0,8,0,0">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <Ellipse Width="8" Height="8" Margin="0,4,7,0" VerticalAlignment="Top"
-                                 Fill="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"
-                                 Visibility="{Binding CanBuild, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                        <TextBlock Grid.Column="1" Text="{Binding Status, Mode=OneWay}" TextWrapping="Wrap"/>
-                    </Grid>
+            <Grid Margin="12,16,10,12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Margin="7,0,4,18">
+                    <TextBlock Text="{services:Loc AppTitle}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding Version, Mode=OneWay}" Style="{StaticResource MutedText}" FontSize="12" Margin="0,3,0,0"/>
                 </StackPanel>
+
+                <RadioButton x:Name="BuildNav" Grid.Row="1" GroupName="MainNavigation" IsChecked="True"
+                             Content="{services:Loc NavBuild}" Style="{StaticResource NavigationRadio}" Click="Build_Click"/>
+                <RadioButton x:Name="CatalogNav" Grid.Row="2" GroupName="MainNavigation"
+                             Content="{services:Loc NavCatalog}" Style="{StaticResource NavigationRadio}" Click="Catalog_Click"/>
+
+                <Separator Grid.Row="3" Margin="2,12,2,10"/>
+                <RadioButton x:Name="SettingsNav" Grid.Row="4" GroupName="MainNavigation"
+                             Content="{services:Loc NavSettings}" Style="{StaticResource NavigationRadio}" Click="Settings_Click"/>
+                <RadioButton x:Name="HelpNav" Grid.Row="5" GroupName="MainNavigation"
+                             Content="{services:Loc NavHelp}" Style="{StaticResource NavigationRadio}" Click="Help_Click"/>
+                <RadioButton x:Name="AboutNav" Grid.Row="6" GroupName="MainNavigation"
+                             Content="{services:Loc NavAbout}" Style="{StaticResource NavigationRadio}" Click="About_Click"/>
             </Grid>
         </Border>
 
-        <Border Grid.Row="1" Grid.Column="1" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
+        <Border Grid.Row="0" Grid.Column="1" Background="{DynamicResource WibPageBackgroundBrush}">
             <TabControl x:Name="Tabs" SelectedIndex="0" BorderThickness="0" Background="Transparent" KeyboardNavigation.TabNavigation="Continue">
                 <TabControl.Template>
                     <ControlTemplate TargetType="{x:Type TabControl}">
@@ -57,26 +63,27 @@
                 </TabControl.Template>
                 <TabItem Focusable="False" IsTabStop="False"><views:QuickView/></TabItem>
                 <TabItem Focusable="False" IsTabStop="False"><views:CatalogView BuildActivated="CatalogView_BuildActivated"/></TabItem>
+                <TabItem Focusable="False" IsTabStop="False"><views:SettingsView x:Name="SettingsPage"/></TabItem>
+                <TabItem Focusable="False" IsTabStop="False"><views:HelpView/></TabItem>
+                <TabItem Focusable="False" IsTabStop="False"><views:AboutView/></TabItem>
             </TabControl>
         </Border>
 
-        <Border Grid.Row="2" Grid.ColumnSpan="2"
-                Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
-                BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+        <Border Grid.Row="1" Grid.ColumnSpan="2"
+                Background="{DynamicResource WibCardBrush}"
+                BorderBrush="{DynamicResource WibBorderBrush}"
                 BorderThickness="0,1,0,0">
             <Grid Margin="14,0">
-                <TextBlock Text="{services:Loc FooterSource}" VerticalAlignment="Center" Style="{StaticResource MutedText}" FontSize="12"/>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <TextBlock Text="{services:Loc FooterLanguage}" VerticalAlignment="Center" Margin="0,0,6,0" FontSize="12"/>
-                    <ComboBox x:Name="UiLanguageCombo" Width="108" Height="30" Margin="0" SelectedValuePath="Tag"
-                              VerticalAlignment="Center"
-                              SelectionChanged="UiLanguage_SelectionChanged" AutomationProperties.Name="{services:Loc AutomationUiLanguage}">
-                        <ComboBoxItem Tag="ru" Content="{services:Loc LanguageRussian}"/>
-                        <ComboBoxItem Tag="en" Content="{services:Loc LanguageEnglish}"/>
-                    </ComboBox>
-                    <Button Content="{services:Loc FooterDiagnostics}" Style="{StaticResource FooterButton}" Click="CreateDiagnostics_Click"
-                            VerticalAlignment="Center"
-                            ToolTip="{services:Loc TooltipDiagnostics}" AutomationProperties.Name="{services:Loc AutomationDiagnostics}"/>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{services:Loc FooterSource}" VerticalAlignment="Center" Style="{StaticResource MutedText}" FontSize="12"/>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
+                    <TextBlock Text="{services:Loc SidebarState}" VerticalAlignment="Center" Style="{StaticResource MutedText}" FontSize="12" Margin="0,0,6,0"/>
+                    <TextBlock Text="{Binding Status, Mode=OneWay}" VerticalAlignment="Center" FontSize="12" MaxWidth="520"
+                               TextTrimming="CharacterEllipsis" ToolTip="{Binding Status, Mode=OneWay}"/>
                 </StackPanel>
             </Grid>
         </Border>

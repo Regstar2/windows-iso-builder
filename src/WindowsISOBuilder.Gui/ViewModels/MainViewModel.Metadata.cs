@@ -94,6 +94,7 @@ public sealed partial class MainViewModel
         Editions.Clear();
         Checks.Clear();
         RaisePreflightProperties();
+        RaiseWorkflowGuidance();
         _plan = null;
         if (State is not UiState.LoadingBuild and not UiState.LoadingLanguages and not UiState.LoadingEditions)
         {
@@ -127,6 +128,7 @@ public sealed partial class MainViewModel
             Editions.Clear();
             Checks.Clear();
             RaisePreflightProperties();
+            RaiseWorkflowGuidance();
             _plan = null;
             var response = await _client.InvokeAsync<LanguageListData>("GetLanguages", new { updateId = _build.Uuid });
             foreach (var language in response.Data!.Languages) Languages.Add(language);
@@ -150,6 +152,7 @@ public sealed partial class MainViewModel
             Editions.Clear();
             Checks.Clear();
             RaisePreflightProperties();
+            RaiseWorkflowGuidance();
             _plan = null;
             var response = await _client.InvokeAsync<EditionListData>(
                 "GetEditions",
@@ -159,7 +162,9 @@ public sealed partial class MainViewModel
                 var choice = new EditionChoice(edition);
                 choice.PropertyChanged += (_, args) =>
                 {
-                    if (args.PropertyName == nameof(EditionChoice.Selected)) InvalidatePlan();
+                    if (args.PropertyName != nameof(EditionChoice.Selected)) return;
+                    InvalidatePlan();
+                    RaiseWorkflowGuidance();
                 };
                 Editions.Add(choice);
             }

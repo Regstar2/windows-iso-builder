@@ -10,35 +10,29 @@
             <TextBlock Text="{services:Loc CatalogSubtitle}" Style="{StaticResource MutedText}" Margin="0,2,0,0"/>
         </StackPanel>
 
-        <Border Grid.Row="1" Style="{StaticResource Card}" Padding="12" IsEnabled="{Binding IsConfigurationEnabled}">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" MinWidth="230"/>
-                    <ColumnDefinition Width="10"/>
-                    <ColumnDefinition Width="112"/>
-                    <ColumnDefinition Width="16"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="16"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="16"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBox Grid.Column="0" Text="{Binding SearchText}" AutomationProperties.Name="{services:Loc AutomationCatalogSearch}"/>
-                <ComboBox Grid.Column="2" SelectedValuePath="Tag" SelectedValue="{Binding Architecture}">
+        <Border Grid.Row="1" Style="{StaticResource Card}" Padding="12,8,4,0" IsEnabled="{Binding IsConfigurationEnabled}">
+            <WrapPanel Orientation="Horizontal">
+                <TextBox Width="230" Height="36" Margin="0,0,10,8" VerticalAlignment="Center"
+                         Text="{Binding SearchText}" AutomationProperties.Name="{services:Loc AutomationCatalogSearch}"/>
+                <ComboBox Width="112" Height="36" Margin="0,0,16,8" VerticalAlignment="Center"
+                          SelectedValuePath="Tag" SelectedValue="{Binding Architecture}">
                     <ComboBoxItem Content="x64" Tag="amd64"/>
                     <ComboBoxItem Content="ARM64" Tag="arm64"/>
                     <ComboBoxItem Content="x86" Tag="x86"/>
                     <ComboBoxItem Content="{services:Loc CatalogAll}" Tag="all"/>
                 </ComboBox>
-                <CheckBox Grid.Column="4" Content="{services:Loc CatalogPreview}" IsChecked="{Binding IncludePreview}" ToolTip="{services:Loc TooltipPreview}"/>
-                <CheckBox Grid.Column="6" Content="{services:Loc CatalogServicing}" IsChecked="{Binding ShowServicing}" ToolTip="{services:Loc TooltipServicing}"/>
-                <Button Grid.Column="8" Content="{services:Loc ButtonSearch}" Command="{Binding SearchCommand}" MinWidth="88"/>
-            </Grid>
+                <CheckBox Margin="0,0,16,8" MinHeight="36" VerticalAlignment="Center"
+                          Content="{services:Loc CatalogPreview}" IsChecked="{Binding IncludePreview}" ToolTip="{services:Loc TooltipPreview}"/>
+                <CheckBox Margin="0,0,16,8" MinHeight="36" VerticalAlignment="Center"
+                          Content="{services:Loc CatalogServicing}" IsChecked="{Binding ShowServicing}" ToolTip="{services:Loc TooltipServicing}"/>
+                <Button Height="36" Margin="0,0,8,8" VerticalAlignment="Center"
+                        Content="{services:Loc ButtonSearch}" Command="{Binding SearchCommand}" MinWidth="88" Padding="16,7"/>
+            </WrapPanel>
         </Border>
 
         <DataGrid x:Name="CatalogGrid" Grid.Row="2" ItemsSource="{Binding Builds}" SelectedItem="{Binding SelectedCatalogBuild, Mode=TwoWay}"
                   AutoGenerateColumns="False" IsReadOnly="True" Margin="0,10" MouseDoubleClick="CatalogGrid_DoubleClick"
-                  AutomationProperties.Name="{services:Loc AutomationCatalogGrid}">
+                  HorizontalScrollBarVisibility="Auto" AutomationProperties.Name="{services:Loc AutomationCatalogGrid}">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="{services:Loc ColumnVersion}" Binding="{Binding VersionLabel}" Width="120"/>
                 <DataGridTextColumn Header="{services:Loc ColumnBuild}" Binding="{Binding Build}" Width="115"/>

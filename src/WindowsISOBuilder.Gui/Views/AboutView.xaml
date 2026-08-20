@@ -1,0 +1,47 @@
+<UserControl x:Class="WindowsISOBuilder.Gui.Views.AboutView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:services="clr-namespace:WindowsISOBuilder.Gui.Services">
+    <Grid Margin="20,18,20,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="{services:Loc AboutTitle}" Style="{StaticResource PageTitle}"/>
+            <TextBlock Text="{services:Loc AboutSubtitle}" Style="{StaticResource MutedText}" Margin="0,2,0,0"/>
+        </StackPanel>
+
+        <Border Grid.Row="1" Style="{StaticResource Card}" MaxWidth="760" HorizontalAlignment="Left">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Text="{services:Loc AppTitle}" Style="{StaticResource SectionTitle}"/>
+                <TextBlock Grid.Row="1" Text="{services:Loc AboutDescription}" TextWrapping="Wrap" Margin="0,10,0,0" MaxWidth="680"/>
+
+                <Grid Grid.Row="2" Margin="0,18,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{services:Loc AboutVersionLabel}" Style="{StaticResource MutedText}"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Version, Mode=OneWay}" FontWeight="SemiBold"/>
+                </Grid>
+
+                <TextBlock Grid.Row="3" Text="{services:Loc AboutRepositoryLabel}" Style="{StaticResource MutedText}" Margin="0,18,0,6"/>
+                <StackPanel Grid.Row="4">
+                    <TextBlock Text="https://github.com/Regstar2/windows-iso-builder" TextWrapping="Wrap"/>
+                    <Button Content="{services:Loc AboutOpenGitHub}" HorizontalAlignment="Left" MinWidth="190" Margin="0,10,0,0" Click="OpenGitHub_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
