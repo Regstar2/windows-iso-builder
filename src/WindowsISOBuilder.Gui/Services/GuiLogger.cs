@@ -23,6 +23,7 @@ public sealed class GuiLogger
     }
 
     public void Info(string message) => Write("INFO", message, null);
+    public void Warning(string message) => Write("WARN", message, null);
     public void Error(string message, Exception? exception = null) => Write("ERROR", message, exception);
     public static string SanitizeDiagnostic(string value) => DiagnosticSanitizer.Sanitize(value);
 

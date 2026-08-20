@@ -13,6 +13,7 @@ internal sealed class LocalizationService : INotifyPropertyChanged
     [
         CreateManager("Core"),
         CreateManager("Pages"),
+        CreateManager("LocalData"),
         CreateManager("Automation"),
         CreateManager("Errors"),
         CreateManager("Status")

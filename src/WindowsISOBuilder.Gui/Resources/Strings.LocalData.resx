@@ -1,0 +1,110 @@
+<?xml version='1.0' encoding='utf-8'?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="NavHistory" xml:space="preserve"><value>_History</value></data>
+  <data name="NavProfiles" xml:space="preserve"><value>_Profiles</value></data>
+  <data name="HistoryTitle" xml:space="preserve"><value>Build history</value></data>
+  <data name="HistorySubtitle" xml:space="preserve"><value>Local records of completed, failed, cancelled, and interrupted ISO builds.</value></data>
+  <data name="HistoryFilterAll" xml:space="preserve"><value>_All</value></data>
+  <data name="HistoryFilterCompleted" xml:space="preserve"><value>_Completed</value></data>
+  <data name="HistoryFilterFailed" xml:space="preserve"><value>_Failed</value></data>
+  <data name="HistoryFilterCancelled" xml:space="preserve"><value>_Cancelled / interrupted</value></data>
+  <data name="HistoryEmpty" xml:space="preserve"><value>No build history yet.</value></data>
+  <data name="HistoryStatusPending" xml:space="preserve"><value>Building</value></data>
+  <data name="HistoryStatusCompleted" xml:space="preserve"><value>ISO created</value></data>
+  <data name="HistoryStatusFailed" xml:space="preserve"><value>Build failed</value></data>
+  <data name="HistoryStatusCancelled" xml:space="preserve"><value>Build cancelled</value></data>
+  <data name="HistoryStatusInterrupted" xml:space="preserve"><value>GUI session interrupted</value></data>
+  <data name="HistoryOptionsFormat" xml:space="preserve"><value>Updates: {0}; cleanup: {1}; .NET Framework 3.5: {2}</value></data>
+  <data name="HistoryAccessibilitySummary" xml:space="preserve"><value>{0}; build {1}; {2}; {3}; {4}; {5}</value></data>
+  <data name="HistoryDetails" xml:space="preserve"><value>_Details</value></data>
+  <data name="HistoryRepeat" xml:space="preserve"><value>_Repeat</value></data>
+  <data name="HistoryCreateProfile" xml:space="preserve"><value>Create _profile</value></data>
+  <data name="HistoryDelete" xml:space="preserve"><value>_Delete record</value></data>
+  <data name="HistoryClear" xml:space="preserve"><value>_Clear history</value></data>
+  <data name="HistoryClearTitle" xml:space="preserve"><value>Clear build history?</value></data>
+  <data name="HistoryClearMessage" xml:space="preserve"><value>This removes only GUI history records. ISO files, UUP cache, work directories, logs, and metadata will not be deleted.</value></data>
+  <data name="HistoryDeleteTitle" xml:space="preserve"><value>Delete history record?</value></data>
+  <data name="HistoryDeleteMessage" xml:space="preserve"><value>Only this GUI history record will be removed. Build files and logs will remain on disk.</value></data>
+  <data name="HistoryDetailsTitle" xml:space="preserve"><value>Build details</value></data>
+  <data name="HistoryWindows" xml:space="preserve"><value>Windows</value></data>
+  <data name="HistoryVersion" xml:space="preserve"><value>Version</value></data>
+  <data name="HistoryBuild" xml:space="preserve"><value>Build</value></data>
+  <data name="HistoryArchitecture" xml:space="preserve"><value>Architecture</value></data>
+  <data name="HistoryLanguage" xml:space="preserve"><value>Language</value></data>
+  <data name="HistoryEditions" xml:space="preserve"><value>Editions</value></data>
+  <data name="HistoryFormat" xml:space="preserve"><value>Format</value></data>
+  <data name="HistoryOptions" xml:space="preserve"><value>Options</value></data>
+  <data name="HistoryStarted" xml:space="preserve"><value>Started</value></data>
+  <data name="HistoryFinished" xml:space="preserve"><value>Finished</value></data>
+  <data name="HistoryStatus" xml:space="preserve"><value>Status</value></data>
+  <data name="HistoryIso" xml:space="preserve"><value>ISO</value></data>
+  <data name="HistorySha256" xml:space="preserve"><value>SHA-256</value></data>
+  <data name="HistoryBuildLog" xml:space="preserve"><value>Build log</value></data>
+  <data name="HistoryExecutionLog" xml:space="preserve"><value>Execution log</value></data>
+  <data name="HistoryMetadata" xml:space="preserve"><value>Metadata</value></data>
+  <data name="HistoryErrorCode" xml:space="preserve"><value>Error code</value></data>
+  <data name="HistoryOpenFolder" xml:space="preserve"><value>Open ISO _folder</value></data>
+  <data name="HistoryOpenLog" xml:space="preserve"><value>Open _log</value></data>
+  <data name="HistoryOpenExecutionLog" xml:space="preserve"><value>Open e_xecution log</value></data>
+  <data name="HistoryOpenMetadata" xml:space="preserve"><value>Open _metadata</value></data>
+  <data name="HistoryCopySha" xml:space="preserve"><value>Copy _SHA-256</value></data>
+  <data name="HistoryFileMissing" xml:space="preserve"><value>File no longer exists.</value></data>
+  <data name="ProfilesTitle" xml:space="preserve"><value>My profiles</value></data>
+  <data name="ProfilesSubtitle" xml:space="preserve"><value>Reusable build intentions. Recommended profiles resolve the current backend catalog every time.</value></data>
+  <data name="ProfilesEmpty" xml:space="preserve"><value>No saved profiles yet.</value></data>
+  <data name="ProfileModeRecommended" xml:space="preserve"><value>Recommended / dynamic</value></data>
+  <data name="ProfileModePinned" xml:space="preserve"><value>Pinned build</value></data>
+  <data name="ProfileRecommendedHint" xml:space="preserve"><value>Latest recommended stable build</value></data>
+  <data name="ProfileAccessibilitySummary" xml:space="preserve"><value>{0}; {1}; {2}; language {3}; editions {4}</value></data>
+  <data name="ProfileDefaultName" xml:space="preserve"><value>Windows build profile</value></data>
+  <data name="ProfileCreate" xml:space="preserve"><value>_New profile</value></data>
+  <data name="ProfileSaveCurrent" xml:space="preserve"><value>Save as _profile</value></data>
+  <data name="ProfileUse" xml:space="preserve"><value>_Use</value></data>
+  <data name="ProfileEdit" xml:space="preserve"><value>_Edit</value></data>
+  <data name="ProfileDelete" xml:space="preserve"><value>_Delete</value></data>
+  <data name="ProfileDeleteTitle" xml:space="preserve"><value>Delete profile?</value></data>
+  <data name="ProfileDeleteMessage" xml:space="preserve"><value>The saved profile will be removed. No ISO, cache, or log files are affected.</value></data>
+  <data name="ProfileEditorTitle" xml:space="preserve"><value>Build profile</value></data>
+  <data name="ProfileName" xml:space="preserve"><value>Name</value></data>
+  <data name="ProfileSelectionMode" xml:space="preserve"><value>Build selection</value></data>
+  <data name="ProfileProduct" xml:space="preserve"><value>Windows product</value></data>
+  <data name="ProfileArchitecture" xml:space="preserve"><value>Architecture</value></data>
+  <data name="ProfileLanguage" xml:space="preserve"><value>Language</value></data>
+  <data name="ProfileEditions" xml:space="preserve"><value>Editions</value></data>
+  <data name="ProfileFormat" xml:space="preserve"><value>Image format</value></data>
+  <data name="ProfileOutput" xml:space="preserve"><value>Output directory</value></data>
+  <data name="ProfileAddUpdates" xml:space="preserve"><value>Add updates</value></data>
+  <data name="ProfileCleanup" xml:space="preserve"><value>Cleanup</value></data>
+  <data name="ProfileNetFx3" xml:space="preserve"><value>Enable .NET Framework 3.5</value></data>
+  <data name="ProfilePinExact" xml:space="preserve"><value>Pin exactly this build</value></data>
+  <data name="ProfileRefreshAvailability" xml:space="preserve"><value>_Refresh availability</value></data>
+  <data name="ProfileSave" xml:space="preserve"><value>_Save</value></data>
+  <data name="ProfileCancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="ProfileNameInvalid" xml:space="preserve"><value>Enter a profile name from 1 to 80 characters.</value></data>
+  <data name="ProfileAvailabilityCurrent" xml:space="preserve"><value>Saved language and editions are currently available.</value></data>
+  <data name="ProfileAvailabilityStale" xml:space="preserve"><value>Some saved values are unavailable in the current catalog: {0}</value></data>
+  <data name="StoredLanguageUnavailable" xml:space="preserve"><value>The saved language {0} is no longer available. Available settings were applied; choose a new language.</value></data>
+  <data name="StoredEditionsUnavailable" xml:space="preserve"><value>Some saved editions are no longer available: {0}. Available settings were applied; choose the editions to use.</value></data>
+  <data name="StoredBuildMissingHistoryTitle" xml:space="preserve"><value>Saved build is unavailable</value></data>
+  <data name="StoredBuildMissingHistoryMessage" xml:space="preserve"><value>The build recorded in history is no longer present in the current catalog.</value></data>
+  <data name="StoredBuildMissingProfileTitle" xml:space="preserve"><value>Pinned build is unavailable</value></data>
+  <data name="StoredBuildMissingProfileMessage" xml:space="preserve"><value>The pinned build is no longer present in the current catalog.</value></data>
+  <data name="StoredBuildUseRecommended" xml:space="preserve"><value>Use current _recommended</value></data>
+  <data name="StoredBuildOpenCatalog" xml:space="preserve"><value>Open _Catalog</value></data>
+  <data name="StoredBuildCancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="StatusStoredConfigurationNeedsAttention" xml:space="preserve"><value>Saved configuration needs attention.</value></data>
+  <data name="StatusStoredConfigurationApplied" xml:space="preserve"><value>Saved configuration applied. Review it before preflight.</value></data>
+  <data name="AutomationNavHistory" xml:space="preserve"><value>Build history</value></data>
+  <data name="AutomationNavProfiles" xml:space="preserve"><value>Build profiles</value></data>
+  <data name="AutomationHistoryDetails" xml:space="preserve"><value>Open build history details</value></data>
+  <data name="AutomationHistoryRepeat" xml:space="preserve"><value>Repeat this build configuration</value></data>
+  <data name="AutomationHistoryCreateProfile" xml:space="preserve"><value>Create a profile from this build</value></data>
+  <data name="AutomationHistoryDelete" xml:space="preserve"><value>Delete this history record</value></data>
+  <data name="AutomationProfilesUse" xml:space="preserve"><value>Use this build profile</value></data>
+  <data name="AutomationProfilesEdit" xml:space="preserve"><value>Edit this build profile</value></data>
+  <data name="AutomationProfilesDelete" xml:space="preserve"><value>Delete this build profile</value></data>
+</root>

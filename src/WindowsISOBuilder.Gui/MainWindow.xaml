@@ -31,6 +31,8 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
@@ -40,16 +42,24 @@
                 </StackPanel>
 
                 <RadioButton x:Name="BuildNav" Grid.Row="1" GroupName="MainNavigation" IsChecked="True"
-                             Content="{services:Loc NavBuild}" Style="{StaticResource NavigationRadio}" Click="Build_Click"/>
+                             Content="{services:Loc NavBuild}" Style="{StaticResource NavigationRadio}" Click="Build_Click"
+                             AutomationProperties.Name="{services:Loc AutomationNavBuild}"/>
                 <RadioButton x:Name="CatalogNav" Grid.Row="2" GroupName="MainNavigation"
-                             Content="{services:Loc NavCatalog}" Style="{StaticResource NavigationRadio}" Click="Catalog_Click"/>
+                             Content="{services:Loc NavCatalog}" Style="{StaticResource NavigationRadio}" Click="Catalog_Click"
+                             AutomationProperties.Name="{services:Loc AutomationNavCatalog}"/>
+                <RadioButton x:Name="HistoryNav" Grid.Row="3" GroupName="MainNavigation"
+                             Content="{services:Loc NavHistory}" Style="{StaticResource NavigationRadio}" Click="History_Click"
+                             AutomationProperties.Name="{services:Loc AutomationNavHistory}"/>
+                <RadioButton x:Name="ProfilesNav" Grid.Row="4" GroupName="MainNavigation"
+                             Content="{services:Loc NavProfiles}" Style="{StaticResource NavigationRadio}" Click="Profiles_Click"
+                             AutomationProperties.Name="{services:Loc AutomationNavProfiles}"/>
 
-                <Separator Grid.Row="3" Margin="2,12,2,10"/>
-                <RadioButton x:Name="SettingsNav" Grid.Row="4" GroupName="MainNavigation"
+                <Separator Grid.Row="5" Margin="2,12,2,10"/>
+                <RadioButton x:Name="SettingsNav" Grid.Row="6" GroupName="MainNavigation"
                              Content="{services:Loc NavSettings}" Style="{StaticResource NavigationRadio}" Click="Settings_Click"/>
-                <RadioButton x:Name="HelpNav" Grid.Row="5" GroupName="MainNavigation"
+                <RadioButton x:Name="HelpNav" Grid.Row="7" GroupName="MainNavigation"
                              Content="{services:Loc NavHelp}" Style="{StaticResource NavigationRadio}" Click="Help_Click"/>
-                <RadioButton x:Name="AboutNav" Grid.Row="6" GroupName="MainNavigation"
+                <RadioButton x:Name="AboutNav" Grid.Row="8" GroupName="MainNavigation"
                              Content="{services:Loc NavAbout}" Style="{StaticResource NavigationRadio}" Click="About_Click"/>
             </Grid>
         </Border>
@@ -63,6 +73,8 @@
                 </TabControl.Template>
                 <TabItem Focusable="False" IsTabStop="False"><views:QuickView/></TabItem>
                 <TabItem Focusable="False" IsTabStop="False"><views:CatalogView BuildActivated="CatalogView_BuildActivated"/></TabItem>
+                <TabItem Focusable="False" IsTabStop="False"><views:HistoryView BuildActivated="StoredConfiguration_BuildActivated" CatalogActivated="StoredConfiguration_CatalogActivated"/></TabItem>
+                <TabItem Focusable="False" IsTabStop="False"><views:ProfilesView BuildActivated="StoredConfiguration_BuildActivated" CatalogActivated="StoredConfiguration_CatalogActivated"/></TabItem>
                 <TabItem Focusable="False" IsTabStop="False"><views:SettingsView x:Name="SettingsPage"/></TabItem>
                 <TabItem Focusable="False" IsTabStop="False"><views:HelpView/></TabItem>
                 <TabItem Focusable="False" IsTabStop="False"><views:AboutView/></TabItem>

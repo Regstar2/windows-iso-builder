@@ -1,0 +1,67 @@
+<UserControl x:Class="WindowsISOBuilder.Gui.Views.HistoryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:services="clr-namespace:WindowsISOBuilder.Gui.Services"
+             Loaded="OnLoaded">
+    <Grid Margin="20,14,20,12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,10">
+            <TextBlock Text="{services:Loc HistoryTitle}" Style="{StaticResource PageTitle}"/>
+            <TextBlock Text="{services:Loc HistorySubtitle}" Style="{StaticResource MutedText}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+        </StackPanel>
+
+        <WrapPanel Grid.Row="1" Margin="0,0,0,10">
+            <RadioButton x:Name="AllFilter" GroupName="HistoryFilter" IsChecked="True" Content="{services:Loc HistoryFilterAll}" Click="AllFilter_Click" Margin="0,0,12,4"/>
+            <RadioButton GroupName="HistoryFilter" Content="{services:Loc HistoryFilterCompleted}" Click="CompletedFilter_Click" Margin="0,0,12,4"/>
+            <RadioButton GroupName="HistoryFilter" Content="{services:Loc HistoryFilterFailed}" Click="FailedFilter_Click" Margin="0,0,12,4"/>
+            <RadioButton GroupName="HistoryFilter" Content="{services:Loc HistoryFilterCancelled}" Click="CancelledFilter_Click" Margin="0,0,12,4"/>
+        </WrapPanel>
+
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+            <ItemsControl ItemsSource="{Binding HistoryEntries}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource Card}" Padding="14,12" Margin="0,0,0,9"
+                                AutomationProperties.Name="{Binding AccessibilitySummary}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding ProductTitle}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding StatusLabel}" FontWeight="SemiBold" Margin="16,0,0,0"/>
+                                </Grid>
+                                <TextBlock Grid.Row="1" Margin="0,4,0,0" TextWrapping="Wrap">
+                                    <Run Text="Build "/><Run Text="{Binding Build}"/><Run Text=" · "/><Run Text="{Binding ArchitectureLabel}"/><Run Text=" · "/><Run Text="{Binding Language}"/><Run Text=" · "/><Run Text="{Binding EditionsText}"/><Run Text=" · "/><Run Text="{Binding ImageFormat}"/>
+                                </TextBlock>
+                                <TextBlock Grid.Row="2" Text="{Binding StartedDisplay}" Style="{StaticResource MutedText}" Margin="0,4,0,0"/>
+                                <WrapPanel Grid.Row="3" Margin="0,10,0,0">
+                                    <Button Content="{services:Loc HistoryDetails}" Click="Details_Click" Tag="{Binding}" Margin="0,0,8,6"
+                                            AutomationProperties.Name="{services:Loc AutomationHistoryDetails}"/>
+                                    <Button Content="{services:Loc HistoryRepeat}" Click="Repeat_Click" Tag="{Binding}" Margin="0,0,8,6"
+                                            AutomationProperties.Name="{services:Loc AutomationHistoryRepeat}"/>
+                                    <Button Content="{services:Loc HistoryCreateProfile}" Click="CreateProfile_Click" Tag="{Binding}" Margin="0,0,8,6"
+                                            AutomationProperties.Name="{services:Loc AutomationHistoryCreateProfile}"/>
+                                    <Button Content="{services:Loc HistoryDelete}" Click="Delete_Click" Tag="{Binding}" Margin="0,0,8,6"
+                                            AutomationProperties.Name="{services:Loc AutomationHistoryDelete}"/>
+                                </WrapPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <Button Grid.Row="3" Content="{services:Loc HistoryClear}" Click="Clear_Click" HorizontalAlignment="Left" Margin="0,8,0,0"/>
+    </Grid>
+</UserControl>

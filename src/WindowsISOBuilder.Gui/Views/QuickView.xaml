@@ -11,10 +11,16 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Margin="0,0,0,8">
-            <TextBlock Text="{services:Loc BuildPageTitle}" Style="{StaticResource PageTitle}"/>
-            <TextBlock Text="{services:Loc QuickSubtitle}" Style="{StaticResource MutedText}" Margin="0,2,0,0"/>
-        </StackPanel>
+        <Grid Grid.Row="0" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                <TextBlock Text="{services:Loc BuildPageTitle}" Style="{StaticResource PageTitle}"/>
+                <TextBlock Text="{services:Loc QuickSubtitle}" Style="{StaticResource MutedText}" Margin="0,2,0,0"/>
+                <TextBlock Text="{Binding StoredConfigurationWarning, Mode=OneWay}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0"/>
+            </StackPanel>
+            <Button Grid.Column="1" Content="{services:Loc ProfileSaveCurrent}" Click="SaveProfile_Click" VerticalAlignment="Top"
+                    IsEnabled="{Binding IsConfigurationEnabled}" AutomationProperties.Name="{services:Loc ProfileSaveCurrent}"/>
+        </Grid>
 
         <Border Grid.Row="1" Style="{StaticResource Card}" Padding="14,12" Margin="0,0,0,8" IsEnabled="{Binding IsConfigurationEnabled}">
             <Grid>
@@ -70,7 +76,7 @@
                     <TextBlock Text="{services:Loc SectionParameters}" Style="{StaticResource SectionTitle}"/>
 
                     <TextBlock Grid.Row="1" Text="{services:Loc LabelImageLanguage}" Style="{StaticResource FieldLabel}" Margin="0,8,0,4"/>
-                    <ComboBox Grid.Row="2" ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}" AutomationProperties.Name="{services:Loc AutomationImageLanguage}"/>
+                    <ComboBox Grid.Row="2" ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}" SelectionChanged="StoredLanguage_SelectionChanged" AutomationProperties.Name="{services:Loc AutomationImageLanguage}"/>
 
                     <Grid Grid.Row="3" Margin="0,8,0,0">
                         <Grid.ColumnDefinitions>

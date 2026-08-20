@@ -96,6 +96,7 @@ public sealed partial class MainViewModel
             MessageBoxImage.Question);
         if (confirmation != MessageBoxResult.Yes) return;
 
+        string? historyId = null;
         try
         {
             State = UiState.Building;
@@ -103,6 +104,11 @@ public sealed partial class MainViewModel
             Speed = string.Empty;
             ClearError();
             Result = null;
+
+            // History starts only when the real ExecuteBuildPlan operation is about to start.
+            // The persisted record is intentionally a controlled GUI DTO, not a BuildPlan dump.
+            historyId = _historyService.Begin(CreatePendingHistoryEntry());
+            RefreshHistory();
 
             _activeBuildRequestId = BackendClient.NewRequestId();
             Raise(nameof(ActiveBuildRequestId));
@@ -134,19 +140,36 @@ public sealed partial class MainViewModel
             var response = await operation;
             Result = response.Data!;
             Stage = response.Data!.Stage;
+            if (historyId is not null)
+            {
+                _historyService.Complete(historyId, response.Data);
+                RefreshHistory();
+            }
             State = UiState.Completed;
             Progress = 100;
             SetStatus("StatusIsoReady");
         }
         catch (Exception exception)
         {
-            if (exception is BackendException { Code: "BUILD_CANCELLED" })
+            if (exception is BackendException { Code: "BUILD_CANCELLED" } cancelled)
             {
+                if (historyId is not null)
+                {
+                    _historyService.Cancel(historyId, cancelled.Error?.LogPath);
+                    RefreshHistory();
+                }
                 State = UiState.Cancelled;
                 SetStatus("StatusBuildCancelled");
             }
             else
             {
+                if (historyId is not null)
+                {
+                    var errorCode = exception is BackendException backendException ? backendException.Code : "GUI_ERROR";
+                    var logPath = exception is BackendException backendWithLog ? backendWithLog.Error?.LogPath : null;
+                    _historyService.Fail(historyId, errorCode, logPath);
+                    RefreshHistory();
+                }
                 Fail(exception);
             }
         }

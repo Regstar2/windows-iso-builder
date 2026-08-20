@@ -1,0 +1,76 @@
+<Window x:Class="WindowsISOBuilder.Gui.Views.ProfileEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:services="clr-namespace:WindowsISOBuilder.Gui.Services"
+        Title="{services:Loc ProfileEditorTitle}" Width="620" Height="690" MinWidth="540" MinHeight="560"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" Loaded="OnLoaded">
+    <Grid Margin="20">
+        <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
+                <TextBlock Text="{services:Loc ProfileName}" Style="{StaticResource FieldLabel}"/>
+                <TextBox x:Name="NameBox" MaxLength="80" Margin="0,4,0,10" AutomationProperties.Name="{services:Loc ProfileName}"/>
+
+                <TextBlock Text="{services:Loc ProfileSelectionMode}" Style="{StaticResource FieldLabel}"/>
+                <ComboBox x:Name="ModeCombo" SelectedValuePath="Tag" Margin="0,4,0,10" SelectionChanged="ModeCombo_SelectionChanged">
+                    <ComboBoxItem Tag="recommended" Content="{services:Loc ProfileModeRecommended}"/>
+                    <ComboBoxItem Tag="pinned" Content="{services:Loc ProfileModePinned}"/>
+                </ComboBox>
+
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="150"/></Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="{services:Loc ProfileProduct}" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox x:Name="ProductCombo" SelectedValuePath="Content" Margin="0,4,0,0">
+                            <ComboBoxItem Content="Windows 11"/><ComboBoxItem Content="Windows 10"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="{services:Loc ProfileArchitecture}" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox x:Name="ArchitectureCombo" SelectedValuePath="Tag" Margin="0,4,0,0">
+                            <ComboBoxItem Tag="amd64" Content="x64"/><ComboBoxItem Tag="arm64" Content="ARM64"/><ComboBoxItem Tag="x86" Content="x86"/>
+                        </ComboBox>
+                    </StackPanel>
+                </Grid>
+
+                <Button Content="{services:Loc ProfileRefreshAvailability}" Click="RefreshAvailability_Click" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBlock x:Name="AvailabilityText" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,10"/>
+
+                <TextBlock Text="{services:Loc ProfileLanguage}" Style="{StaticResource FieldLabel}"/>
+                <ComboBox x:Name="LanguageCombo" DisplayMemberPath="Code" Margin="0,4,0,10" SelectionChanged="LanguageCombo_SelectionChanged"/>
+
+                <TextBlock Text="{services:Loc ProfileEditions}" Style="{StaticResource FieldLabel}"/>
+                <Border Style="{StaticResource GuidedStepBorder}" Margin="0,4,0,10">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="120">
+                        <ItemsControl ItemsSource="{Binding EditionChoices}">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding Name}" IsChecked="{Binding Selected}" Margin="0,0,12,4"/></DataTemplate></ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Border>
+
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="{services:Loc ProfileFormat}" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox x:Name="FormatCombo" SelectedValuePath="Content" Margin="0,4,12,0"><ComboBoxItem Content="ESD"/><ComboBoxItem Content="WIM"/></ComboBox>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="{services:Loc ProfileOutput}" Style="{StaticResource FieldLabel}"/>
+                        <TextBox x:Name="OutputBox" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Grid>
+
+                <WrapPanel>
+                    <CheckBox x:Name="AddUpdatesCheck" Content="{services:Loc ProfileAddUpdates}" Margin="0,0,14,6"/>
+                    <CheckBox x:Name="CleanupCheck" Content="{services:Loc ProfileCleanup}" Margin="0,0,14,6"/>
+                    <CheckBox x:Name="NetFx3Check" Content="{services:Loc ProfileNetFx3}" Margin="0,0,14,6"/>
+                </WrapPanel>
+            </StackPanel>
+        </ScrollViewer>
+        <WrapPanel Grid.Row="1" HorizontalAlignment="Right" Margin="0,14,0,0">
+            <Button Content="{services:Loc ProfileSave}" Click="Save_Click" IsDefault="True" Margin="0,0,8,0"/>
+            <Button Content="{services:Loc ProfileCancel}" IsCancel="True"/>
+        </WrapPanel>
+    </Grid>
+</Window>

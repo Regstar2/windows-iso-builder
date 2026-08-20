@@ -38,11 +38,23 @@ public partial class MainWindow : Window
     }
 
     private void Catalog_Click(object sender, RoutedEventArgs e) => SelectPage(1, CatalogNav);
-    private void Settings_Click(object sender, RoutedEventArgs e) => SelectPage(2, SettingsNav);
-    private void Help_Click(object sender, RoutedEventArgs e) => SelectPage(3, HelpNav);
-    private void About_Click(object sender, RoutedEventArgs e) => SelectPage(4, AboutNav);
+    private void History_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.RefreshHistory();
+        SelectPage(2, HistoryNav);
+    }
+    private void Profiles_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.RefreshProfiles();
+        SelectPage(3, ProfilesNav);
+    }
+    private void Settings_Click(object sender, RoutedEventArgs e) => SelectPage(4, SettingsNav);
+    private void Help_Click(object sender, RoutedEventArgs e) => SelectPage(5, HelpNav);
+    private void About_Click(object sender, RoutedEventArgs e) => SelectPage(6, AboutNav);
 
     private void CatalogView_BuildActivated(object? sender, EventArgs e) => SelectPage(0, BuildNav);
+    private void StoredConfiguration_BuildActivated(object? sender, EventArgs e) => SelectPage(0, BuildNav);
+    private void StoredConfiguration_CatalogActivated(object? sender, EventArgs e) => SelectPage(1, CatalogNav);
 
     private void SelectPage(int index, System.Windows.Controls.RadioButton navigationItem)
     {
@@ -53,6 +65,7 @@ public partial class MainWindow : Window
     private void OnLanguageChanged(string language)
     {
         Loc.SetCulture(language);
+        ViewModel.RefreshLocalData();
         SaveWindowSettings();
     }
 

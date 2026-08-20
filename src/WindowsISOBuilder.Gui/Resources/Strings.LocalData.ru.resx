@@ -1,0 +1,110 @@
+<?xml version='1.0' encoding='utf-8'?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="NavHistory" xml:space="preserve"><value>_История</value></data>
+  <data name="NavProfiles" xml:space="preserve"><value>_Профили</value></data>
+  <data name="HistoryTitle" xml:space="preserve"><value>История сборок</value></data>
+  <data name="HistorySubtitle" xml:space="preserve"><value>Локальные записи завершённых, неудачных, отменённых и прерванных сборок ISO.</value></data>
+  <data name="HistoryFilterAll" xml:space="preserve"><value>_Все</value></data>
+  <data name="HistoryFilterCompleted" xml:space="preserve"><value>_Успешные</value></data>
+  <data name="HistoryFilterFailed" xml:space="preserve"><value>_Ошибки</value></data>
+  <data name="HistoryFilterCancelled" xml:space="preserve"><value>_Отменённые / прерванные</value></data>
+  <data name="HistoryEmpty" xml:space="preserve"><value>История сборок пока пуста.</value></data>
+  <data name="HistoryStatusPending" xml:space="preserve"><value>Сборка выполняется</value></data>
+  <data name="HistoryStatusCompleted" xml:space="preserve"><value>ISO создан</value></data>
+  <data name="HistoryStatusFailed" xml:space="preserve"><value>Ошибка сборки</value></data>
+  <data name="HistoryStatusCancelled" xml:space="preserve"><value>Сборка отменена</value></data>
+  <data name="HistoryStatusInterrupted" xml:space="preserve"><value>Сеанс GUI прерван</value></data>
+  <data name="HistoryOptionsFormat" xml:space="preserve"><value>Обновления: {0}; очистка: {1}; .NET Framework 3.5: {2}</value></data>
+  <data name="HistoryAccessibilitySummary" xml:space="preserve"><value>{0}; сборка {1}; {2}; {3}; {4}; {5}</value></data>
+  <data name="HistoryDetails" xml:space="preserve"><value>_Подробнее</value></data>
+  <data name="HistoryRepeat" xml:space="preserve"><value>_Повторить</value></data>
+  <data name="HistoryCreateProfile" xml:space="preserve"><value>Создать _профиль</value></data>
+  <data name="HistoryDelete" xml:space="preserve"><value>_Удалить запись</value></data>
+  <data name="HistoryClear" xml:space="preserve"><value>_Очистить историю</value></data>
+  <data name="HistoryClearTitle" xml:space="preserve"><value>Очистить историю сборок?</value></data>
+  <data name="HistoryClearMessage" xml:space="preserve"><value>Будут удалены только записи истории GUI. ISO, UUP-кэш, рабочие каталоги, журналы и метаданные останутся на диске.</value></data>
+  <data name="HistoryDeleteTitle" xml:space="preserve"><value>Удалить запись истории?</value></data>
+  <data name="HistoryDeleteMessage" xml:space="preserve"><value>Будет удалена только эта запись истории GUI. Файлы сборки и журналы останутся на диске.</value></data>
+  <data name="HistoryDetailsTitle" xml:space="preserve"><value>Сведения о сборке</value></data>
+  <data name="HistoryWindows" xml:space="preserve"><value>Windows</value></data>
+  <data name="HistoryVersion" xml:space="preserve"><value>Версия</value></data>
+  <data name="HistoryBuild" xml:space="preserve"><value>Сборка</value></data>
+  <data name="HistoryArchitecture" xml:space="preserve"><value>Архитектура</value></data>
+  <data name="HistoryLanguage" xml:space="preserve"><value>Язык</value></data>
+  <data name="HistoryEditions" xml:space="preserve"><value>Редакции</value></data>
+  <data name="HistoryFormat" xml:space="preserve"><value>Формат</value></data>
+  <data name="HistoryOptions" xml:space="preserve"><value>Параметры</value></data>
+  <data name="HistoryStarted" xml:space="preserve"><value>Начало</value></data>
+  <data name="HistoryFinished" xml:space="preserve"><value>Завершение</value></data>
+  <data name="HistoryStatus" xml:space="preserve"><value>Состояние</value></data>
+  <data name="HistoryIso" xml:space="preserve"><value>ISO</value></data>
+  <data name="HistorySha256" xml:space="preserve"><value>SHA-256</value></data>
+  <data name="HistoryBuildLog" xml:space="preserve"><value>Журнал сборки</value></data>
+  <data name="HistoryExecutionLog" xml:space="preserve"><value>Журнал выполнения</value></data>
+  <data name="HistoryMetadata" xml:space="preserve"><value>Метаданные</value></data>
+  <data name="HistoryErrorCode" xml:space="preserve"><value>Код ошибки</value></data>
+  <data name="HistoryOpenFolder" xml:space="preserve"><value>Открыть _папку ISO</value></data>
+  <data name="HistoryOpenLog" xml:space="preserve"><value>Открыть _журнал</value></data>
+  <data name="HistoryOpenExecutionLog" xml:space="preserve"><value>Открыть журнал _выполнения</value></data>
+  <data name="HistoryOpenMetadata" xml:space="preserve"><value>Открыть _метаданные</value></data>
+  <data name="HistoryCopySha" xml:space="preserve"><value>Копировать _SHA-256</value></data>
+  <data name="HistoryFileMissing" xml:space="preserve"><value>Файл больше не существует.</value></data>
+  <data name="ProfilesTitle" xml:space="preserve"><value>Мои профили</value></data>
+  <data name="ProfilesSubtitle" xml:space="preserve"><value>Повторно используемые настройки сборки. Рекомендуемые профили каждый раз разрешаются через актуальный каталог backend.</value></data>
+  <data name="ProfilesEmpty" xml:space="preserve"><value>Сохранённых профилей пока нет.</value></data>
+  <data name="ProfileModeRecommended" xml:space="preserve"><value>Рекомендуемая / динамическая</value></data>
+  <data name="ProfileModePinned" xml:space="preserve"><value>Закреплённая сборка</value></data>
+  <data name="ProfileRecommendedHint" xml:space="preserve"><value>Последняя рекомендуемая стабильная сборка</value></data>
+  <data name="ProfileAccessibilitySummary" xml:space="preserve"><value>{0}; {1}; {2}; язык {3}; редакции {4}</value></data>
+  <data name="ProfileDefaultName" xml:space="preserve"><value>Профиль сборки Windows</value></data>
+  <data name="ProfileCreate" xml:space="preserve"><value>_Новый профиль</value></data>
+  <data name="ProfileSaveCurrent" xml:space="preserve"><value>Сохранить как _профиль</value></data>
+  <data name="ProfileUse" xml:space="preserve"><value>_Использовать</value></data>
+  <data name="ProfileEdit" xml:space="preserve"><value>_Изменить</value></data>
+  <data name="ProfileDelete" xml:space="preserve"><value>_Удалить</value></data>
+  <data name="ProfileDeleteTitle" xml:space="preserve"><value>Удалить профиль?</value></data>
+  <data name="ProfileDeleteMessage" xml:space="preserve"><value>Сохранённый профиль будет удалён. ISO, кэш и журналы не затрагиваются.</value></data>
+  <data name="ProfileEditorTitle" xml:space="preserve"><value>Профиль сборки</value></data>
+  <data name="ProfileName" xml:space="preserve"><value>Название</value></data>
+  <data name="ProfileSelectionMode" xml:space="preserve"><value>Выбор сборки</value></data>
+  <data name="ProfileProduct" xml:space="preserve"><value>Продукт Windows</value></data>
+  <data name="ProfileArchitecture" xml:space="preserve"><value>Архитектура</value></data>
+  <data name="ProfileLanguage" xml:space="preserve"><value>Язык</value></data>
+  <data name="ProfileEditions" xml:space="preserve"><value>Редакции</value></data>
+  <data name="ProfileFormat" xml:space="preserve"><value>Формат образа</value></data>
+  <data name="ProfileOutput" xml:space="preserve"><value>Каталог результата</value></data>
+  <data name="ProfileAddUpdates" xml:space="preserve"><value>Добавлять обновления</value></data>
+  <data name="ProfileCleanup" xml:space="preserve"><value>Очистка</value></data>
+  <data name="ProfileNetFx3" xml:space="preserve"><value>Включать .NET Framework 3.5</value></data>
+  <data name="ProfilePinExact" xml:space="preserve"><value>Закрепить именно эту сборку</value></data>
+  <data name="ProfileRefreshAvailability" xml:space="preserve"><value>_Обновить доступность</value></data>
+  <data name="ProfileSave" xml:space="preserve"><value>_Сохранить</value></data>
+  <data name="ProfileCancel" xml:space="preserve"><value>Отмена</value></data>
+  <data name="ProfileNameInvalid" xml:space="preserve"><value>Введите название профиля длиной от 1 до 80 символов.</value></data>
+  <data name="ProfileAvailabilityCurrent" xml:space="preserve"><value>Сохранённые язык и редакции сейчас доступны.</value></data>
+  <data name="ProfileAvailabilityStale" xml:space="preserve"><value>Часть сохранённых значений недоступна в актуальном каталоге: {0}</value></data>
+  <data name="StoredLanguageUnavailable" xml:space="preserve"><value>Сохранённый язык {0} больше недоступен. Доступные параметры применены; выберите новый язык.</value></data>
+  <data name="StoredEditionsUnavailable" xml:space="preserve"><value>Часть сохранённых редакций больше недоступна: {0}. Доступные параметры применены; выберите нужные редакции.</value></data>
+  <data name="StoredBuildMissingHistoryTitle" xml:space="preserve"><value>Сохранённая сборка недоступна</value></data>
+  <data name="StoredBuildMissingHistoryMessage" xml:space="preserve"><value>Сборка из истории больше не найдена в актуальном каталоге.</value></data>
+  <data name="StoredBuildMissingProfileTitle" xml:space="preserve"><value>Закреплённая сборка недоступна</value></data>
+  <data name="StoredBuildMissingProfileMessage" xml:space="preserve"><value>Закреплённая сборка больше не найдена в актуальном каталоге.</value></data>
+  <data name="StoredBuildUseRecommended" xml:space="preserve"><value>Использовать актуальную _рекомендуемую</value></data>
+  <data name="StoredBuildOpenCatalog" xml:space="preserve"><value>Открыть _каталог</value></data>
+  <data name="StoredBuildCancel" xml:space="preserve"><value>Отмена</value></data>
+  <data name="StatusStoredConfigurationNeedsAttention" xml:space="preserve"><value>Сохранённая конфигурация требует внимания.</value></data>
+  <data name="StatusStoredConfigurationApplied" xml:space="preserve"><value>Сохранённая конфигурация применена. Проверьте её перед preflight.</value></data>
+  <data name="AutomationNavHistory" xml:space="preserve"><value>История сборок</value></data>
+  <data name="AutomationNavProfiles" xml:space="preserve"><value>Профили сборок</value></data>
+  <data name="AutomationHistoryDetails" xml:space="preserve"><value>Открыть сведения об этой сборке</value></data>
+  <data name="AutomationHistoryRepeat" xml:space="preserve"><value>Повторить эту конфигурацию сборки</value></data>
+  <data name="AutomationHistoryCreateProfile" xml:space="preserve"><value>Создать профиль из этой сборки</value></data>
+  <data name="AutomationHistoryDelete" xml:space="preserve"><value>Удалить эту запись истории</value></data>
+  <data name="AutomationProfilesUse" xml:space="preserve"><value>Использовать этот профиль сборки</value></data>
+  <data name="AutomationProfilesEdit" xml:space="preserve"><value>Изменить этот профиль сборки</value></data>
+  <data name="AutomationProfilesDelete" xml:space="preserve"><value>Удалить этот профиль сборки</value></data>
+</root>

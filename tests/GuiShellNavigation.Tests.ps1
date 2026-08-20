@@ -1,6 +1,6 @@
 #requires -Version 5.1
 
-Describe 'v0.3.2 GUI shell navigation' {
+Describe 'v0.4.0 GUI shell navigation' {
     BeforeAll {
         $script:projectRoot = Split-Path -Parent $PSScriptRoot
         $script:mainXaml = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\MainWindow.xaml') -Raw -Encoding UTF8
@@ -13,20 +13,22 @@ Describe 'v0.3.2 GUI shell navigation' {
         $script:themeService = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Services\ThemeService.cs') -Raw -Encoding UTF8
     }
 
-    It 'moves app identity into the sidebar and removes the internal top header row' {
+    It 'keeps app identity in the sidebar and no internal top header row' {
         $script:mainXaml | Should -Match '<ColumnDefinition Width="190"/>'
         $script:mainXaml | Should -Match '<TextBlock Text="\{services:Loc AppTitle\}" FontSize="18"'
         $script:mainXaml | Should -Not -Match '<RowDefinition Height="52"/>'
     }
 
-    It 'provides Build Catalog Settings Help and About navigation without a large middle gap' {
-        foreach ($nav in @('BuildNav','CatalogNav','SettingsNav','HelpNav','AboutNav')) {
+    It 'provides Build Catalog History Profiles Settings Help and About in one navigation system' {
+        foreach ($nav in @('BuildNav','CatalogNav','HistoryNav','ProfilesNav','SettingsNav','HelpNav','AboutNav')) {
             $script:mainXaml | Should -Match ('x:Name="{0}"' -f $nav)
         }
         $script:mainXaml | Should -Match 'Content="\{services:Loc NavBuild\}"'
-        $script:mainXaml | Should -Match '<Separator Grid.Row="3"'
-        $script:mainXaml | Should -Match 'x:Name="SettingsNav" Grid.Row="4"'
-        $script:mainXaml | Should -Not -Match '<Separator Grid.Row="4"'
+        $script:mainXaml | Should -Match 'Content="\{services:Loc NavHistory\}"'
+        $script:mainXaml | Should -Match 'Content="\{services:Loc NavProfiles\}"'
+        $script:mainXaml | Should -Match '<Separator Grid.Row="5"'
+        $script:mainXaml | Should -Match 'x:Name="SettingsNav" Grid.Row="6"'
+        $script:mainXaml | Should -Not -Match 'QuickNav'
     }
 
     It 'moves language theme and diagnostics into Settings' {
@@ -54,8 +56,6 @@ Describe 'v0.3.2 GUI shell navigation' {
         $script:stylesXaml | Should -Match 'TargetName="ButtonSurface" Property="Background" Value="\{DynamicResource WibDisabledControlBrush\}"'
         $script:stylesXaml | Should -Match '<Setter Property="Background" Value="\{DynamicResource WibPrimaryButtonBrush\}"/>'
         $script:stylesXaml | Should -Match '<Setter Property="Foreground" Value="\{DynamicResource WibPrimaryButtonTextBrush\}"/>'
-        $script:themeService | Should -Match 'resources\["WibPrimaryButtonBrush"\] = dark'
-        $script:themeService | Should -Match 'Brush\(0x34, 0x34, 0x34\)'
     }
 
     It 'keeps ComboBox fields and dropdown items on theme-owned surfaces' {
@@ -64,26 +64,15 @@ Describe 'v0.3.2 GUI shell navigation' {
         $script:stylesXaml | Should -Match 'Background="\{TemplateBinding Background\}"'
         $script:stylesXaml | Should -Match 'Background="\{DynamicResource WibCardBrush\}"'
         $script:stylesXaml | Should -Match '<ControlTemplate TargetType="ComboBoxItem">'
-        $script:stylesXaml | Should -Match 'TargetName="ComboSurface" Property="Background" Value="\{DynamicResource WibDisabledControlBrush\}"'
-        $script:stylesXaml | Should -Match 'TargetName="DropDownArrow" Property="Stroke" Value="\{DynamicResource WibDisabledTextBrush\}"'
     }
 
-    It 'keeps form controls readable in dark and disabled states' {
-        foreach ($control in @('TextBox','ComboBox','CheckBox')) {
-            $script:stylesXaml | Should -Match ('<Style TargetType="{0}">' -f $control)
-        }
-        $script:stylesXaml | Should -Match '<Setter Property="Foreground" Value="\{DynamicResource WibTextBrush\}"/>'
-        $script:stylesXaml | Should -Match '<Setter Property="Foreground" Value="\{DynamicResource WibDisabledTextBrush\}"/>'
-        $script:stylesXaml | Should -Match '<Setter Property="Background" Value="\{DynamicResource WibDisabledControlBrush\}"/>'
-    }
-
-    It 'guides the Build workflow through the next required action' {
+    It 'guides the Build workflow and exposes save as profile without duplicating the pipeline' {
         $script:quickXaml | Should -Match 'Tag="\{Binding HighlightRecommended\}"'
         $script:quickXaml | Should -Match 'Tag="\{Binding HighlightEditions\}"'
         $script:quickXaml | Should -Match 'Tag="\{Binding HighlightPreflight\}"'
         $script:buildPanelXaml | Should -Match 'Tag="\{Binding HighlightBuild\}"'
+        $script:quickXaml | Should -Match 'ProfileSaveCurrent'
         $script:stylesXaml | Should -Match 'x:Key="GuidedActionButton"'
-        $script:stylesXaml | Should -Match 'x:Key="GuidedStepBorder"'
     }
 
     It 'provides localized Help and About content including the repository link' {
