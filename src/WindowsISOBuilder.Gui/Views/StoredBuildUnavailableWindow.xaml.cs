@@ -3,7 +3,7 @@ using WindowsISOBuilder.Gui.Services;
 
 namespace WindowsISOBuilder.Gui.Views;
 
-internal enum StoredBuildUnavailableChoice
+public enum StoredBuildUnavailableChoice
 {
     Cancel,
     Recommended,
