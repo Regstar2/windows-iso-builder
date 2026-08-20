@@ -1,0 +1,42 @@
+<?xml version='1.0' encoding='utf-8'?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="NavBuild" xml:space="preserve"><value>_Build</value></data>
+  <data name="NavSettings" xml:space="preserve"><value>_Settings</value></data>
+  <data name="NavHelp" xml:space="preserve"><value>_Help</value></data>
+  <data name="NavAbout" xml:space="preserve"><value>_About</value></data>
+  <data name="BuildPageTitle" xml:space="preserve"><value>Build</value></data>
+  <data name="SettingsTitle" xml:space="preserve"><value>Settings</value></data>
+  <data name="SettingsSubtitle" xml:space="preserve"><value>Configure the interface and create a sanitized diagnostics package.</value></data>
+  <data name="SettingsInterfaceTitle" xml:space="preserve"><value>Interface</value></data>
+  <data name="SettingsLanguageLabel" xml:space="preserve"><value>Interface language</value></data>
+  <data name="SettingsThemeLabel" xml:space="preserve"><value>Theme</value></data>
+  <data name="ThemeSystem" xml:space="preserve"><value>Use Windows setting</value></data>
+  <data name="ThemeLight" xml:space="preserve"><value>Light</value></data>
+  <data name="ThemeDark" xml:space="preserve"><value>Dark</value></data>
+  <data name="SettingsDiagnosticsTitle" xml:space="preserve"><value>Diagnostics</value></data>
+  <data name="SettingsDiagnosticsDescription" xml:space="preserve"><value>Create a ZIP with application and build logs. Personal paths, user names, URLs, tokens, secrets, and product keys are sanitized before the archive is written.</value></data>
+  <data name="HelpTitle" xml:space="preserve"><value>Help</value></data>
+  <data name="HelpSubtitle" xml:space="preserve"><value>How to create a Windows ISO with Windows ISO Builder.</value></data>
+  <data name="HelpBuildTitle" xml:space="preserve"><value>Creating an ISO</value></data>
+  <data name="HelpBuildStep1" xml:space="preserve"><value>1. Open Build, choose Windows and architecture, then get the recommended build or select one from Catalog.</value></data>
+  <data name="HelpBuildStep2" xml:space="preserve"><value>2. Choose the image language, editions, WIM or ESD format, and the output folder.</value></data>
+  <data name="HelpBuildStep3" xml:space="preserve"><value>3. Run the readiness check and resolve any reported blocking problems.</value></data>
+  <data name="HelpBuildStep4" xml:space="preserve"><value>4. Click Create ISO. Approve the Windows UAC prompt when elevated operations are required.</value></data>
+  <data name="HelpBuildStep5" xml:space="preserve"><value>5. Follow the progress in the Build panel. When complete, open the output folder or copy the SHA-256 hash.</value></data>
+  <data name="HelpCatalogTitle" xml:space="preserve"><value>Catalog</value></data>
+  <data name="HelpCatalogDescription" xml:space="preserve"><value>Catalog loads current entries from UUP dump. Preview shows preview builds. Servicing entries are displayed for reference and cannot be used as complete Windows ISO sources.</value></data>
+  <data name="HelpTroubleshootingTitle" xml:space="preserve"><value>If a build fails</value></data>
+  <data name="HelpTroubleshootingDescription" xml:space="preserve"><value>Open the build log from the error panel. If more information is needed, open Settings and create a diagnostics package before reporting the problem.</value></data>
+  <data name="AboutTitle" xml:space="preserve"><value>About</value></data>
+  <data name="AboutSubtitle" xml:space="preserve"><value>Information about Windows ISO Builder.</value></data>
+  <data name="AboutDescription" xml:space="preserve"><value>Windows ISO Builder is a desktop interface for selecting Windows builds from UUP dump, checking the local environment, and creating Windows installation ISO images through the existing PowerShell backend.</value></data>
+  <data name="AboutVersionLabel" xml:space="preserve"><value>Version</value></data>
+  <data name="AboutRepositoryLabel" xml:space="preserve"><value>Source code and project page</value></data>
+  <data name="AboutOpenGitHub" xml:space="preserve"><value>Open GitHub repository</value></data>
+  <data name="AboutOpenGitHubErrorTitle" xml:space="preserve"><value>Could not open GitHub</value></data>
+  <data name="AboutOpenGitHubErrorMessage" xml:space="preserve"><value>The project page could not be opened in the default browser.</value></data>
+</root>
