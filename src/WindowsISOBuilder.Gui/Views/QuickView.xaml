@@ -38,7 +38,8 @@
                         <ComboBoxItem Content="ARM64" Tag="arm64"/>
                         <ComboBoxItem Content="x86" Tag="x86"/>
                     </ComboBox>
-                    <Button Grid.Column="4" Content="{services:Loc ButtonRecommended}" Command="{Binding LoadRecommendedCommand}" MinWidth="190"/>
+                    <Button Grid.Column="4" Content="{services:Loc ButtonRecommended}" Command="{Binding LoadRecommendedCommand}" MinWidth="190"
+                            Style="{StaticResource GuidedActionButton}" Tag="{Binding HighlightRecommended}"/>
                 </Grid>
                 <Grid Grid.Row="2" Margin="0,7,0,0">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -81,12 +82,14 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
                             <TextBlock Text="{services:Loc LabelEditions}" Style="{StaticResource FieldLabel}"/>
-                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="54">
-                                <ItemsControl ItemsSource="{Binding Editions}" AutomationProperties.Name="{services:Loc AutomationEditions}">
-                                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding Name}" IsChecked="{Binding Selected}"/></DataTemplate></ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
+                            <Border Style="{StaticResource GuidedStepBorder}" Tag="{Binding HighlightEditions}">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="54">
+                                    <ItemsControl ItemsSource="{Binding Editions}" AutomationProperties.Name="{services:Loc AutomationEditions}">
+                                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding Name}" IsChecked="{Binding Selected}"/></DataTemplate></ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Border>
                         </StackPanel>
                         <StackPanel Grid.Column="2">
                             <TextBlock Text="{services:Loc LabelImageFormat}" Style="{StaticResource FieldLabel}"/>
@@ -128,7 +131,9 @@
                     </ItemsControl>
                     <Grid Grid.Row="3" Margin="0,6,0,0">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                        <Button Grid.Column="0" Content="{Binding PreflightActionLabel, Mode=OneWay}" Command="{Binding PreflightCommand}" ToolTip="{services:Loc TooltipPreflight}" AutomationProperties.Name="{services:Loc AutomationPreflight}"/>
+                        <Button Grid.Column="0" Content="{Binding PreflightActionLabel, Mode=OneWay}" Command="{Binding PreflightCommand}"
+                                ToolTip="{services:Loc TooltipPreflight}" AutomationProperties.Name="{services:Loc AutomationPreflight}"
+                                Style="{StaticResource GuidedActionButton}" Tag="{Binding HighlightPreflight}"/>
                         <Button Grid.Column="2" Content="{services:Loc ButtonDetails}" Click="PreflightDetails_Click" IsEnabled="{Binding HasPreflightChecks}"/>
                     </Grid>
                 </Grid>
