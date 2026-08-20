@@ -16,8 +16,8 @@ public sealed class UpdateServiceTests
         var rc = Parse("1.0.0-rc.1");
         var rc2 = Parse("1.0.0-rc.2");
         var rc11 = Parse("1.0.0-rc.11");
-        Assert.IsGreaterThan(stable.CompareTo(rc), 0);
-        Assert.IsLessThan(rc2.CompareTo(rc11), 0);
+        Assert.IsTrue(stable.CompareTo(rc) > 0);
+        Assert.IsTrue(rc2.CompareTo(rc11) < 0);
         Assert.AreEqual(0, Parse("1.2.3+build.1").CompareTo(Parse("1.2.3+build.9")));
     }
 
@@ -87,7 +87,7 @@ public sealed class UpdateServiceTests
     public async Task NetworkAndTimeoutFailuresRemainControlledFailures()
     {
         var offline = new GitHubReleaseUpdateService(new StubHttpClientProvider((_, _) => throw new HttpRequestException("offline")));
-        var timeout = new GitHubReleaseUpdateService(new StubHttpClientProvider((_, token) => Task.FromCanceled<HttpResponseMessage>(new CancellationToken(true))));
+        var timeout = new GitHubReleaseUpdateService(new StubHttpClientProvider((_, _) => Task.FromCanceled<HttpResponseMessage>(new CancellationToken(true))));
         await AssertThrowsAsync<HttpRequestException>(() => offline.CheckAsync("1.0.0", UpdateChannelService.Stable));
         await AssertThrowsAsync<TaskCanceledException>(() => timeout.CheckAsync("1.0.0", UpdateChannelService.Stable));
     }
@@ -100,14 +100,35 @@ public sealed class UpdateServiceTests
         Assert.AreEqual(UpdateChannelService.Prerelease, UpdateChannelService.Normalize(" PRERELEASE "));
     }
 
+    [TestMethod]
+    public void UpdateChannelPersistsWithoutCredentials()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "wib-update-settings", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var path = Path.Combine(root, "settings.json");
+            var service = new AppSettingsService(new GuiLogger(), path);
+            service.Save(new AppSettings { UpdateChannel = UpdateChannelService.Prerelease });
+            var loaded = service.Load();
+            Assert.AreEqual(UpdateChannelService.Prerelease, loaded.UpdateChannel);
+            var json = File.ReadAllText(path);
+            Assert.IsFalse(json.Contains("password", StringComparison.OrdinalIgnoreCase));
+            Assert.IsFalse(json.Contains("token", StringComparison.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
     private static SemanticVersion Parse(string value)
     {
         Assert.IsTrue(SemanticVersion.TryParse(value, out var version), value);
         return version!;
     }
 
-    private static StubHttpClientProvider ProviderFor(string json) =>
-        new((_, _) => Task.FromResult(JsonResponse(json)));
+    private static StubHttpClientProvider ProviderFor(string json) => new((_, _) => Task.FromResult(JsonResponse(json)));
 
     private static HttpResponseMessage JsonResponse(string json) => new(HttpStatusCode.OK)
     {
@@ -130,7 +151,7 @@ public sealed class UpdateServiceTests
     {
         private readonly Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _send;
         public StubHttpClientProvider(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> send) => _send = send;
-        public HttpClient CreateClient() => new(new StubHandler(_send)) { Timeout = Timeout.InfiniteTimeSpan };
+        public HttpClient CreateClient() => new(new StubHandler(_send)) { Timeout = System.Threading.Timeout.InfiniteTimeSpan };
     }
 
     private sealed class StubHandler : HttpMessageHandler

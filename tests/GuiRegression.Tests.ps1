@@ -114,7 +114,7 @@ Describe 'GUI polish regression boundaries' {
         $catalogCode | Should -Match 'UseCatalogBuild_Click'
     }
 
-    It 'uses centralized RU and EN localization with English fallback' {
+    It 'uses centralized RU and EN localization with English fallback and a canonical application version' {
         $project = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\WindowsISOBuilder.Gui.csproj') -Raw -Encoding UTF8
         $localization = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Services\LocalizationService.cs') -Raw -Encoding UTF8
         foreach ($group in @('Core','Pages','Automation','Errors','Status')) {
@@ -125,7 +125,8 @@ Describe 'GUI polish regression boundaries' {
         $localization | Should -Match 'RussianCulture'
         $localization | Should -Match 'return "en"'
         $script:mainXaml | Should -Match 'services:Loc'
-        $project | Should -Match '<Version>0\.3\.2</Version>'
+        $version = [IO.File]::ReadAllText((Join-Path $script:projectRoot 'VERSION'), [Text.Encoding]::ASCII).Trim()
+        $project | Should -Match ('<Version>{0}</Version>' -f [regex]::Escape($version))
     }
 
     It 'uses application ThemeMode with persisted System Light and Dark choices' {
@@ -176,7 +177,7 @@ Describe 'GUI polish regression boundaries' {
         $diagnostics | Should -Not -Match 'CreateFromDirectory'
     }
 
-    It 'persists window state language and theme in a tolerant settings service' {
+    It 'persists window state language theme and update channel in a tolerant settings service' {
         $settings = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Services\AppSettingsService.cs') -Raw -Encoding UTF8
         $model = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Models\AppSettings.cs') -Raw -Encoding UTF8
         $settings | Should -Match 'settings\.json'
@@ -185,6 +186,38 @@ Describe 'GUI polish regression boundaries' {
         $model | Should -Match 'IsMaximized'
         $model | Should -Match 'Language'
         $model | Should -Match 'Theme'
+        $model | Should -Match 'UpdateChannel'
         $model | Should -Not -Match 'Minimized'
+    }
+}
+
+Describe 'v0.3.3 feedback and update delivery regressions' {
+    BeforeAll { $script:projectRoot = Split-Path -Parent $PSScriptRoot }
+
+    It 'ships structured issue forms and safe in-app feedback links' {
+        foreach ($form in @('bug_report.yml','feature_request.yml','config.yml')) {
+            Test-Path -LiteralPath (Join-Path $script:projectRoot ('.github\ISSUE_TEMPLATE\' + $form)) | Should -BeTrue
+        }
+        $about = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Views\AboutView.xaml.cs') -Raw -Encoding UTF8
+        $about | Should -Match 'issues/new\?template=bug_report\.yml'
+        $about | Should -Match 'issues/new\?template=feature_request\.yml'
+        $about | Should -Not -Match 'token=|Authorization|PAT'
+    }
+
+    It 'exposes Stable and Prerelease channels and a manual update action' {
+        $settings = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Views\SettingsView.xaml') -Raw -Encoding UTF8
+        $settings | Should -Match 'x:Name="UpdateChannelCombo"'
+        $settings | Should -Match 'Tag="stable"'
+        $settings | Should -Match 'Tag="prerelease"'
+        $settings | Should -Match 'x:Name="CheckUpdatesButton"'
+    }
+
+    It 'keeps update delivery on the official GitHub Releases endpoint with no self-update execution' {
+        $service = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Services\GitHubReleaseUpdateService.cs') -Raw -Encoding UTF8
+        $window = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\MainWindow.xaml.cs') -Raw -Encoding UTF8
+        $service | Should -Match 'api\.github\.com/repos/Regstar2/windows-iso-builder/releases'
+        $service | Should -Not -Match 'Authorization'
+        $window | Should -Match 'github\.com'
+        $window | Should -Not -Match 'WebClient|DownloadFile|ProcessStartInfo\([^\)]*\.exe'
     }
 }

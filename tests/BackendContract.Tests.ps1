@@ -1,5 +1,7 @@
 ﻿$modulePath = Join-Path $PSScriptRoot '..\src\WindowsISOBuilder\WindowsISOBuilder.psd1'
 Import-Module $modulePath -Force
+$root = Split-Path -Parent $PSScriptRoot
+$expectedApplicationVersion = [IO.File]::ReadAllText((Join-Path $root 'VERSION'), [Text.Encoding]::ASCII).Trim()
 
 Describe 'Backend Contract v1' {
     InModuleScope WindowsISOBuilder {
@@ -23,8 +25,8 @@ Describe 'Backend Contract v1' {
             $response = Invoke-WibBackendRequestObject $request
             $response.success | Should -BeTrue
             $response.requestId | Should -Be 'get-version'
-            $response.applicationVersion | Should -Be '0.3.0-alpha.1'
-            $response.data.applicationVersion | Should -Be '0.3.0-alpha.1'
+            $response.applicationVersion | Should -Be $expectedApplicationVersion
+            $response.data.applicationVersion | Should -Be $expectedApplicationVersion
             $response.data.contractSchemaVersion | Should -Be 1
             $response.data.buildPlanSchemaVersion | Should -Be 1
         }
@@ -57,10 +59,7 @@ Describe 'Backend Contract v1' {
 
         It 'SearchBuilds calls existing core and returns controlled build DTOs' {
             Mock Search-WibBuilds { @($script:testBuild) }
-            $response = Invoke-WibBackendRequestObject ([pscustomobject]@{
-                schemaVersion=1; requestId='search'; command='SearchBuilds';
-                arguments=[pscustomobject]@{ search='Windows 11 25H2'; architecture='amd64'; includePreview=$false; forceRefresh=$false; cacheDirectory=$TestDrive }
-            })
+            $response = Invoke-WibBackendRequestObject ([pscustomobject]@{ schemaVersion=1; requestId='search'; command='SearchBuilds'; arguments=[pscustomobject]@{ search='Windows 11 25H2'; architecture='amd64'; includePreview=$false; forceRefresh=$false; cacheDirectory=$TestDrive } })
             Assert-MockCalled Search-WibBuilds -Times 1 -Exactly -ParameterFilter { $Search -eq 'Windows 11 25H2' -and $Architecture -eq 'amd64' }
             $response.data.builds.Count | Should -Be 1
             $response.data.builds[0].uuid | Should -Be 'update-1'
@@ -77,10 +76,7 @@ Describe 'Backend Contract v1' {
 
         It 'GetRecommendedBuild uses shared quick-mode selection logic' {
             Mock Get-WibQuickLatestBuild { $script:testBuild }
-            $response = Invoke-WibBackendRequestObject ([pscustomobject]@{
-                schemaVersion=1; requestId='recommended'; command='GetRecommendedBuild';
-                arguments=[pscustomobject]@{ product='Windows 11'; architecture='amd64'; forceRefresh=$true; cacheDirectory=$TestDrive }
-            })
+            $response = Invoke-WibBackendRequestObject ([pscustomobject]@{ schemaVersion=1; requestId='recommended'; command='GetRecommendedBuild'; arguments=[pscustomobject]@{ product='Windows 11'; architecture='amd64'; forceRefresh=$true; cacheDirectory=$TestDrive } })
             Assert-MockCalled Get-WibQuickLatestBuild -Times 1 -Exactly -ParameterFilter { $Product -eq 'Windows 11' -and $Architecture -eq 'amd64' -and $ForceRefresh }
             $response.data.build.uuid | Should -Be 'update-1'
         }
@@ -101,10 +97,7 @@ Describe 'Backend Contract v1' {
         It 'CreateBuildPlan delegates to New-WibBuildPlan' {
             Mock New-WibBuildPlan { $script:testPlan }
             $buildDto = ConvertTo-WibBuildDto $script:testBuild
-            $response = Invoke-WibBackendRequestObject ([pscustomobject]@{
-                schemaVersion=1; requestId='plan'; command='CreateBuildPlan';
-                arguments=[pscustomobject]@{ build=$buildDto; language='ru-ru'; editions=@('Core','Professional'); imageFormat='ESD'; addUpdates=$true; cleanup=$true; netFx3=$false; outputDirectory=$TestDrive; cacheDirectory=$TestDrive }
-            })
+            $response = Invoke-WibBackendRequestObject ([pscustomobject]@{ schemaVersion=1; requestId='plan'; command='CreateBuildPlan'; arguments=[pscustomobject]@{ build=$buildDto; language='ru-ru'; editions=@('Core','Professional'); imageFormat='ESD'; addUpdates=$true; cleanup=$true; netFx3=$false; outputDirectory=$TestDrive; cacheDirectory=$TestDrive } })
             Assert-MockCalled New-WibBuildPlan -Times 1 -Exactly
             $response.data.plan.schemaVersion | Should -Be 1
             $response.data.plan.build.uuid | Should -Be 'update-1'
@@ -175,9 +168,7 @@ Describe 'Backend Contract static security regressions' {
         $source = (Get-Content -LiteralPath $contractPath -Raw -Encoding UTF8) + (Get-Content -LiteralPath $commandsPath -Raw -Encoding UTF8)
         $source | Should -Not -Match '(?i)Invoke-Expression'
         $source | Should -Match 'switch\s*\(\$Command\)'
-        foreach ($command in @('GetVersion','SearchBuilds','GetRecommendedBuild','GetLanguages','GetEditions','CreateBuildPlan','ValidateBuildPlan','ExecuteBuildPlan','RunPreflight','CancelBuild')) {
-            $source | Should -Match ([regex]::Escape("'$command'"))
-        }
+        foreach ($command in @('GetVersion','SearchBuilds','GetRecommendedBuild','GetLanguages','GetEditions','CreateBuildPlan','ValidateBuildPlan','ExecuteBuildPlan','RunPreflight','CancelBuild')) { $source | Should -Match ([regex]::Escape("'$command'")) }
     }
 
     It 'keeps the standalone machine entry point ASCII-only and PS5.1-targeted' {

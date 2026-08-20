@@ -1,67 +1,51 @@
 # Статус реализации
 
-## Текущая версия
+## Текущая source-версия
 
-`0.3.0-alpha.1` — первый GUI MVP.
+`0.3.3 — Feedback & Update Delivery`.
 
-- ApplicationVersion: `0.3.0-alpha.1`;
-- ModuleVersion: `0.3.0`;
+- ApplicationVersion: `0.3.3`;
+- GUI Assembly/FileVersion: `0.3.3` / `0.3.3.0`;
+- PowerShell ModuleVersion: `0.3.0`;
 - Backend Contract SchemaVersion: `1`;
 - BuildPlan SchemaVersion: `1`.
 
 ## Реализовано в source
 
-- WPF/.NET 10 GUI project и solution;
-- startup backend resolution + `GetVersion` schema handshake;
-- Quick Windows 11/10 через backend recommendation;
-- Catalog search, architecture, Preview и servicing display filter;
-- отдельное выделение/активация Catalog row без преждевременного metadata flow;
-- dynamic language/edition loading и multi-edition UI;
-- ESD/WIM, build options и output folder selection;
-- `CreateBuildPlan` + structured `RunPreflight` UI;
-- invalidation старого BuildPlan/preflight после изменения build options;
-- async `ExecuteBuildPlan`;
-- incremental NDJSON reader и normalized progress/speed display;
-- cooperative `CancelBuild` и close-during-build cancellation flow;
-- state rules для normal/retry/cancellation-failure paths;
-- structured mapping стабильной backend error taxonomy;
-- result path/SHA/log actions;
-- GUI local logging + frontend exception boundary;
-- hidden `--backend-smoke`, проверяющий Contract v1 + BuildPlan v1;
-- MSTest contract/state/event-reader/integration coverage;
-- explicit `Microsoft.NET.Test.Sdk` test runner configuration;
-- `Build-Gui.ps1` self-contained `win-x64` publish tooling;
-- release package integration preserving TUI/CLI/backend;
-- self-hosted Windows GitHub Actions workflow как thin wrapper над Full release validation.
+Сохраняется существующий GUI/backend baseline: WPF/.NET 10, Quick/Catalog, dynamic languages/editions, WIM/ESD, preflight, build progress, cancellation, structured errors, diagnostics, RU/EN, System/Light/Dark, TUI/CLI и self-hosted release validation.
 
-## Сохранено
+v0.3.3 добавляет:
 
-Dynamic UUP catalog, recommendation engine, BuildPlan v1, preflight, elevation, UUP download/conversion/DISM, ISO validation, cancellation implementation, cache/resume, TUI/CLI, Backend Contract v1 and PowerShell validation remain backend-owned.
+- Bug Report и Feature Request GitHub Issue Forms;
+- `Report a bug` / `Request a feature` в About без PAT/OAuth;
+- persisted update channel: Stable (default) / Prerelease;
+- ручной `Check for updates` в Settings;
+- официальный GitHub Releases API как единственный update metadata source;
+- SemVer-aware comparison, включая prerelease precedence;
+- bounded release-notes summary;
+- только validated HTTPS `github.com` release link;
+- safe portable update fallback: open release page, без download/self-replace/execute;
+- injectable `IHttpClientProvider` seam для v0.3.4;
+- v10-derived tracked project governance и release roadmap.
+
+PowerShell build backend в v0.3.3 функционально не менялся.
 
 ## Validation terminology
 
-`Implemented` означает наличие code/test/tooling, но не подтверждает фактический PASS. Фактический результат относится только к конкретному SHA и фиксируется отдельно в `VALIDATION_MATRIX`/PR/Actions run.
+`Implemented` не означает `PASS`. Конкретный PASS относится только к exact SHA и фиксируется в PR/Actions/validation artifacts.
 
-## Требует Windows execution перед release
+## Требует фактического выполнения
 
-- успешный Full Windows validation текущего PR head на self-hosted runner;
-- manual GUI smoke;
-- желательно один real GUI E2E до ISO.
+Перед merge v0.3.3:
 
-Full validation включает .NET restore/build/test, Pester, PSScriptAnalyzer, PS5.1/PS7 backend smoke, process-tree smoke, `Build-Gui.ps1` publish, release package и packaged GUI/backend smoke.
+- Full Windows validation текущего PR head на self-hosted runner;
+- manual RU/EN Settings/About smoke;
+- manual Stable/Prerelease update UX smoke с доступным GitHub release source.
 
-Агент не должен переводить эти пункты в PASS без реального запуска соответствующего SHA.
+Пока repository private, unauthenticated public-client update/feedback availability не считается внешним PASS.
 
-## Намеренно не реализовано
+## Следующая версия
 
-History, profiles, queue, cache-management GUI, updater, installer/MSIX, USB writer/Rufus, full theme/language settings, accounts/cloud, Windows customization/debloat, driver injection, TPM bypass, activation и custom UUP downloader/converter.
+`v0.3.4 — Network Access & Proxy`: System / Direct / Custom, HTTP/SOCKS5, protected credentials и единая политика для всех outbound paths без silent Direct fallback.
 
-GitHub Actions не является частью продукта/runtime: workflow только отправляет существующую release validation на owner-controlled self-hosted Windows runner и исключён из release package.
-
-## Известные ограничения alpha.1
-
-- runtime localization полностью не реализована; основной GUI русский;
-- layout/UI polish ограничены MVP;
-- real build остаётся тяжёлой manual validation procedure;
-- Backend Contract transport остаётся local process + JSON/NDJSON files;
-- external UUP dump API/conversion package может измениться.
+History/Profiles и другие новые продуктовые функции отложены после v1.0.0 и только при реальном пользовательском спросе.

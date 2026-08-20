@@ -1,79 +1,62 @@
-# Матрица проверки v0.3.0-alpha.1
+# Матрица проверки v0.3.3
 
-Эта матрица отделяет наличие implementation от реально выполненного validation.
-
-Статусы: **Automated-ready** — код проверки существует; **Confirmed** — реально выполнено; **Not run** — не запускалось; **Skipped** — optional runtime отсутствует; **Not required** — не gate версии.
+Статусы implementation и фактического выполнения разделяются. До реального запуска текущего SHA ручные и runtime проверки имеют статус **NOT RUN**.
 
 ## Автоматические проверки
 
-| Проверка | Implementation | Требуемый фактический статус перед release |
-|---|---|---|
-| VERSION / ModuleVersion / SchemaVersion | Automated-ready | Pass |
-| `dotnet restore/build/test` | Automated-ready | Pass |
-| GUI Contract/MVVM/event-reader tests | Automated-ready | Pass |
-| PowerShell Pester | Existing automated | Pass |
-| PSScriptAnalyzer | Existing automated | Pass in Full |
-| PS5.1 Backend GetVersion/preflight smoke | Automated-ready | Pass |
-| PS7 Backend smoke | Existing optional | Pass или Skipped |
-| managed process-tree cancellation smoke | Automated-ready | Pass in Full |
-| `Build-Gui.ps1` self-contained publish | Automated-ready | Pass |
-| Release ZIP/checksum/manifest | Automated-ready | Pass |
-| Packaged backend source isolation | Automated-ready | Pass |
-| Packaged `WindowsISOBuilder.exe --backend-smoke` (Contract v1 + BuildPlan v1) | Automated-ready | Pass |
-| Current tree/package safety scan | Automated-ready | Pass |
+Перед merge требуются:
+
+- VERSION / GUI version / ModuleVersion / SchemaVersion consistency;
+- `dotnet restore/build/test`;
+- update SemVer/channel/API/security tests;
+- localization resource-key/placeholder parity;
+- Pester main suite;
+- PSScriptAnalyzer;
+- PS5.1 backend/module/offline-preflight smoke;
+- PowerShell 7 backend smoke при наличии;
+- controlled process-tree cancellation smoke;
+- self-contained GUI publish;
+- release ZIP/checksum/manifest/package smoke;
+- current tree/package safety scan;
+- packaged GUI backend startup smoke.
 
 Главная команда:
 
 ```powershell
-powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
-  -File .\tools\Invoke-ReleaseValidation.ps1 -Full
+powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\tools\Invoke-ReleaseValidation.ps1 -Full
 ```
 
-Safe automated validation не скачивает UUP set, не собирает реальный ISO и не должно открывать UAC.
+## v0.3.3 update checks
 
-## Self-hosted GitHub Actions
+Automated coverage должна подтверждать:
 
-`.github/workflows/windows-self-hosted-validation.yml` является thin orchestration layer над той же командой Full validation. Pull request в `master` должен получить успешный `Full Windows validation` на runner labels `self-hosted`, `Windows`, `X64` перед переводом PR из Draft/перед merge.
+- installed == latest;
+- latest > installed;
+- installed > latest не считается downgrade;
+- Stable игнорирует prerelease;
+- Prerelease может выбрать более новую prerelease;
+- malformed/missing tags игнорируются безопасно;
+- GitHub request не содержит Authorization;
+- release URL принимается только как HTTPS `github.com`;
+- network/timeout API failures остаются контролируемыми и не меняют build state;
+- update channel сохраняется, default — Stable.
 
-Workflow использует `concurrency` с отменой superseded PR runs и сохраняет `validation-result.json` как artifact даже при ошибке. Исторический PASS старого commit не считается PASS текущего head; статус должен относиться к актуальному SHA PR.
+## Manual GUI acceptance — NOT RUN до фактической проверки
 
-## Manual GUI smoke
+На packaged build проверить RU и EN:
 
-Перед Ready/Merge проверить на Windows:
+1. Settings показывает Updates, Stable/Prerelease и Check for updates.
+2. При отсутствии/ошибке сети приложение остаётся работоспособным.
+3. Update available показывает текущую/новую версию и release notes summary.
+4. Пользователь может отказаться.
+5. При согласии открывается официальный GitHub release URL.
+6. About содержит Report a bug / Request a feature.
+7. Оба действия открывают нужные forms после доступности tracker целевой аудитории.
 
-1. GUI запускается без startup UAC.
-2. Quick Mode открывается.
-3. Windows 11 recommended build загружается.
-4. Windows 10 recommended build загружается.
-5. Languages динамически загружаются.
-6. Editions динамически загружаются, multi-selection доступен.
-7. BuildPlan создаётся через backend.
-8. RunPreflight отображает pass/warning/fatal states; fatal блокирует build.
-9. Параметры можно изменить и перепроверить; старый preflight/plan не используется после изменения.
-10. Catalog search/architecture/Preview/servicing display filter работают.
-11. Одиночное выделение строки Catalog не запускает metadata flow; double-click/«Использовать выбранную» открывает общий Quick flow.
-12. Network/UUP/download/converter/DISM/ISO/preflight errors показываются controlled UI по `error.code`.
-13. Close during non-build не оставляет backend process; close during active build использует CancelBuild.
-14. Неуспешный запрос CancelBuild возвращает UI в Building и не закрывает приложение поверх активной сборки.
+## Core regression
 
-Текущий агентский environment сам по себе не заменяет Windows manual GUI smoke. Фактический статус остаётся **Not run**, пока smoke действительно не выполнен.
-
-## Real GUI E2E
-
-Желательный pre-tag сценарий:
-
-Windows 11 → x64/amd64 → ru-RU → Professional → ESD → GUI preflight → UAC → progress → ISO → success screen.
-
-До фактической сборки статус: **Not run**. Предыдущие backend E2E не считаются новым GUI E2E.
-
-## Сохранённый backend baseline
-
-Ранее подтверждённый Windows 11 x64 ru-RU multi-edition ESD pipeline остаётся историческим backend baseline, но не заменяет GUI E2E `v0.3.0-alpha.1`.
-
-## Not required for v0.3.0
-
-Полный Cartesian matrix, ARM64/x86 real E2E, installer/MSIX, updater, USB/Rufus и history/profiles/queue.
+Сохраняются manual smoke основного Build/Catalog flow, theme, resize/DPI, keyboard и один real packaged GUI ISO E2E до stable release. v0.3.3 не заменяет эти финальные release gates.
 
 ## Safety scope
 
-Built-in safety scan проверяет текущие tracked files и current release package на очевидные secrets/personal paths/generated junk. Это **не Git-history audit** и не доказывает отсутствие секрета в старых commits/reflog/forks.
+Built-in safety scan проверяет текущие tracked files и current release package. Это **не Git-history audit**. Перед public stable требуется отдельный full-history secret scan.
