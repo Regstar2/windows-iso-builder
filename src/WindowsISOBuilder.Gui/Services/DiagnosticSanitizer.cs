@@ -43,7 +43,7 @@ internal static partial class DiagnosticSanitizer
     [GeneratedRegex(@"(?im)\b(Authorization\s*:\s*Bearer\s+)[^\s]+", RegexOptions.CultureInvariant)]
     private static partial Regex AuthorizationBearerPattern();
 
-    [GeneratedRegex(@"(?i)\b(token|access_token|refresh_token|api[_-]?key|apikey|secret)\s*[:=]\s*[^\s&;]+", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"(?i)\b(token|access_token|refresh_token|api[_-]?key|apikey|secret|password|proxy[_-]?password|proxy[_-]?credential)\s*[:=]\s*[^\s&;]+", RegexOptions.CultureInvariant)]
     private static partial Regex SecretAssignmentPattern();
 
     [GeneratedRegex(@"\b(?:[A-Z0-9]{5}-){4}[A-Z0-9]{5}\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]

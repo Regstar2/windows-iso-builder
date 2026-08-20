@@ -79,7 +79,7 @@ Describe 'Release validation tooling' {
     It 'builds base manifest data from independent version sources without personal metadata' {
         $manifest = Get-WibReleaseManifestData -ProjectRoot $script:projectRoot -ApplicationVersion $script:version
         $manifest.applicationVersion | Should -Be $script:version
-        $manifest.moduleVersion | Should -Be '0.3.0'
+        $manifest.moduleVersion | Should -Be '0.3.4'
         $manifest.backendContractSchemaVersion | Should -Be 1
         $manifest.buildPlanSchemaVersion | Should -Be 1
         @($manifest.Keys) | Should -Be @('applicationVersion','moduleVersion','backendContractSchemaVersion','buildPlanSchemaVersion')
