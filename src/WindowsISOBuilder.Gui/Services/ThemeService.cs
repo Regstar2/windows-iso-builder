@@ -45,8 +45,16 @@ internal static class ThemeService
         resources["WibTextBrush"] = Brush(dark ? 0xF2 : 0x1A, dark ? 0xF2 : 0x1A, dark ? 0xF2 : 0x1A);
         resources["WibMutedTextBrush"] = Brush(dark ? 0xB7 : 0x6B, dark ? 0xB7 : 0x6B, dark ? 0xB7 : 0x6B);
         resources["WibControlBrush"] = Brush(dark ? 0x34 : 0xFF, dark ? 0x34 : 0xFF, dark ? 0x34 : 0xFF);
+        resources["WibControlHoverBrush"] = Brush(dark ? 0x3D : 0xF7, dark ? 0x3D : 0xF7, dark ? 0x3D : 0xF7);
+        resources["WibControlPressedBrush"] = Brush(dark ? 0x46 : 0xE9, dark ? 0x46 : 0xE9, dark ? 0x46 : 0xE9);
         resources["WibDisabledControlBrush"] = Brush(dark ? 0x30 : 0xF0, dark ? 0x30 : 0xF0, dark ? 0x30 : 0xF0);
-        resources["WibDisabledTextBrush"] = Brush(dark ? 0xB0 : 0x6F, dark ? 0xB0 : 0x6F, dark ? 0xB0 : 0x6F);
+        resources["WibDisabledTextBrush"] = Brush(dark ? 0x9A : 0x6F, dark ? 0x9A : 0x6F, dark ? 0x9A : 0x6F);
+        resources["WibPrimaryButtonBrush"] = dark
+            ? Brush(0x34, 0x34, 0x34)
+            : Brush(0x00, 0x67, 0xC0);
+        resources["WibPrimaryButtonTextBrush"] = dark
+            ? Brush(0xF2, 0xF2, 0xF2)
+            : Brush(0xFF, 0xFF, 0xFF);
     }
 
     private static bool IsWindowsAppThemeDark()
