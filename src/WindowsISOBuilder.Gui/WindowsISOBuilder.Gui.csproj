@@ -10,7 +10,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Version>0.3.3</Version>
     <FileVersion>0.3.3.0</FileVersion>
-    <AssemblyVersion>0.3.0.0</AssemblyVersion>
+    <AssemblyVersion>0.3.3.0</AssemblyVersion>
     <NoWarn>$(NoWarn);WPF0001</NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
