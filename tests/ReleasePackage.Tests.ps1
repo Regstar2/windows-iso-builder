@@ -34,7 +34,7 @@ Describe 'Release package validation' {
 
     It 'generates expected package-only manifest versions and GUI metadata' {
         $manifest = Get-Content -LiteralPath (Join-Path $script:packageRoot 'release-manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-        $manifest.applicationVersion | Should -Be '0.3.0-alpha.1'
+        $manifest.applicationVersion | Should -Be '0.4.0-alpha.1'
         $manifest.moduleVersion | Should -Be '0.3.0'
         $manifest.backendContractSchemaVersion | Should -Be 1
         $manifest.buildPlanSchemaVersion | Should -Be 1
