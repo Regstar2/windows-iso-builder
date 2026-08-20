@@ -1,9 +1,5 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <ResourceDictionary.MergedDictionaries>
-        <ResourceDictionary Source="/PresentationFramework.Fluent;component/Themes/Fluent.xaml"/>
-    </ResourceDictionary.MergedDictionaries>
-
     <Style TargetType="Window">
         <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI"/>
         <Setter Property="FontSize" Value="13"/>
@@ -13,7 +9,6 @@
         <Setter Property="SnapsToDevicePixels" Value="True"/>
     </Style>
 
-    <!-- WPF Fluent can otherwise leave text hosted by nested UserControls without a useful inherited foreground. -->
     <Style TargetType="UserControl">
         <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"/>
         <Setter Property="Background" Value="Transparent"/>
