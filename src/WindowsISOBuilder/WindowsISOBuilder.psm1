@@ -11,8 +11,6 @@ $script:WibApplicationVersion = [IO.File]::ReadAllText($versionPath, [Text.Encod
 if ([string]::IsNullOrWhiteSpace($script:WibApplicationVersion)) {
     throw 'Application VERSION file is empty.'
 }
-# Keep the existing script variable as a compatibility alias for current TUI
-# and metadata code while VERSION remains the single application-version source.
 $script:WibVersion = $script:WibApplicationVersion
 
 $privateFiles = @(
@@ -29,18 +27,15 @@ $privateFiles = @(
     'Private\Elevation.ps1',
     'Private\Application.ps1',
     'Private\ConsoleProgress.ps1',
+    'Private\Network.ps1',
+    'Private\NetworkIntegration.ps1',
+    'Private\NetworkDownload.ps1',
     'Private\BackendContract.ps1',
     'Private\BackendCommands.ps1'
 )
 
 foreach ($relativePath in $privateFiles) {
     $privatePath = Join-Path $PSScriptRoot $relativePath
-
-    # Windows PowerShell 5.1 treats UTF-8 files without a BOM as the current
-    # ANSI code page when they are dot-sourced by path. GitHub and other tools
-    # can legitimately save UTF-8 without a BOM, so read the source explicitly
-    # as UTF-8 before parsing it. Dot-sourcing the resulting script block keeps
-    # the private functions in this module's script scope.
     $privateSource = Get-Content -LiteralPath $privatePath -Raw -Encoding UTF8
     $privateScript = [scriptblock]::Create($privateSource)
     . $privateScript
@@ -57,5 +52,9 @@ Export-ModuleMember -Function @(
     'New-WibBuildPlan',
     'Invoke-WibBuildPlan',
     'Get-WibCacheInfo',
-    'Clear-WibCache'
+    'Clear-WibCache',
+    'Get-WibNetworkPolicy',
+    'Set-WibNetworkPolicy',
+    'Clear-WibProxyCredential',
+    'Test-WibNetworkConnection'
 )

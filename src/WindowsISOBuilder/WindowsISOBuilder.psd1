@@ -18,7 +18,11 @@
         'New-WibBuildPlan',
         'Invoke-WibBuildPlan',
         'Get-WibCacheInfo',
-        'Clear-WibCache'
+        'Clear-WibCache',
+        'Get-WibNetworkPolicy',
+        'Set-WibNetworkPolicy',
+        'Clear-WibProxyCredential',
+        'Test-WibNetworkConnection'
     )
     CmdletsToExport   = @()
     VariablesToExport = @()

@@ -3,6 +3,10 @@ Import-Module $modulePath -Force
 
 Describe 'v0.2.2 reliability edge cases' {
     InModuleScope WindowsISOBuilder {
+        BeforeEach {
+            Mock Get-WibNetworkPolicy { [pscustomobject]@{schemaVersion=1;mode='direct';proxyType=$null;host=$null;port=$null;username=$null;hasCredential=$false} }
+        }
+
         It 'does not open UAC when local preflight has a fatal failure' {
             $plan = [pscustomobject]@{ CacheDirectory=$TestDrive; OutputDirectory=$TestDrive }
             Mock Assert-WibPlan { }

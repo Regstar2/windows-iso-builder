@@ -4,7 +4,10 @@ $root = Split-Path -Parent $PSScriptRoot
 $expectedApplicationVersion = [IO.File]::ReadAllText((Join-Path $root 'VERSION'), [Text.Encoding]::ASCII).Trim()
 
 Describe 'Backend Contract v1' {
-    InModuleScope WindowsISOBuilder {
+    InModuleScope WindowsISOBuilder -Parameters @{ ExpectedApplicationVersion = $expectedApplicationVersion } {
+        param($ExpectedApplicationVersion)
+        $script:expectedApplicationVersionForTest = $ExpectedApplicationVersion
+
         BeforeEach {
             $script:testBuild = [pscustomobject]@{
                 Uuid='update-1'; Title='Windows 11, version 25H2 (26200.1)'; Product='Windows 11';
@@ -25,8 +28,8 @@ Describe 'Backend Contract v1' {
             $response = Invoke-WibBackendRequestObject $request
             $response.success | Should -BeTrue
             $response.requestId | Should -Be 'get-version'
-            $response.applicationVersion | Should -Be $expectedApplicationVersion
-            $response.data.applicationVersion | Should -Be $expectedApplicationVersion
+            $response.applicationVersion | Should -Be $script:expectedApplicationVersionForTest
+            $response.data.applicationVersion | Should -Be $script:expectedApplicationVersionForTest
             $response.data.contractSchemaVersion | Should -Be 1
             $response.data.buildPlanSchemaVersion | Should -Be 1
         }

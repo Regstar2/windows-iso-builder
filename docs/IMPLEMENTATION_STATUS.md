@@ -2,33 +2,35 @@
 
 ## Текущая source-версия
 
-`0.3.3 — Feedback & Update Delivery`.
+`0.3.4 — Network Access & Proxy`.
 
-- ApplicationVersion: `0.3.3`;
-- GUI Assembly/FileVersion: `0.3.3` / `0.3.3.0`;
+- ApplicationVersion: `0.3.4`;
+- GUI Assembly/FileVersion: `0.3.4` / `0.3.4.0`;
 - PowerShell ModuleVersion: `0.3.0`;
 - Backend Contract SchemaVersion: `1`;
 - BuildPlan SchemaVersion: `1`.
 
 ## Реализовано в source
 
-Сохраняется существующий GUI/backend baseline: WPF/.NET 10, Quick/Catalog, dynamic languages/editions, WIM/ESD, preflight, build progress, cancellation, structured errors, diagnostics, RU/EN, System/Light/Dark, TUI/CLI и self-hosted release validation.
+Сохраняется существующий GUI/backend baseline: WPF/.NET 10, Build/Catalog, dynamic languages/editions, WIM/ESD, preflight, build progress, cancellation, structured errors, diagnostics, RU/EN, System/Light/Dark, feedback/update flow, TUI/CLI и self-hosted release validation.
 
-v0.3.3 добавляет:
+v0.3.4 добавляет:
 
-- Bug Report и Feature Request GitHub Issue Forms;
-- `Report a bug` / `Request a feature` в About без PAT/OAuth;
-- persisted update channel: Stable (default) / Prerelease;
-- ручной `Check for updates` в Settings;
-- официальный GitHub Releases API как единственный update metadata source;
-- SemVer-aware comparison, включая prerelease precedence;
-- bounded release-notes summary;
-- только validated HTTPS `github.com` release link;
-- safe portable update fallback: open release page, без download/self-replace/execute;
-- injectable `IHttpClientProvider` seam для v0.3.4;
-- v10-derived tracked project governance и release roadmap.
+- одну глобальную Network Policy: `System`, `Direct`, `Custom`;
+- `Custom HTTP` и `Custom SOCKS5`;
+- отдельный `network.json`, где отсутствие файла означает System;
+- fail-closed validation: повреждённая/неполная Custom configuration не превращается в Direct;
+- отдельное хранение proxy credential с Windows DPAPI CurrentUser;
+- GUI Settings для mode/type/host/port/username/password, Test connection и явной очистки credential;
+- общий policy-aware HTTP layer для UUP API/catalog/metadata, online preflight, conversion package и GitHub update checker;
+- loopback HTTP bridge для SOCKS5 и generated downloader/aria2;
+- generated downloader получает только `127.0.0.1:<ephemeral-port>`, без upstream proxy host/user/password в command line;
+- Direct очищает inherited proxy environment для generated downloader;
+- публичные PowerShell operations `Get-WibNetworkPolicy`, `Set-WibNetworkPolicy`, `Clear-WibProxyCredential`, `Test-WibNetworkConnection`;
+- дополнительные diagnostic redaction rules для password/proxy credential assignments;
+- C#/Pester regression coverage для persistence, DPAPI, invalid/corrupted state, Direct bypass и no-silent-fallback behavior.
 
-PowerShell build backend в v0.3.3 функционально не менялся.
+Network Policy остаётся runtime/user setting и не входит в BuildPlan v1. Backend Contract/BuildPlan schema остаются `1`. ModuleVersion остаётся независимой линией `0.3.0` в текущем `0.3.x` release train.
 
 ## Validation terminology
 
@@ -36,16 +38,22 @@ PowerShell build backend в v0.3.3 функционально не менялс�
 
 ## Требует фактического выполнения
 
-Перед merge v0.3.3:
+Перед merge v0.3.4:
 
-- Full Windows validation текущего PR head на self-hosted runner;
-- manual RU/EN Settings/About smoke;
-- manual Stable/Prerelease update UX smoke с доступным GitHub release source.
+- Full Windows validation exact PR head на self-hosted runner;
+- packaged GUI RU/EN Network Settings smoke;
+- manual System / Direct / Custom HTTP / Custom SOCKS5 Test connection;
+- controlled proxy build-path smoke с generated downloader;
+- проверка сохранения/замены/очистки credential на обычной пользовательской учётной записи.
 
-Пока repository private, unauthenticated public-client update/feedback availability не считается внешним PASS.
+Перед первым публичным release дополнительно остаются:
 
-## Следующая версия
+- final packaged GUI ISO E2E;
+- отдельный full Git-history secret audit;
+- внешний update/feedback acceptance после доступности public repository/tracker.
 
-`v0.3.4 — Network Access & Proxy`: System / Direct / Custom, HTTP/SOCKS5, protected credentials и единая политика для всех outbound paths без silent Direct fallback.
+Реальный ISO build через каждый тип proxy не заявляется как PASS, пока не выполнен фактически.
 
-History/Profiles и другие новые продуктовые функции отложены после v1.0.0 и только при реальном пользовательском спросе.
+## Следующий этап
+
+Только RC hardening и подготовка публичного release. Новые продуктовые функции в release train не добавляются. History/Profiles остаются отложенными до появления реального пользовательского спроса.

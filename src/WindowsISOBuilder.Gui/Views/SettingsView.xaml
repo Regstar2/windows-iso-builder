@@ -21,6 +21,8 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="12"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="12"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <Border Grid.Row="0" Style="{StaticResource Card}">
@@ -51,6 +53,76 @@
 
                 <Border Grid.Row="2" Style="{StaticResource Card}">
                     <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="240"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="280"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.ColumnSpan="3" Text="{services:Loc SettingsNetworkTitle}" Style="{StaticResource SectionTitle}"/>
+                        <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Text="{services:Loc SettingsNetworkDescription}" TextWrapping="Wrap" Margin="0,8,0,12" MaxWidth="680"/>
+
+                        <StackPanel Grid.Row="2" Grid.Column="0">
+                            <TextBlock Text="{services:Loc NetworkModeLabel}" Style="{StaticResource FieldLabel}" Margin="0,0,0,5"/>
+                            <ComboBox x:Name="NetworkModeCombo" SelectedValuePath="Tag" SelectionChanged="NetworkModeCombo_SelectionChanged"
+                                      AutomationProperties.Name="{services:Loc NetworkModeLabel}">
+                                <ComboBoxItem Tag="system" Content="{services:Loc NetworkModeSystem}"/>
+                                <ComboBoxItem Tag="direct" Content="{services:Loc NetworkModeDirect}"/>
+                                <ComboBoxItem Tag="custom" Content="{services:Loc NetworkModeCustom}"/>
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel Grid.Row="2" Grid.Column="2" x:Name="ProxyTypePanel">
+                            <TextBlock Text="{services:Loc ProxyTypeLabel}" Style="{StaticResource FieldLabel}" Margin="0,0,0,5"/>
+                            <ComboBox x:Name="ProxyTypeCombo" SelectedValuePath="Tag" AutomationProperties.Name="{services:Loc ProxyTypeLabel}">
+                                <ComboBoxItem Tag="http" Content="HTTP"/>
+                                <ComboBoxItem Tag="socks5" Content="SOCKS5"/>
+                            </ComboBox>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="3" Grid.Column="0" x:Name="ProxyHostPanel" Margin="0,12,0,0">
+                            <TextBlock Text="{services:Loc ProxyHostLabel}" Style="{StaticResource FieldLabel}" Margin="0,0,0,5"/>
+                            <TextBox x:Name="ProxyHostTextBox" AutomationProperties.Name="{services:Loc ProxyHostLabel}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="3" Grid.Column="2" x:Name="ProxyPortPanel" Margin="0,12,0,0">
+                            <TextBlock Text="{services:Loc ProxyPortLabel}" Style="{StaticResource FieldLabel}" Margin="0,0,0,5"/>
+                            <TextBox x:Name="ProxyPortTextBox" AutomationProperties.Name="{services:Loc ProxyPortLabel}"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="4" Grid.Column="0" x:Name="ProxyUsernamePanel" Margin="0,12,0,0">
+                            <TextBlock Text="{services:Loc ProxyUsernameLabel}" Style="{StaticResource FieldLabel}" Margin="0,0,0,5"/>
+                            <TextBox x:Name="ProxyUsernameTextBox" AutomationProperties.Name="{services:Loc ProxyUsernameLabel}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="4" Grid.Column="2" x:Name="ProxyPasswordPanel" Margin="0,12,0,0">
+                            <TextBlock Text="{services:Loc ProxyPasswordLabel}" Style="{StaticResource FieldLabel}" Margin="0,0,0,5"/>
+                            <PasswordBox x:Name="ProxyPasswordBox" AutomationProperties.Name="{services:Loc ProxyPasswordLabel}"/>
+                        </StackPanel>
+
+                        <TextBlock x:Name="CredentialStatusText" Grid.Row="5" Grid.ColumnSpan="3" Margin="0,10,0,0" Style="{StaticResource MutedText}"/>
+
+                        <WrapPanel Grid.Row="6" Grid.ColumnSpan="3" Margin="0,12,0,0">
+                            <Button x:Name="SaveNetworkButton" Content="{services:Loc ButtonSaveNetwork}" MinWidth="150" Margin="0,0,8,8"
+                                    Click="SaveNetwork_Click" AutomationProperties.Name="{services:Loc ButtonSaveNetwork}"/>
+                            <Button x:Name="TestNetworkButton" Content="{services:Loc ButtonTestNetwork}" MinWidth="170" Margin="0,0,8,8"
+                                    Click="TestNetwork_Click" AutomationProperties.Name="{services:Loc ButtonTestNetwork}"/>
+                            <Button x:Name="ClearCredentialButton" Content="{services:Loc ButtonClearCredential}" MinWidth="190" Margin="0,0,0,8"
+                                    Click="ClearCredential_Click" AutomationProperties.Name="{services:Loc ButtonClearCredential}"/>
+                        </WrapPanel>
+                        <TextBlock x:Name="NetworkStatusText" Grid.Row="7" Grid.ColumnSpan="3" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="4" Style="{StaticResource Card}">
+                    <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
@@ -71,7 +143,7 @@
                     </Grid>
                 </Border>
 
-                <Border Grid.Row="4" Style="{StaticResource Card}">
+                <Border Grid.Row="6" Style="{StaticResource Card}">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>

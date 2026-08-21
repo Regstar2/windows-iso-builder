@@ -10,20 +10,46 @@
   <data name="NavAbout" xml:space="preserve"><value>_About</value></data>
   <data name="BuildPageTitle" xml:space="preserve"><value>Build</value></data>
   <data name="SettingsTitle" xml:space="preserve"><value>Settings</value></data>
-  <data name="SettingsSubtitle" xml:space="preserve"><value>Configure the interface, update checks, and diagnostics.</value></data>
+  <data name="SettingsSubtitle" xml:space="preserve"><value>Configure the interface, network access, update checks, and diagnostics.</value></data>
   <data name="SettingsInterfaceTitle" xml:space="preserve"><value>Interface</value></data>
   <data name="SettingsLanguageLabel" xml:space="preserve"><value>Interface language</value></data>
   <data name="SettingsThemeLabel" xml:space="preserve"><value>Theme</value></data>
   <data name="ThemeSystem" xml:space="preserve"><value>Use Windows setting</value></data>
   <data name="ThemeLight" xml:space="preserve"><value>Light</value></data>
   <data name="ThemeDark" xml:space="preserve"><value>Dark</value></data>
+  <data name="SettingsNetworkTitle" xml:space="preserve"><value>Network</value></data>
+  <data name="SettingsNetworkDescription" xml:space="preserve"><value>Use one network policy for UUP dump, Microsoft downloads, and update checks. A broken Custom proxy never falls back to Direct.</value></data>
+  <data name="NetworkModeLabel" xml:space="preserve"><value>Connection mode</value></data>
+  <data name="NetworkModeSystem" xml:space="preserve"><value>System</value></data>
+  <data name="NetworkModeDirect" xml:space="preserve"><value>Direct</value></data>
+  <data name="NetworkModeCustom" xml:space="preserve"><value>Custom</value></data>
+  <data name="ProxyTypeLabel" xml:space="preserve"><value>Proxy type</value></data>
+  <data name="ProxyHostLabel" xml:space="preserve"><value>Host</value></data>
+  <data name="ProxyPortLabel" xml:space="preserve"><value>Port</value></data>
+  <data name="ProxyUsernameLabel" xml:space="preserve"><value>Username (optional)</value></data>
+  <data name="ProxyPasswordLabel" xml:space="preserve"><value>Password</value></data>
+  <data name="ProxyCredentialSaved" xml:space="preserve"><value>Credential saved securely for the current Windows user.</value></data>
+  <data name="ProxyCredentialNotSaved" xml:space="preserve"><value>No proxy password is saved.</value></data>
+  <data name="ButtonSaveNetwork" xml:space="preserve"><value>Save network settings</value></data>
+  <data name="ButtonTestNetwork" xml:space="preserve"><value>Test connection</value></data>
+  <data name="ButtonClearCredential" xml:space="preserve"><value>Clear saved credential</value></data>
+  <data name="NetworkSettingsSaved" xml:space="preserve"><value>Network settings saved.</value></data>
+  <data name="NetworkSettingsInvalid" xml:space="preserve"><value>Network proxy settings are invalid. Fix them before using network operations.</value></data>
+  <data name="NetworkCredentialUnavailable" xml:space="preserve"><value>The saved proxy credential is unavailable or cannot be decrypted.</value></data>
+  <data name="NetworkCredentialCleared" xml:space="preserve"><value>Saved proxy credential cleared.</value></data>
+  <data name="NetworkTestRunning" xml:space="preserve"><value>Testing the selected network policy…</value></data>
+  <data name="NetworkTestSuccess" xml:space="preserve"><value>Connection succeeded through the selected network policy.</value></data>
+  <data name="NetworkProxyUnavailable" xml:space="preserve"><value>The configured custom proxy could not complete the request.</value></data>
+  <data name="NetworkProxyAuthenticationFailed" xml:space="preserve"><value>The proxy rejected the supplied credentials.</value></data>
+  <data name="NetworkTimeout" xml:space="preserve"><value>The network test timed out.</value></data>
+  <data name="NetworkTestFailed" xml:space="preserve"><value>The network test failed. No fallback connection was used.</value></data>
   <data name="SettingsUpdatesTitle" xml:space="preserve"><value>Updates</value></data>
-  <data name="SettingsUpdatesDescription" xml:space="preserve"><value>Check official GitHub Releases for a newer version. Windows ISO Builder does not download or install updates automatically.</value></data>
+  <data name="SettingsUpdatesDescription" xml:space="preserve"><value>Check official GitHub Releases for a newer version using the global network policy. Windows ISO Builder does not download or install updates automatically.</value></data>
   <data name="SettingsUpdateChannelLabel" xml:space="preserve"><value>Update channel</value></data>
   <data name="UpdateChannelStable" xml:space="preserve"><value>Stable</value></data>
   <data name="UpdateChannelPrerelease" xml:space="preserve"><value>Prerelease</value></data>
   <data name="ButtonCheckUpdates" xml:space="preserve"><value>Check for updates</value></data>
-  <data name="TooltipCheckUpdates" xml:space="preserve"><value>Check official GitHub Releases using the selected channel.</value></data>
+  <data name="TooltipCheckUpdates" xml:space="preserve"><value>Check official GitHub Releases using the selected channel and global network policy.</value></data>
   <data name="UpdateCheckTitle" xml:space="preserve"><value>Updates</value></data>
   <data name="UpdateAvailableTitle" xml:space="preserve"><value>Update available</value></data>
   <data name="UpdateAvailableMessageFormat" xml:space="preserve"><value>Version {1} is available (installed: {0}).&#10;&#10;{2}&#10;&#10;Open the official GitHub release page?</value></data>
@@ -31,7 +57,7 @@
   <data name="UpdateUpToDateMessageFormat" xml:space="preserve"><value>Version {0} is up to date for the selected channel.</value></data>
   <data name="UpdateNoPublishedReleaseMessage" xml:space="preserve"><value>No matching published release was found for the selected channel.</value></data>
   <data name="UpdateCheckFailedTitle" xml:space="preserve"><value>Update check failed</value></data>
-  <data name="UpdateCheckFailedMessage" xml:space="preserve"><value>Could not check GitHub Releases. Check the network connection and try again.</value></data>
+  <data name="UpdateCheckFailedMessage" xml:space="preserve"><value>Could not check GitHub Releases with the current network policy. Check Network settings and try again.</value></data>
   <data name="UpdateOpenReleaseFailedTitle" xml:space="preserve"><value>Could not open release</value></data>
   <data name="UpdateOpenReleaseFailedMessage" xml:space="preserve"><value>The official GitHub release page could not be opened.</value></data>
   <data name="SettingsDiagnosticsTitle" xml:space="preserve"><value>Diagnostics</value></data>

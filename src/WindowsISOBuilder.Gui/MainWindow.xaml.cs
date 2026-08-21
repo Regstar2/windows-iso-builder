@@ -11,7 +11,9 @@ public partial class MainWindow : Window
 {
     private readonly AppSettingsService _settingsService;
     private readonly GuiLogger _log = new();
-    private readonly GitHubReleaseUpdateService _updateService = new(new SystemHttpClientProvider());
+    private readonly NetworkPolicyService _networkPolicyService = new();
+    private readonly ProxyCredentialStore _proxyCredentialStore = new();
+    private readonly GitHubReleaseUpdateService _updateService;
     private bool _allowClose;
     private string _theme;
     private string _updateChannel;
@@ -23,6 +25,7 @@ public partial class MainWindow : Window
         _settingsService = settingsService;
         _theme = ThemeService.Normalize(settings.Theme);
         _updateChannel = UpdateChannelService.Normalize(settings.UpdateChannel);
+        _updateService = new GitHubReleaseUpdateService(new NetworkHttpClientProvider(_networkPolicyService, _proxyCredentialStore));
         InitializeComponent();
         DataContext = new MainViewModel();
         RestoreWindow(settings);
@@ -32,7 +35,24 @@ public partial class MainWindow : Window
         SettingsPage.UpdateChannelChanged += OnUpdateChannelChanged;
         SettingsPage.UpdateCheckRequested += CheckForUpdates;
         SettingsPage.DiagnosticsRequested += CreateDiagnostics;
-        SettingsPage.Initialize(Loc.CurrentLanguage, _theme, _updateChannel);
+        SettingsPage.NetworkSaveRequested += SaveNetworkSettings;
+        SettingsPage.NetworkTestRequested += TestNetworkSettings;
+        SettingsPage.NetworkCredentialClearRequested += ClearNetworkCredential;
+
+        NetworkPolicy networkPolicy;
+        string? networkLoadError = null;
+        try
+        {
+            networkPolicy = _networkPolicyService.Load();
+        }
+        catch (NetworkPolicyException exception)
+        {
+            networkPolicy = NetworkPolicyService.DefaultPolicy();
+            networkLoadError = Loc.Get("NetworkSettingsInvalid");
+            _log.Error("Network policy could not be loaded", exception);
+        }
+        SettingsPage.Initialize(Loc.CurrentLanguage, _theme, _updateChannel, networkPolicy);
+        if (!string.IsNullOrWhiteSpace(networkLoadError)) SettingsPage.SetNetworkStatus(networkLoadError);
 
         Closing += OnClosing;
     }
@@ -59,6 +79,7 @@ public partial class MainWindow : Window
     private void OnLanguageChanged(string language)
     {
         Loc.SetCulture(language);
+        RefreshNetworkLocalization();
         SaveWindowSettings();
     }
 
@@ -73,6 +94,123 @@ public partial class MainWindow : Window
     {
         _updateChannel = UpdateChannelService.Normalize(channel);
         SaveWindowSettings();
+    }
+
+    private void SaveNetworkSettings(NetworkSettingsInput input)
+    {
+        SettingsPage.SetNetworkBusy(true);
+        var credentialExisted = _proxyCredentialStore.Exists;
+        var wroteCredential = false;
+        try
+        {
+            var policy = NetworkPolicyService.FromInput(input, credentialExisted);
+            if (!string.IsNullOrEmpty(input.Password))
+            {
+                _proxyCredentialStore.Save(input.Password);
+                wroteCredential = true;
+                policy.HasCredential = true;
+            }
+            _networkPolicyService.Save(policy);
+            SettingsPage.ClearPasswordEntry();
+            SettingsPage.SetCredentialState(policy.HasCredential);
+            SettingsPage.SetNetworkStatus(Loc.Get("NetworkSettingsSaved"));
+        }
+        catch (Exception exception)
+        {
+            if (wroteCredential && !credentialExisted)
+            {
+                try { _proxyCredentialStore.Clear(); } catch { }
+            }
+            _log.Error("Network settings could not be saved", exception);
+            SettingsPage.SetNetworkStatus(MapNetworkFailure(exception));
+        }
+        finally
+        {
+            SettingsPage.SetNetworkBusy(false);
+        }
+    }
+
+    private async void TestNetworkSettings(NetworkSettingsInput input)
+    {
+        SettingsPage.SetNetworkBusy(true);
+        SettingsPage.SetNetworkStatus(Loc.Get("NetworkTestRunning"));
+        try
+        {
+            var policy = NetworkPolicyService.FromInput(input, _proxyCredentialStore.Exists);
+            string? password = null;
+            if (!string.IsNullOrEmpty(input.Password)) password = input.Password;
+            else if (policy.HasCredential) password = _proxyCredentialStore.Load();
+
+            var result = await NetworkConnectionTester.TestAsync(policy, password);
+            SettingsPage.SetNetworkStatus(result.Success ? Loc.Get("NetworkTestSuccess") : MapNetworkFailure(result.Code));
+        }
+        catch (Exception exception)
+        {
+            _log.Error("Network connection test failed", exception);
+            SettingsPage.SetNetworkStatus(MapNetworkFailure(exception));
+        }
+        finally
+        {
+            SettingsPage.SetNetworkBusy(false);
+        }
+    }
+
+    private void ClearNetworkCredential()
+    {
+        SettingsPage.SetNetworkBusy(true);
+        try
+        {
+            _proxyCredentialStore.Clear();
+            try
+            {
+                var policy = _networkPolicyService.Load();
+                policy.HasCredential = false;
+                _networkPolicyService.Save(policy);
+            }
+            catch (NetworkPolicyException)
+            {
+                // Invalid non-secret policy remains visible as invalid; clearing the secret is still authoritative.
+            }
+            SettingsPage.ClearPasswordEntry();
+            SettingsPage.SetCredentialState(false);
+            SettingsPage.SetNetworkStatus(Loc.Get("NetworkCredentialCleared"));
+        }
+        catch (Exception exception)
+        {
+            _log.Error("Proxy credential could not be cleared", exception);
+            SettingsPage.SetNetworkStatus(MapNetworkFailure(exception));
+        }
+        finally
+        {
+            SettingsPage.SetNetworkBusy(false);
+        }
+    }
+
+    private string MapNetworkFailure(Exception exception) => exception is NetworkPolicyException policyException
+        ? MapNetworkFailure(policyException.Code)
+        : Loc.Get("NetworkTestFailed");
+
+    private string MapNetworkFailure(string code) => code switch
+    {
+        "PROXY_CONFIGURATION_INVALID" => Loc.Get("NetworkSettingsInvalid"),
+        "PROXY_CREDENTIAL_UNAVAILABLE" => Loc.Get("NetworkCredentialUnavailable"),
+        "PROXY_AUTHENTICATION_FAILED" => Loc.Get("NetworkProxyAuthenticationFailed"),
+        "PROXY_CONNECTION_FAILED" => Loc.Get("NetworkProxyUnavailable"),
+        "NETWORK_TIMEOUT" => Loc.Get("NetworkTimeout"),
+        _ => Loc.Get("NetworkTestFailed")
+    };
+
+    private void RefreshNetworkLocalization()
+    {
+        try
+        {
+            var policy = _networkPolicyService.Load();
+            SettingsPage.SetCredentialState(policy.HasCredential);
+        }
+        catch
+        {
+            SettingsPage.SetNetworkStatus(Loc.Get("NetworkSettingsInvalid"));
+        }
     }
 
     private async void CheckForUpdates()
