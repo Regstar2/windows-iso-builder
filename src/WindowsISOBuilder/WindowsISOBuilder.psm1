@@ -29,6 +29,7 @@ $privateFiles = @(
     'Private\ConsoleProgress.ps1',
     'Private\Network.ps1',
     'Private\NetworkIntegration.ps1',
+    'Private\UupPackageLifecycle.ps1',
     'Private\NetworkDownload.ps1',
     'Private\BackendContract.ps1',
     'Private\BackendCommands.ps1'
