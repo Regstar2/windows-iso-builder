@@ -1,4 +1,4 @@
-# GUI architecture v0.3.0-alpha.1
+# GUI architecture
 
 ## Purpose
 
@@ -91,4 +91,4 @@ Technical details may show code/stage/backend message/log path/requestId to the 
 
 `tools/Build-Gui.ps1` restores, builds, tests, and publishes self-contained `win-x64`. Release builds suppress application PDB output, and `.pdb` is also denied by package safety policy.
 
-Release staging puts the published GUI in the package root beside `Invoke-WibBackend.ps1`, while preserving `Start-Builder.cmd`, `Start-Builder.ps1`, and the PowerShell module. `.github`, tests, build outputs, and validation artifacts are not runtime package content. Installer/MSIX is outside v0.3.0.
+Release staging puts the published GUI in the package root beside `Invoke-WibBackend.ps1`, while preserving `Start-Builder.cmd`, `Start-Builder.ps1`, and the PowerShell module. `.github`, tests, build outputs, and validation artifacts are not runtime package content. Installer/MSIX is outside the pre-1.0 release train.

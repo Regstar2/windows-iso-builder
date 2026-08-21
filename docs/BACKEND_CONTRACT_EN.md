@@ -2,13 +2,13 @@
 
 ## Purpose
 
-Backend Contract is the stable machine-readable adapter over the Windows ISO Builder PowerShell backend. The `v0.3.0-alpha.1` GUI and automation clients use this boundary only, never private PowerShell implementation details.
+Backend Contract is the stable machine-readable adapter over the Windows ISO Builder PowerShell backend. GUI and automation clients use this boundary only, never private PowerShell implementation details.
 
 Transport is local UTF-8 JSON request/response files, an optional UTF-8 NDJSON event file, and a separate `powershell.exe` process. There is no HTTP/RPC server.
 
 ## Versions
 
-- ApplicationVersion: `0.3.0-alpha.1`;
+- ApplicationVersion: `0.3.5-rc.1`;
 - ModuleVersion: `0.3.0`;
 - Backend Contract SchemaVersion: `1`;
 - BuildPlan SchemaVersion: `1`.

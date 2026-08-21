@@ -1,14 +1,18 @@
-# Требования к Windows ISO Builder v0.3.4
+# Требования к Windows ISO Builder v0.3.5-rc.1
 
 ## Версии
 
-- ApplicationVersion: `0.3.4`; source of truth — root `VERSION`.
-- GUI Version/FileVersion: `0.3.4` / `0.3.4.0`.
+- ApplicationVersion: `0.3.5-rc.1`; source of truth — root `VERSION`.
+- GUI Version/FileVersion: `0.3.5-rc.1` / `0.3.5.1`.
 - PowerShell ModuleVersion: `0.3.0`.
 - Backend Contract SchemaVersion: `1`.
 - BuildPlan SchemaVersion: `1`.
 
-GUI/ApplicationVersion синхронизированы для v0.3.4. ModuleVersion и schema versions остаются независимыми; текущий `0.3.x` release train сохраняет ModuleVersion `0.3.0`.
+GUI/ApplicationVersion синхронизированы для v0.3.5-rc.1. ModuleVersion и schema versions остаются независимыми; текущий `0.3.x` release train сохраняет ModuleVersion `0.3.0`.
+
+## RC hardening scope
+
+v0.3.5-rc.1 не добавляет новые product features. Допустимы только исправления подтверждённых дефектов, финальная GUI/UX-полировка, cleanup репозитория, security/package audit, документация, version/release metadata и validation hardening.
 
 ## Runtime
 
@@ -24,7 +28,7 @@ GUI/ApplicationVersion синхронизированы для v0.3.4. ModuleVer
 - Cancellation идёт через `CancelBuild`; GUI не kill-ит build processes.
 - Network Policy является runtime/user setting и не добавляется в BuildPlan v1.
 
-## Network Access & Proxy — v0.3.4
+## Network Access & Proxy — реализовано в v0.3.4 и сохраняется в v0.3.5-rc.1
 
 Обязательна одна глобальная политика для всех поддерживаемых outbound paths:
 
@@ -76,6 +80,6 @@ Current-head Full validation обязательна перед merge. Automated 
 
 Manual Network/Proxy acceptance и real ISO proxy E2E остаются `NOT RUN` до фактического выполнения. Их нельзя выводить из unit/integration PASS.
 
-## Out of scope v0.3.4
+## Out of scope v0.3.5-rc.1
 
 History/Profiles, queue/parallel builds, installer/MSIX, USB/Rufus, customization/debloat/unattended setup, driver injection, TPM bypass, activation, accounts/cloud/telemetry/plugins, custom UUP downloader/converter, VPN/WARP/Tor и system-wide proxy manager.

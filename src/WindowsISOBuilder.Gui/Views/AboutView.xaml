@@ -46,8 +46,8 @@
 
                 <TextBlock Grid.Row="5" Text="{services:Loc AboutFeedbackLabel}" Style="{StaticResource MutedText}" Margin="0,18,0,6"/>
                 <WrapPanel Grid.Row="6">
-                    <Button Content="{services:Loc AboutReportBug}" MinWidth="190" Margin="0,0,8,0" Click="ReportBug_Click" AutomationProperties.Name="{services:Loc AboutReportBug}"/>
-                    <Button Content="{services:Loc AboutRequestFeature}" MinWidth="190" Click="RequestFeature_Click" AutomationProperties.Name="{services:Loc AboutRequestFeature}"/>
+                    <Button Content="{services:Loc AboutReportBug}" MinWidth="190" Margin="0,0,8,8" Click="ReportBug_Click" AutomationProperties.Name="{services:Loc AboutReportBug}"/>
+                    <Button Content="{services:Loc AboutRequestFeature}" MinWidth="190" Margin="0,0,0,8" Click="RequestFeature_Click" AutomationProperties.Name="{services:Loc AboutRequestFeature}"/>
                 </WrapPanel>
             </Grid>
         </Border>

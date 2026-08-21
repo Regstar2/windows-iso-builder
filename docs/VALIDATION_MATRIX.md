@@ -1,20 +1,20 @@
-# Матрица проверки v0.3.4
+# Матрица проверки v0.3.5-rc.1
 
 Статусы implementation и фактического выполнения разделяются. До реального запуска текущего SHA ручные и runtime проверки имеют статус **NOT RUN**.
 
-## Автоматические проверки
+## Автоматические gates
 
-Перед merge требуются:
+Перед merge текущий head должен пройти:
 
 - VERSION / GUI version / ModuleVersion / SchemaVersion consistency;
 - `dotnet restore/build/test`;
-- localization resource-key/placeholder parity;
+- RU/EN localization key/placeholder parity;
 - Pester main suite;
-- network policy persistence/default/invalid-state tests;
+- network-policy persistence/default/invalid-state tests;
 - DPAPI credential round-trip/corruption/clear tests на Windows;
 - Direct proxy bypass regression;
 - Custom fail-closed/no-silent-Direct-fallback regression;
-- generated downloader loopback-only/credential command-line regression;
+- generated-downloader loopback-only/credential command-line regression;
 - diagnostic proxy-password redaction tests;
 - update SemVer/channel/API/security tests через policy-aware provider;
 - PSScriptAnalyzer;
@@ -23,8 +23,8 @@
 - controlled process-tree cancellation smoke;
 - self-contained GUI publish;
 - release ZIP/checksum/manifest/package smoke;
-- current tree/package safety scan;
-- packaged GUI backend startup smoke.
+- current tracked-tree/package safety scan;
+- packaged GUI backend/startup smoke.
 
 Главная команда:
 
@@ -32,41 +32,37 @@
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\tools\Invoke-ReleaseValidation.ps1 -Full
 ```
 
-## v0.3.4 Network/Proxy coverage
+## v0.3.5-rc.1 hardening coverage
 
-Automated coverage должна подтверждать:
+Automated coverage должна подтвердить:
 
-- missing policy → System;
-- corrupted/invalid Custom policy → controlled failure;
-- credential хранится отдельно от `network.json` и защищён DPAPI;
-- corrupted credential → controlled failure;
-- Direct не использует proxy adapter и очищает inherited downloader proxy variables;
-- Custom HTTP failure не повторяется как Direct;
-- UUP API, online preflight, conversion package и generated downloader используют общий policy layer;
-- generated downloader command line содержит только loopback endpoint и не содержит upstream proxy host/user/password;
-- diagnostics redacts password/proxy credential assignments;
-- GUI updater использует policy-aware `IHttpClientProvider`.
+- root `VERSION` и GUI `<Version>` равны `0.3.5-rc.1`;
+- GUI FileVersion/AssemblyVersion используют numeric `0.3.5.1`;
+- ModuleVersion остаётся `0.3.0`;
+- Backend Contract SchemaVersion и BuildPlan SchemaVersion остаются `1`;
+- GUI и backend отклоняют proxy password без username;
+- proxy configuration/credential/connection/authentication failures имеют user-facing action mappings;
+- release package source allowlist не содержит denied paths;
+- package/runtime safety scan не пропускает validation/test/local network artifacts.
 
 ## Manual GUI / network acceptance — NOT RUN до фактической проверки
 
-На packaged build проверить RU и EN:
-
-1. Settings показывает Network и System / Direct / Custom.
-2. Custom переключает HTTP / SOCKS5 и валидирует host/port.
-3. Password не отображает сохранённое значение после перезапуска.
-4. Save/replace/clear credential работают ожидаемо.
-5. Test connection работает отдельно в System, Direct, Custom HTTP и Custom SOCKS5.
-6. Неработающий Custom proxy показывает controlled error без Direct fallback.
-7. GitHub update check соблюдает выбранную policy.
-8. Build/Catalog online operations соблюдают выбранную policy.
+| ID | Scenario | Steps | Expected | Actual | Status | Notes |
+|---|---|---|---|---|---|---|
+| MAN-GUI-001 | RU/EN Settings Network | Открыть packaged GUI в RU и EN, перейти в Settings → Network. | System/Direct/Custom, HTTP/SOCKS5, Host/Port/Username/Password, Save/Test/Clear отображаются без clipping. | | NOT RUN | Требует реального packaged GUI. |
+| MAN-GUI-002 | Light/Dark/System theme | Проверить Build/Catalog/Settings/Help/About в Light, Dark и System theme. | Контраст читаемый, disabled controls не теряют текст, layout не прыгает. | | NOT RUN | Включает resize smoke. |
+| MAN-NET-001 | System connection | Выбрать System и выполнить Test connection. | Успех или controlled network error без crash. | | NOT RUN | Нужна реальная сеть. |
+| MAN-NET-002 | Direct connection | Выбрать Direct и выполнить Test connection. | Трафик идёт без proxy; inherited proxy vars не влияют на generated downloader. | | NOT RUN | Требует наблюдения трафика/окружения. |
+| MAN-NET-003 | Custom HTTP proxy | Настроить рабочий HTTP proxy, сохранить, проверить restart/password state и Test connection. | PasswordBox пуст после restart; saved credential обозначен нейтрально; Test connection успешен через proxy. | | NOT RUN | Реальный proxy не заменяется mock-тестом. |
+| MAN-NET-004 | Custom SOCKS5 proxy | Настроить рабочий SOCKS5 proxy и выполнить Test connection. | Test connection успешен через SOCKS5 policy. | | NOT RUN | Реальный proxy не заменяется mock-тестом. |
+| MAN-NET-005 | Broken Custom no fallback | Настроить нерабочий Custom proxy. | Controlled proxy error; silent Direct fallback отсутствует. | | NOT RUN | Требует наблюдения отсутствия Direct fallback. |
+| MAN-UPD-001 | Update check | Проверить Stable/Prerelease update check через выбранную policy. | Network failure не ломает приложение; URL остаётся official `https://github.com/Regstar2/windows-iso-builder`. | | NOT RUN | Внешний acceptance требует доступного public channel. |
+| MAN-ICON-001 | Explorer/taskbar icon | Проверить exe, window, taskbar, publish и package output. | Текущая `WindowsISOBuilder.ico` отображается без замены artwork. | | NOT RUN | Визуальный Windows Explorer/taskbar check. |
+| MAN-E2E-001 | Full packaged GUI ISO E2E | Из release ZIP собрать реальный ISO через GUI. | ISO создан, SHA-256 показан, logs/result actions работают. | | NOT RUN | Не выводится из automation PASS. |
 
 ## Controlled downloader/proxy acceptance — NOT RUN до фактической проверки
 
 Отдельно выполнить контролируемый HTTP proxy и SOCKS5 test с generated `uup_download_windows.cmd`/aria2 и подтвердить, что upstream credential не появляется в process command line/logs.
-
-## Core regression
-
-Сохраняются manual smoke основного Build/Catalog flow, theme, resize/DPI, keyboard и один final real packaged GUI ISO E2E перед публичным release. Реальный ISO build через каждый proxy mode не считается PASS, пока не выполнен фактически.
 
 ## Safety scope
 

@@ -1,4 +1,4 @@
-# Архитектура GUI v0.3.0-alpha.1
+# Архитектура GUI
 
 ## Цель
 
@@ -167,4 +167,4 @@ Code, stage, backend message, log path и requestId находятся в рас
 
 Release staging помещает `WindowsISOBuilder.exe` и published runtime в package root рядом с `Invoke-WibBackend.ps1`. Поэтому packaged backend location deterministic и не зависит от source checkout/environment override.
 
-Release ZIP также сохраняет TUI/CLI. Package manifest содержит additive `gui.included/runtime/selfContained` metadata. `.github`, tests, build outputs и validation artifacts не входят в runtime package. Installer/MSIX не входит в v0.3.0.
+Release ZIP также сохраняет TUI/CLI. Package manifest содержит additive `gui.included/runtime/selfContained` metadata. `.github`, tests, build outputs и validation artifacts не входят в runtime package. Installer/MSIX не входит в pre-1.0 release train.

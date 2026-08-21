@@ -10,15 +10,15 @@ A GUI and PowerShell UUP dump client for searching, downloading, and building Wi
 
 ## Status
 
-Current release-train source version: **`0.3.4`**.
+Current release-train source version: **`0.3.5-rc.1`**.
 
-- ApplicationVersion: `0.3.4`;
-- GUI Version/FileVersion: `0.3.4` / `0.3.4.0`;
+- ApplicationVersion: `0.3.5-rc.1`;
+- GUI Version/FileVersion: `0.3.5-rc.1` / `0.3.5.1`;
 - PowerShell ModuleVersion: `0.3.0`;
 - Backend Contract SchemaVersion: `1`;
 - BuildPlan SchemaVersion: `1`.
 
-The project is feature-frozen before its first public release. v0.3.4 completes the planned Network/Proxy functional scope; the remaining work is RC hardening, factual manual acceptance, and public-release preparation. History/Profiles and unrelated product features remain deferred.
+The project is in final RC hardening before its first public release. v0.3.5-rc.1 adds no product features: the v0.3.4 Network/Proxy scope is preserved, and this branch covers only final polish, metadata, packaging/security audit, and release validation. History/Profiles and unrelated product features remain deferred.
 
 ## Features
 
@@ -121,7 +121,7 @@ See [architecture](docs/ARCHITECTURE.md), [Backend Contract](docs/BACKEND_CONTRA
 
 ## Next required stage
 
-RC hardening and public-release preparation, with no new product features. Factual manual Network/Proxy acceptance, a final packaged GUI ISO E2E, and a separate Git-history secret audit remain required before publication.
+Accept or reject the RC. Before public v1.0.0, only release actions and factual checks remain: manual Network/Proxy acceptance, a final packaged GUI ISO E2E, public feedback/update-channel accessibility, and the full Git-history secret audit.
 
 ## License
 

@@ -10,15 +10,15 @@ GUI и PowerShell-клиент UUP dump для поиска, загрузки и
 
 ## Статус
 
-Текущая source-версия release train — **`0.3.4`**.
+Текущая source-версия release train — **`0.3.5-rc.1`**.
 
-- ApplicationVersion: `0.3.4`;
-- GUI Version/FileVersion: `0.3.4` / `0.3.4.0`;
+- ApplicationVersion: `0.3.5-rc.1`;
+- GUI Version/FileVersion: `0.3.5-rc.1` / `0.3.5.1`;
 - PowerShell ModuleVersion: `0.3.0`;
 - Backend Contract SchemaVersion: `1`;
 - BuildPlan SchemaVersion: `1`.
 
-Проект находится в feature freeze перед первым публичным релизом. v0.3.4 завершает запланированный функциональный scope Network/Proxy; далее — только RC hardening, фактическая ручная проверка и подготовка public release. History/Profiles и другие продуктовые функции отложены.
+Проект находится в финальном RC hardening перед первым публичным релизом. v0.3.5-rc.1 не добавляет product features: v0.3.4 Network/Proxy scope сохраняется, а текущая ветка закрывает только финальную полировку, metadata, packaging/security audit и release validation. History/Profiles и другие продуктовые функции отложены.
 
 ## Возможности
 
@@ -121,7 +121,7 @@ Requests/paths считаются недоверенными, backend dispatch a
 
 ## Следующий обязательный этап
 
-RC hardening и подготовка публичного release: без новых продуктовых функций. Требуются фактический manual Network/Proxy acceptance, финальный packaged GUI ISO E2E и отдельный Git-history secret audit перед публикацией.
+Принять или отклонить RC. Перед public v1.0.0 остаются только release actions и фактические проверки: manual Network/Proxy acceptance, финальный packaged GUI ISO E2E, публичная доступность feedback/update channel и full Git-history secret audit.
 
 ## Лицензия
 

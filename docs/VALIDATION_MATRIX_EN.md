@@ -1,10 +1,10 @@
-# Validation matrix v0.3.4
+# Validation matrix v0.3.5-rc.1
 
 Implementation status and actual execution are separate. Manual/runtime checks remain **NOT RUN** until they are performed on the current SHA.
 
 ## Automated gates
 
-Before merge the current head must cover/pass, as applicable:
+Before merge, the current head must pass:
 
 - VERSION / GUI version / ModuleVersion / SchemaVersion consistency;
 - `dotnet restore/build/test`;
@@ -23,7 +23,7 @@ Before merge the current head must cover/pass, as applicable:
 - controlled process-tree cancellation smoke;
 - self-contained GUI publish;
 - release ZIP/checksum/manifest/package smoke;
-- current-tree/package safety scan;
+- current tracked-tree/package safety scan;
 - packaged GUI backend/startup smoke.
 
 Main command:
@@ -32,33 +32,38 @@ Main command:
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\tools\Invoke-ReleaseValidation.ps1 -Full
 ```
 
-## v0.3.4 Network/Proxy coverage
+## v0.3.5-rc.1 hardening coverage
 
 Automated coverage must confirm:
 
-- missing policy → System;
-- corrupted/invalid Custom policy → controlled failure;
-- credentials are stored separately from `network.json` and protected with DPAPI;
-- corrupted credential → controlled failure;
-- Direct bypasses proxy adapters and clears inherited downloader proxy variables;
-- a Custom HTTP failure is not retried as Direct;
-- UUP API, online preflight, conversion package, and generated downloader use the common policy layer;
-- generated-downloader command lines contain only the loopback endpoint and no upstream proxy host/user/password;
-- diagnostics redact password/proxy-credential assignments;
-- GUI update checks use the policy-aware `IHttpClientProvider`.
+- root `VERSION` and GUI `<Version>` are `0.3.5-rc.1`;
+- GUI FileVersion/AssemblyVersion use numeric `0.3.5.1`;
+- ModuleVersion remains `0.3.0`;
+- Backend Contract SchemaVersion and BuildPlan SchemaVersion remain `1`;
+- the GUI and backend reject a proxy password without a username;
+- proxy configuration/credential/connection/authentication failures have user-facing action mappings;
+- the release package source allowlist contains no denied paths;
+- package/runtime safety scanning does not allow validation/test/local network artifacts.
 
 ## Manual GUI / network acceptance — NOT RUN until executed
 
-On a packaged build, in RU and EN, verify the Network Settings card, System/Direct/Custom switching, HTTP/SOCKS5 validation, password non-disclosure after restart, save/replace/clear behavior, Test connection for all modes, controlled failure for a broken Custom proxy with no Direct fallback, and policy use by GitHub update checks and Build/Catalog online operations.
+| ID | Scenario | Steps | Expected | Actual | Status | Notes |
+|---|---|---|---|---|---|---|
+| MAN-GUI-001 | RU/EN Settings Network | Open the packaged GUI in RU and EN, then open Settings → Network. | System/Direct/Custom, HTTP/SOCKS5, Host/Port/Username/Password, Save/Test/Clear render without clipping. | | NOT RUN | Requires the real packaged GUI. |
+| MAN-GUI-002 | Light/Dark/System theme | Check Build/Catalog/Settings/Help/About in Light, Dark, and System theme. | Contrast is readable, disabled controls keep readable text, layout does not jump. | | NOT RUN | Includes resize smoke. |
+| MAN-NET-001 | System connection | Select System and run Test connection. | Success or a controlled network error without a crash. | | NOT RUN | Requires a real network. |
+| MAN-NET-002 | Direct connection | Select Direct and run Test connection. | Traffic bypasses proxies; inherited proxy variables do not affect the generated downloader. | | NOT RUN | Requires traffic/environment observation. |
+| MAN-NET-003 | Custom HTTP proxy | Configure a working HTTP proxy, save, check restart/password state, and run Test connection. | PasswordBox is empty after restart; saved credential is indicated neutrally; Test connection succeeds through the proxy. | | NOT RUN | A real proxy is not replaced by mock tests. |
+| MAN-NET-004 | Custom SOCKS5 proxy | Configure a working SOCKS5 proxy and run Test connection. | Test connection succeeds through the SOCKS5 policy. | | NOT RUN | A real proxy is not replaced by mock tests. |
+| MAN-NET-005 | Broken Custom no fallback | Configure a broken Custom proxy. | Controlled proxy error; no silent Direct fallback. | | NOT RUN | Requires observing that Direct fallback did not occur. |
+| MAN-UPD-001 | Update check | Check Stable/Prerelease updates through the selected policy. | Network failure does not break the app; the URL remains official `https://github.com/Regstar2/windows-iso-builder`. | | NOT RUN | External acceptance requires an accessible public channel. |
+| MAN-ICON-001 | Explorer/taskbar icon | Check the exe, window, taskbar, publish output, and package output. | The existing `WindowsISOBuilder.ico` renders without replacing artwork. | | NOT RUN | Visual Windows Explorer/taskbar check. |
+| MAN-E2E-001 | Full packaged GUI ISO E2E | Build a real ISO from the release ZIP through the GUI. | ISO is created, SHA-256 is shown, logs/result actions work. | | NOT RUN | Not inferred from automation PASS. |
 
 ## Controlled downloader/proxy acceptance — NOT RUN until executed
 
 Run controlled HTTP-proxy and SOCKS5 tests with the generated `uup_download_windows.cmd`/aria2 path and verify that upstream credentials never appear in process command lines or logs.
 
-## Core regression
-
-The existing Build/Catalog/theme/DPI/keyboard manual smoke and one final real packaged GUI ISO E2E remain public-release gates. A real ISO build through each proxy mode is not a PASS until it is actually executed.
-
 ## Safety scope
 
-The built-in safety scan covers the current tracked tree and current release package. It is **not a Git-history audit**. A separate full-history secret scan is required before the public release.
+The built-in safety scan covers current tracked files and the current release package. It is **not a Git-history audit**. A separate full-history secret scan is required before the public release.

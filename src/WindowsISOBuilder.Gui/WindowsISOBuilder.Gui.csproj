@@ -9,9 +9,9 @@
     <RootNamespace>WindowsISOBuilder.Gui</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\WindowsISOBuilder.ico</ApplicationIcon>
-    <Version>0.3.4</Version>
-    <FileVersion>0.3.4.0</FileVersion>
-    <AssemblyVersion>0.3.4.0</AssemblyVersion>
+    <Version>0.3.5-rc.1</Version>
+    <FileVersion>0.3.5.1</FileVersion>
+    <AssemblyVersion>0.3.5.1</AssemblyVersion>
     <NoWarn>$(NoWarn);WPF0001</NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">

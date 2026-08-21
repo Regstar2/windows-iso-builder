@@ -36,6 +36,7 @@
   <data name="NetworkSettingsSaved" xml:space="preserve"><value>Настройки сети сохранены.</value></data>
   <data name="NetworkSettingsInvalid" xml:space="preserve"><value>Настройки прокси некорректны. Исправьте их перед сетевыми операциями.</value></data>
   <data name="NetworkCredentialUnavailable" xml:space="preserve"><value>Сохранённые учётные данные прокси недоступны или не расшифровываются.</value></data>
+  <data name="NetworkCredentialRequiresUsername" xml:space="preserve"><value>Укажите имя пользователя прокси перед сохранением пароля.</value></data>
   <data name="NetworkCredentialCleared" xml:space="preserve"><value>Сохранённый пароль прокси удалён.</value></data>
   <data name="NetworkTestRunning" xml:space="preserve"><value>Проверяется выбранная сетевая политика…</value></data>
   <data name="NetworkTestSuccess" xml:space="preserve"><value>Подключение через выбранную сетевую политику успешно.</value></data>
