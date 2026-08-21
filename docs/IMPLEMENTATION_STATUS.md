@@ -2,19 +2,19 @@
 
 ## Текущая source-версия
 
-`0.3.5-rc.1 — Public Release Hardening`.
+`1.0.0 — Stable release`.
 
-- ApplicationVersion: `0.3.5-rc.1`;
-- GUI Assembly/FileVersion: `0.3.5-rc.1` / `0.3.5.1`;
+- ApplicationVersion: `1.0.0`;
+- GUI Assembly/FileVersion: `1.0.0` / `1.0.0.0`;
 - PowerShell ModuleVersion: `0.3.0`;
 - Backend Contract SchemaVersion: `1`;
 - BuildPlan SchemaVersion: `1`.
 
 ## Реализовано в source
 
-Сохраняется существующий GUI/backend baseline: WPF/.NET 10, Build/Catalog, dynamic languages/editions, WIM/ESD, preflight, build progress, cancellation, structured errors, diagnostics, RU/EN, System/Light/Dark, feedback/update flow, TUI/CLI и self-hosted release validation.
+Стабильный v1.0.0 сохраняет существующий GUI/backend baseline: WPF/.NET 10, Build/Catalog, dynamic languages/editions, WIM/ESD, preflight, build progress, cancellation, structured errors, diagnostics, RU/EN, System/Light/Dark, feedback/update flow, TUI/CLI и self-hosted release validation.
 
-Сохраняется v0.3.4 Network/Proxy scope:
+Сохраняется Network/Proxy scope:
 
 - одна глобальная Network Policy: `System`, `Direct`, `Custom`;
 - `Custom HTTP` и `Custom SOCKS5`;
@@ -29,15 +29,12 @@
 - публичные PowerShell operations `Get-WibNetworkPolicy`, `Set-WibNetworkPolicy`, `Clear-WibProxyCredential`, `Test-WibNetworkConnection`;
 - diagnostic redaction rules для password/proxy credential assignments.
 
-v0.3.5-rc.1 не добавляет product features. Текущий RC hardening в source включает:
+v1.0.0 не добавляет product features относительно принятого v0.3.5-rc.1. Финальный stable pass включает:
 
-- синхронизацию ApplicationVersion/GUI metadata с `0.3.5-rc.1`;
+- синхронизацию ApplicationVersion/GUI metadata с `1.0.0`;
 - сохранение ModuleVersion `0.3.0` и schema versions `1`;
-- GUI validation, запрещающую сохранить proxy password без username;
-- user-facing mappings для proxy configuration/credential/connection/authentication failures в общем error panel;
-- небольшую final-polish правку spacing для переносимых action-кнопок и строки выбора Catalog;
-- усиление `.gitignore` и release package denylist для validation/test/local network artifacts;
-- RC release/version документацию и manual acceptance checklist.
+- финальные RU/EN README, release notes, changelog, validation matrix и version docs;
+- repository/package/secret-audit gates перед tag/release.
 
 Network Policy остаётся runtime/user setting и не входит в BuildPlan v1. Backend Contract/BuildPlan schema остаются `1`.
 
@@ -47,24 +44,19 @@ Network Policy остаётся runtime/user setting и не входит в Bui
 
 ## Требует фактического выполнения
 
-Перед merge v0.3.5-rc.1:
+Для v1.0.0 release workflow требуются:
 
 - Full Windows validation exact branch head;
+- required GitHub Actions PASS exact PR head;
+- Full Windows validation exact master merge SHA;
 - package smoke на финальном package source state;
 - проверка, что release ZIP не содержит developer/private/local artifacts;
-- current-tree и Git-history secret audit.
+- current-tree и Git-history secret audit;
+- checksum verification;
+- packaged GUI startup/backend smoke из финального ZIP.
 
-Перед первым публичным release дополнительно остаются:
+Реальный ISO build, real proxy E2E, Explorer/taskbar icon и high-DPI checks не заявляются как PASS, пока не выполнены фактически.
 
-- packaged GUI RU/EN Network Settings smoke;
-- manual System / Direct / Custom HTTP / Custom SOCKS5 Test connection;
-- controlled proxy build-path smoke с generated downloader;
-- проверка сохранения/замены/очистки credential на обычной пользовательской учётной записи;
-- final packaged GUI ISO E2E;
-- внешний update/feedback acceptance после доступности public repository/tracker.
+## После v1.0.0
 
-Реальный ISO build, proxy E2E, Explorer/taskbar icon и high-DPI checks не заявляются как PASS, пока не выполнены фактически.
-
-## Следующий этап
-
-Принять или отклонить RC. `v1.0.0` должен содержать только финальные release actions и version/release metadata corrections относительно принятого RC.
+Дальнейшая модель — maintenance, bug fixes, security fixes и user-driven development. Новые product tracks не открыты этим документом.

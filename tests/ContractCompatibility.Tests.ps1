@@ -1,12 +1,12 @@
 ﻿$modulePath = Join-Path $PSScriptRoot '..\src\WindowsISOBuilder\WindowsISOBuilder.psd1'
 Import-Module $modulePath -Force
 
-Describe 'v0.3.5-rc.1 release version baseline' {
+Describe 'v1.0.0 stable release version baseline' {
     It 'keeps VERSION and ModuleVersion aligned with the release plan' {
         $root = Split-Path -Parent $PSScriptRoot
         $applicationVersion = [IO.File]::ReadAllText((Join-Path $root 'VERSION'), [Text.Encoding]::ASCII).Trim()
         $manifest = Test-ModuleManifest -Path (Join-Path $root 'src\WindowsISOBuilder\WindowsISOBuilder.psd1')
-        $applicationVersion | Should -Be '0.3.5-rc.1'
+        $applicationVersion | Should -Be '1.0.0'
         [string]$manifest.Version | Should -Be '0.3.0'
     }
 

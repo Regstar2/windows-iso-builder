@@ -1,10 +1,10 @@
 # Contributing
 
-Windows ISO Builder is in a feature-frozen release train toward the first public stable release. Read `AGENTS.md`, `docs/product/roadmap.md` and the relevant `.project-rules/` standards before changing code.
+Windows ISO Builder is in stable maintenance after v1.0.0. Read `AGENTS.md`, `docs/product/roadmap.md` and the relevant `.project-rules/` standards before changing code.
 
 Use a dedicated branch and pull request. A change is reviewable only when:
 
-- it stays inside the current release goal;
+- it stays inside the current maintenance or release goal;
 - it does not hardcode a Windows release catalog;
 - Windows PowerShell 5.1 compatibility is preserved;
 - user-visible changes include RU and EN resources;

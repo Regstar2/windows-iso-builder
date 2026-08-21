@@ -8,7 +8,7 @@ Transport is local UTF-8 JSON request/response files, an optional UTF-8 NDJSON e
 
 ## Versions
 
-- ApplicationVersion: `0.3.5-rc.1`;
+- ApplicationVersion: `1.0.0`;
 - ModuleVersion: `0.3.0`;
 - Backend Contract SchemaVersion: `1`;
 - BuildPlan SchemaVersion: `1`.

@@ -1,18 +1,18 @@
-# Требования к Windows ISO Builder v0.3.5-rc.1
+# Требования к Windows ISO Builder v1.0.0
 
 ## Версии
 
-- ApplicationVersion: `0.3.5-rc.1`; source of truth — root `VERSION`.
-- GUI Version/FileVersion: `0.3.5-rc.1` / `0.3.5.1`.
+- ApplicationVersion: `1.0.0`; source of truth — root `VERSION`.
+- GUI Version/FileVersion: `1.0.0` / `1.0.0.0`.
 - PowerShell ModuleVersion: `0.3.0`.
 - Backend Contract SchemaVersion: `1`.
 - BuildPlan SchemaVersion: `1`.
 
-GUI/ApplicationVersion синхронизированы для v0.3.5-rc.1. ModuleVersion и schema versions остаются независимыми; текущий `0.3.x` release train сохраняет ModuleVersion `0.3.0`.
+GUI/ApplicationVersion синхронизированы для v1.0.0. ModuleVersion и schema versions остаются независимыми; текущий stable release сохраняет ModuleVersion `0.3.0`, потому что публичный PowerShell API/модульный контракт не менялись.
 
-## RC hardening scope
+## Stable release scope
 
-v0.3.5-rc.1 не добавляет новые product features. Допустимы только исправления подтверждённых дефектов, финальная GUI/UX-полировка, cleanup репозитория, security/package audit, документация, version/release metadata и validation hardening.
+v1.0.0 — стабильный релиз из принятого v0.3.5-rc.1. Он не добавляет новые product features относительно RC; допустимые изменения этого release pass ограничены version/release metadata, документацией, repository cleanup, tests, packaging и release validation.
 
 ## Runtime
 
@@ -28,7 +28,7 @@ v0.3.5-rc.1 не добавляет новые product features. Допусти�
 - Cancellation идёт через `CancelBuild`; GUI не kill-ит build processes.
 - Network Policy является runtime/user setting и не добавляется в BuildPlan v1.
 
-## Network Access & Proxy — реализовано в v0.3.4 и сохраняется в v0.3.5-rc.1
+## Network Access & Proxy
 
 Обязательна одна глобальная политика для всех поддерживаемых outbound paths:
 
@@ -37,7 +37,7 @@ v0.3.5-rc.1 не добавляет новые product features. Допусти�
 - `Custom HTTP`;
 - `Custom SOCKS5`.
 
-Policy должна применяться к UUP dump API/catalog/metadata, online preflight, conversion-package download, generated UUP downloader/aria2 и GitHub Releases update check.
+Policy применяется к UUP dump API/catalog/metadata, online preflight, conversion-package download, generated UUP downloader/aria2 и GitHub Releases update check.
 
 ### Безопасность и отказоустойчивость
 
@@ -54,13 +54,13 @@ Policy должна применяться к UUP dump API/catalog/metadata, onl
 
 ### GUI / PowerShell API
 
-Settings должна предоставлять mode, proxy type, host, port, username, PasswordBox, Save, Test connection и явную очистку сохранённого credential. Существующий пароль обратно в UI не отображается.
+Settings предоставляет mode, proxy type, host, port, username, PasswordBox, Save, Test connection и явную очистку сохранённого credential. Существующий пароль обратно в UI не отображается.
 
 PowerShell API: `Get-WibNetworkPolicy`, `Set-WibNetworkPolicy`, `Clear-WibProxyCredential`, `Test-WibNetworkConnection`.
 
 ## Feedback / Update Delivery
 
-GitHub Issue Forms и in-app feedback v0.3.3 сохраняются. Update checker использует ту же глобальную Network Policy. Источник обновлений остаётся официальный GitHub Releases `Regstar2/windows-iso-builder` по HTTPS без PAT/token/mirror/custom manifest. Автоматического download/self-replace/execute нет.
+GitHub Issue Forms и in-app feedback входят в stable release. Update checker использует ту же глобальную Network Policy. Источник обновлений остаётся официальный GitHub Releases `Regstar2/windows-iso-builder` по HTTPS без PAT/token/mirror/custom manifest. Автоматического download/self-replace/execute нет.
 
 ## Localization / accessibility
 
@@ -72,14 +72,14 @@ RU и EN обязательны, EN fallback. Новые strings добавля�
 - diagnostics — fixed allowlist и sanitizer;
 - release package не содержит `.github`, `.project-rules`, tests, bin/obj, logs, local configs, `network.json`, credential store или PDB;
 - update checker не содержит Authorization secret;
-- full Git-history secret audit является отдельным pre-public gate.
+- full Git-history secret audit является отдельным pre-public gate и не заменяется current-tree/package scanner.
 
 ## Validation
 
-Current-head Full validation обязательна перед merge. Automated coverage включает version/schema consistency, C# tests, Pester network-policy/security regressions, PSScriptAnalyzer, PS5.1/PS7 backend smokes, process-tree smoke, package smoke и GUI startup smoke.
+Current-head Full validation обязательна перед merge/tag/release. Automated coverage включает version/schema consistency, C# tests, Pester network-policy/security regressions, PSScriptAnalyzer, PS5.1/PS7 backend smokes, process-tree smoke, package smoke и GUI startup smoke.
 
 Manual Network/Proxy acceptance и real ISO proxy E2E остаются `NOT RUN` до фактического выполнения. Их нельзя выводить из unit/integration PASS.
 
-## Out of scope v0.3.5-rc.1
+## Out of scope v1.0.0
 
 History/Profiles, queue/parallel builds, installer/MSIX, USB/Rufus, customization/debloat/unattended setup, driver injection, TPM bypass, activation, accounts/cloud/telemetry/plugins, custom UUP downloader/converter, VPN/WARP/Tor и system-wide proxy manager.
