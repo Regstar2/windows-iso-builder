@@ -1,4 +1,4 @@
-﻿$modulePath = Join-Path $PSScriptRoot '..\src\WindowsISOBuilder\WindowsISOBuilder.psd1'
+$modulePath = Join-Path $PSScriptRoot '..\src\WindowsISOBuilder\WindowsISOBuilder.psd1'
 Import-Module $modulePath -Force
 
 Describe 'v0.2.2 preflight engine' {
@@ -148,20 +148,20 @@ Describe 'v0.2.2 error taxonomy' {
             @{Code='DISK_SPACE_LOW';Id='disk.cache'}, @{Code='REQUIRED_COMPONENT_MISSING';Id='tool.dism'}, @{Code='PATH_NOT_WRITABLE';Id='path.cacheWritable'}
         ) {
             param($Code,$Id)
-            $report=[pscustomobject]@{ready=$false;checks=@(New-WibPreflightCheck -Id $Id -Status fail -Severity error -Code $Code -Message 'произвольный русский текст' -Data ([ordered]@{path='C:\x';component='x'}))}
+            $report=[pscustomobject]@{ready=$false;checks=@(New-WibPreflightCheck -Id $Id -Status fail -Severity error -Code $Code -Message 'arbitrary localized text' -Data ([ordered]@{path='C:\x';component='x'}))}
             try { Assert-WibPreflightReady $report; throw 'expected' } catch { $_.Exception.Data['WibErrorCode'] | Should -Be $Code }
         }
 
         It '20. UUP package network failure becomes UUP_PACKAGE_DOWNLOAD_FAILED' {
             $plan=[pscustomobject]@{Build=[pscustomobject]@{Uuid='id'};Language='ru-ru';SourceEdition='Professional';AddUpdates=$true;Cleanup=$true;NetFx3=$false;ImageFormat='ESD'}
-            Mock Invoke-WebRequest { throw 'network down' }
+            Mock Invoke-WibHttpDownload { throw 'network down' }
             try { Download-WibUupPackage -Plan $plan -DestinationZip (Join-Path $TestDrive 'pkg.zip') -Attempts 1; throw 'expected' }
             catch { $_.Exception.Data['WibErrorCode'] | Should -Be 'UUP_PACKAGE_DOWNLOAD_FAILED' }
         }
 
         It '21. invalid UUP ZIP becomes UUP_PACKAGE_INVALID' {
             $plan=[pscustomobject]@{Build=[pscustomobject]@{Uuid='id'};Language='ru-ru';SourceEdition='Professional';AddUpdates=$true;Cleanup=$true;NetFx3=$false;ImageFormat='ESD'}
-            Mock Invoke-WebRequest { param($OutFile) [IO.File]::WriteAllText($OutFile,'invalid') }
+            Mock Invoke-WibHttpDownload { param($OutFile) [IO.File]::WriteAllText($OutFile,'invalid') }
             try { Download-WibUupPackage -Plan $plan -DestinationZip (Join-Path $TestDrive 'pkg.zip') -Attempts 1; throw 'expected' }
             catch { $_.Exception.Data['WibErrorCode'] | Should -Be 'UUP_PACKAGE_INVALID' }
         }
@@ -179,7 +179,7 @@ Describe 'v0.2.2 error taxonomy' {
         }
 
         It '26. classification is independent of localized exception text' {
-            $exception=New-WibErrorException -Code 'DISK_SPACE_LOW' -Message 'место на диске вообще не упоминается' -Stage 'preflight'
+            $exception=New-WibErrorException -Code 'DISK_SPACE_LOW' -Message 'disk space wording is intentionally absent' -Stage 'preflight'
             (ConvertTo-WibBackendErrorDto $exception 'ExecuteBuildPlan').code | Should -Be 'DISK_SPACE_LOW'
         }
 
