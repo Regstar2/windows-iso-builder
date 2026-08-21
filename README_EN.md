@@ -6,6 +6,14 @@ A GUI and PowerShell UUP dump client for searching, downloading, and building Wi
 
 [Русский](README.md) · **English**
 
+[![Version](https://img.shields.io/badge/VERSION-0.3.5--rc.1-1f6feb?style=for-the-badge)](VERSION)
+[![Windows](https://img.shields.io/badge/WINDOWS-10%20%7C%2011-0078D4?style=for-the-badge&logo=windows11&logoColor=white)](REQUIREMENTS.md)
+[![Architecture](https://img.shields.io/badge/ARCH-X64-7C3AED?style=for-the-badge)](REQUIREMENTS.md)
+[![Build](https://github.com/Regstar2/windows-iso-builder/actions/workflows/windows-self-hosted-validation.yml/badge.svg?branch=master)](https://github.com/Regstar2/windows-iso-builder/actions/workflows/windows-self-hosted-validation.yml)
+[![License](https://img.shields.io/badge/LICENSE-MIT-f97316?style=for-the-badge)](LICENSE)
+
+[Quick start](#gui-quick-start) · [Documentation](#architecture-and-security) · [Releases](https://github.com/Regstar2/windows-iso-builder/releases)
+
 </div>
 
 ## Status
