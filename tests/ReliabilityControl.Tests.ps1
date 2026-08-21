@@ -148,7 +148,7 @@ Describe 'v0.2.2 error taxonomy' {
             @{Code='DISK_SPACE_LOW';Id='disk.cache'}, @{Code='REQUIRED_COMPONENT_MISSING';Id='tool.dism'}, @{Code='PATH_NOT_WRITABLE';Id='path.cacheWritable'}
         ) {
             param($Code,$Id)
-            $report=[pscustomobject]@{ready=$false;checks=@(New-WibPreflightCheck -Id $Id -Status fail -Severity error -Code $Code -Message 'произвольный русский текст' -Data ([ordered]@{path='C:\x';component='x'}))}
+            $report=[pscustomobject]@{ready=$false;checks=@(New-WibPreflightCheck -Id $Id -Status fail -Severity error -Code $Code -Message 'arbitrary localized text' -Data ([ordered]@{path='C:\x';component='x'}))}
             try { Assert-WibPreflightReady $report; throw 'expected' } catch { $_.Exception.Data['WibErrorCode'] | Should -Be $Code }
         }
 
@@ -179,7 +179,7 @@ Describe 'v0.2.2 error taxonomy' {
         }
 
         It '26. classification is independent of localized exception text' {
-            $exception=New-WibErrorException -Code 'DISK_SPACE_LOW' -Message 'место на диске вообще не упоминается' -Stage 'preflight'
+            $exception=New-WibErrorException -Code 'DISK_SPACE_LOW' -Message 'disk space wording is intentionally absent' -Stage 'preflight'
             (ConvertTo-WibBackendErrorDto $exception 'ExecuteBuildPlan').code | Should -Be 'DISK_SPACE_LOW'
         }
 
