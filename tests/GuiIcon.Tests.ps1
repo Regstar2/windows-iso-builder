@@ -1,14 +1,16 @@
 Set-StrictMode -Version Latest
 
-$root = Split-Path -Parent $PSScriptRoot
-$iconPath = Join-Path $root 'src\WindowsISOBuilder.Gui\Assets\WindowsISOBuilder.ico'
-$projectPath = Join-Path $root 'src\WindowsISOBuilder.Gui\WindowsISOBuilder.Gui.csproj'
-
 Describe 'Application icon release hardening' {
-    It 'tracks a valid multi-size Windows icon asset' {
-        Test-Path -LiteralPath $iconPath -PathType Leaf | Should -BeTrue
+    BeforeAll {
+        $script:IconTestProjectRoot = Split-Path -Parent $PSScriptRoot
+        $script:IconTestIconPath = Join-Path $script:IconTestProjectRoot 'src\WindowsISOBuilder.Gui\Assets\WindowsISOBuilder.ico'
+        $script:IconTestProjectPath = Join-Path $script:IconTestProjectRoot 'src\WindowsISOBuilder.Gui\WindowsISOBuilder.Gui.csproj'
+    }
 
-        $bytes = [IO.File]::ReadAllBytes($iconPath)
+    It 'tracks a valid multi-size Windows icon asset' {
+        Test-Path -LiteralPath $script:IconTestIconPath -PathType Leaf | Should -BeTrue
+
+        $bytes = [IO.File]::ReadAllBytes($script:IconTestIconPath)
         $bytes.Length | Should -BeGreaterThan 1024
         [BitConverter]::ToUInt16($bytes, 0) | Should -Be 0
         [BitConverter]::ToUInt16($bytes, 2) | Should -Be 1
@@ -29,7 +31,7 @@ Describe 'Application icon release hardening' {
     }
 
     It 'uses the icon for the Windows executable and embeds it as a WPF resource' {
-        $project = [IO.File]::ReadAllText($projectPath, [Text.Encoding]::UTF8)
+        $project = [IO.File]::ReadAllText($script:IconTestProjectPath, [Text.Encoding]::UTF8)
         $project | Should -Match '<ApplicationIcon>Assets\\WindowsISOBuilder\.ico</ApplicationIcon>'
         $project | Should -Match '<Resource Include="Assets\\WindowsISOBuilder\.ico"\s*/>'
     }
