@@ -120,6 +120,10 @@ internal sealed class NetworkPolicyService
         {
             throw new NetworkPolicyException("PROXY_CONFIGURATION_INVALID", "Custom proxy username is invalid.");
         }
+        if (policy.HasCredential && string.IsNullOrWhiteSpace(username))
+        {
+            throw new NetworkPolicyException("PROXY_CREDENTIAL_REQUIRES_USERNAME", "Proxy username is required when a password is saved.");
+        }
 
         return new NetworkPolicy
         {

@@ -193,6 +193,7 @@ public partial class MainWindow : Window
     private string MapNetworkFailure(string code) => code switch
     {
         "PROXY_CONFIGURATION_INVALID" => Loc.Get("NetworkSettingsInvalid"),
+        "PROXY_CREDENTIAL_REQUIRES_USERNAME" => Loc.Get("NetworkCredentialRequiresUsername"),
         "PROXY_CREDENTIAL_UNAVAILABLE" => Loc.Get("NetworkCredentialUnavailable"),
         "PROXY_AUTHENTICATION_FAILED" => Loc.Get("NetworkProxyAuthenticationFailed"),
         "PROXY_CONNECTION_FAILED" => Loc.Get("NetworkProxyUnavailable"),

@@ -36,6 +36,7 @@
   <data name="NetworkSettingsSaved" xml:space="preserve"><value>Network settings saved.</value></data>
   <data name="NetworkSettingsInvalid" xml:space="preserve"><value>Network proxy settings are invalid. Fix them before using network operations.</value></data>
   <data name="NetworkCredentialUnavailable" xml:space="preserve"><value>The saved proxy credential is unavailable or cannot be decrypted.</value></data>
+  <data name="NetworkCredentialRequiresUsername" xml:space="preserve"><value>Enter a proxy username before saving a password.</value></data>
   <data name="NetworkCredentialCleared" xml:space="preserve"><value>Saved proxy credential cleared.</value></data>
   <data name="NetworkTestRunning" xml:space="preserve"><value>Testing the selected network policy…</value></data>
   <data name="NetworkTestSuccess" xml:space="preserve"><value>Connection succeeded through the selected network policy.</value></data>

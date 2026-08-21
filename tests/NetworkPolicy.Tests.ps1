@@ -23,6 +23,13 @@ Describe 'v0.3.4 global network policy' {
             catch { $_.Exception.Data['WibErrorCode'] | Should -Be 'PROXY_CONFIGURATION_INVALID' }
         }
 
+        It 'rejects a saved proxy password without a username' {
+            if ($env:OS -ne 'Windows_NT') { Set-ItResult -Skipped -Because 'Windows DPAPI test'; return }
+            $secure = ConvertTo-SecureString 'temporary-fixture-value' -AsPlainText -Force
+            try { Set-WibNetworkPolicy -Mode Custom -ProxyType HTTP -Host '127.0.0.1' -Port 3128 -Password $secure -Confirm:$false; throw 'expected' }
+            catch { $_.Exception.Data['WibErrorCode'] | Should -Be 'PROXY_CONFIGURATION_INVALID' }
+        }
+
         It 'fails closed when persisted policy JSON is corrupted' {
             [IO.File]::WriteAllText((Get-WibNetworkPolicyPath), '{broken-json', (New-Object Text.UTF8Encoding($false)))
             try { Get-WibNetworkPolicy | Out-Null; throw 'expected' }

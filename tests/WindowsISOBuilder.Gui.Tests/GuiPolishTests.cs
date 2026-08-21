@@ -125,6 +125,17 @@ public sealed class GuiPolishTests
     }
 
     [TestMethod]
+    public void ProxyBackendErrorsHaveActionableMappings()
+    {
+        foreach (var code in new[] { "PROXY_CONFIGURATION_INVALID", "PROXY_CREDENTIAL_UNAVAILABLE", "PROXY_CONNECTION_FAILED", "PROXY_AUTHENTICATION_FAILED" })
+        {
+            var mapping = ErrorMapper.Map(code);
+            Assert.IsTrue(mapping.TitleKey.StartsWith("ErrorProxy", StringComparison.Ordinal), code);
+            Assert.IsTrue(mapping.ActionKey.StartsWith("ErrorProxy", StringComparison.Ordinal), code);
+        }
+    }
+
+    [TestMethod]
     public void CorruptSettingsAreIgnoredAndValidSettingsRoundTrip()
     {
         var root = Path.Combine(Path.GetTempPath(), "wib-settings-tests", Guid.NewGuid().ToString("N"));

@@ -55,11 +55,11 @@ Settings
 
 Release-модель проекта — portable self-contained ZIP. Без отдельного installer/update host безопасная замена работающего приложения требует дополнительной модели целостности, rollback и migration. До v1.0.0 используется разрешённый safe fallback: приложение обнаруживает обновление и открывает официальный GitHub release; ничего не скачивает и не исполняет автоматически.
 
-## Network seam
+## Network Policy seam
 
 v0.3.3 вводит только `IHttpClientProvider` для update checker. Текущий `SystemHttpClientProvider` оставляет `HttpClientHandler.Proxy` не заданным и использует штатное system behavior .NET/Windows. Это не заявляется как завершённая global proxy feature.
 
-v0.3.4 обязана заменить/расширить этот seam общей Network Policy `System / Direct / Custom (HTTP/SOCKS5)` и применить её ко всем outbound путям, включая updater. Update-only proxy setting запрещён.
+v0.3.4 заменяет этот seam общей Network Policy `System / Direct / Custom (HTTP/SOCKS5)` и применяет её ко всем поддерживаемым outbound путям, включая updater. v0.3.5-rc.1 сохраняет эту границу без расширения. Update-only proxy setting запрещён.
 
 ## Security and diagnostics
 

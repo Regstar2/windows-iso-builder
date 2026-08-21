@@ -14,4 +14,4 @@ Never include Windows product keys, access tokens, passwords, cookies, proxy cre
 - Update checks use the official GitHub Releases endpoint without embedded GitHub credentials and do not automatically download or execute an update.
 - Diagnostics use an allowlist and sanitization before ZIP writes. Users still need to review a diagnostic package before publishing it.
 
-The current-tree/package safety scanner is not a Git-history audit. A separate full-history secret scan remains a blocker for the public stable release.
+The current-tree/package safety scanner is not a Git-history audit. A separate full-history secret scan remains a blocker for accepting the RC as the public v1.0.0 release.

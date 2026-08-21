@@ -78,6 +78,14 @@ public sealed class NetworkPolicyTests
     }
 
     [TestMethod]
+    public void CredentialRequiresProxyUsername()
+    {
+        var exception = Assert.Throws<NetworkPolicyException>(
+            () => NetworkPolicyService.NormalizeAndValidate(Custom("http", "proxy.example", 8080, null, true)));
+        Assert.AreEqual("PROXY_CREDENTIAL_REQUIRES_USERNAME", exception.Code);
+    }
+
+    [TestMethod]
     public void PolicyPersistenceContainsNoPassword()
     {
         var root = NewRoot();

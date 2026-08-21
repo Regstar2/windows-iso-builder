@@ -36,9 +36,9 @@
                     <TextBlock Text="{Binding TechnicalDetails, Mode=OneWay}" TextTrimming="CharacterEllipsis" MaxHeight="20" Style="{StaticResource MutedText}" Margin="0,4,0,0"/>
                 </StackPanel>
                 <WrapPanel Grid.Column="2" VerticalAlignment="Center">
-                    <Button Content="{services:Loc ButtonRetry}" Command="{Binding RetryCommand}" Margin="0,0,6,0"/>
-                    <Button Content="{services:Loc ButtonOpenLog}" IsEnabled="{Binding HasErrorLog}" Click="OpenErrorLog_Click" Margin="0,0,6,0"/>
-                    <Button Content="{services:Loc ButtonCreateDiagnostics}" Click="CreateDiagnostics_Click" ToolTip="{services:Loc TooltipDiagnostics}" AutomationProperties.Name="{services:Loc AutomationDiagnostics}"/>
+                    <Button Content="{services:Loc ButtonRetry}" Command="{Binding RetryCommand}" Margin="0,0,6,6"/>
+                    <Button Content="{services:Loc ButtonOpenLog}" IsEnabled="{Binding HasErrorLog}" Click="OpenErrorLog_Click" Margin="0,0,6,6"/>
+                    <Button Content="{services:Loc ButtonCreateDiagnostics}" Click="CreateDiagnostics_Click" ToolTip="{services:Loc TooltipDiagnostics}" AutomationProperties.Name="{services:Loc AutomationDiagnostics}" Margin="0,0,0,6"/>
                 </WrapPanel>
             </Grid>
 
@@ -51,10 +51,10 @@
                     </TextBlock>
                 </StackPanel>
                 <WrapPanel Grid.Column="2" VerticalAlignment="Center">
-                    <Button Content="{services:Loc ButtonOpenFolder}" Click="OpenResultFolder_Click" Margin="0,0,6,0"/>
-                    <Button Content="{services:Loc ButtonOpenLog}" IsEnabled="{Binding HasResultLog}" Click="OpenResultLog_Click" Margin="0,0,6,0"/>
-                    <Button Content="{services:Loc ButtonCopySha}" Click="CopySha_Click" Margin="0,0,6,0"/>
-                    <Button Content="{services:Loc ButtonStartOver}" Click="StartOver_Click"/>
+                    <Button Content="{services:Loc ButtonOpenFolder}" Click="OpenResultFolder_Click" Margin="0,0,6,6"/>
+                    <Button Content="{services:Loc ButtonOpenLog}" IsEnabled="{Binding HasResultLog}" Click="OpenResultLog_Click" Margin="0,0,6,6"/>
+                    <Button Content="{services:Loc ButtonCopySha}" Click="CopySha_Click" Margin="0,0,6,6"/>
+                    <Button Content="{services:Loc ButtonStartOver}" Click="StartOver_Click" Margin="0,0,0,6"/>
                 </WrapPanel>
             </Grid>
 

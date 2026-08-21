@@ -1,6 +1,39 @@
 # Changelog
 
-## Unreleased — v0.3.4
+## Unreleased — v0.3.5-rc.1
+
+### Changed
+
+- ApplicationVersion and GUI version are synchronized to `0.3.5-rc.1`; GUI FileVersion/AssemblyVersion use numeric `0.3.5.1`;
+- release/package hardening now denies local validation/test/network artifacts such as `pester-result.json`, `network.json`, `proxy-credential.bin`, `settings.json`, `*.tmp`, `*.bak`, `*.old`, `*.pdb`, and local logs;
+- RC documentation, validation matrix, and release metadata distinguish implemented source state, automated validation, manual PASS, and NOT RUN checks.
+
+### Fixed
+
+- GUI Network settings now reject saving a proxy password without a proxy username, matching the backend fail-closed policy validation;
+- Build/Catalog error UX now maps proxy configuration, credential, connection, and authentication failures to actionable localized messages;
+- wrapped Build/About action buttons and Catalog selection summary spacing were tightened to avoid cramped layouts at narrow widths.
+
+### Security
+
+- current-tree/package safety policy was tightened for generated validation artifacts and local proxy/settings files;
+- proxy password handling remains unchanged: credentials stay outside `network.json`, BuildPlan, command lines, logs, diagnostics, and release artifacts.
+
+### Compatibility
+
+- ApplicationVersion: `0.3.5-rc.1`;
+- GUI Version/FileVersion: `0.3.5-rc.1` / `0.3.5.1`;
+- PowerShell ModuleVersion: `0.3.0`;
+- Backend Contract SchemaVersion remains `1`;
+- BuildPlan SchemaVersion remains `1`;
+- no product features, Backend Contract changes, BuildPlan changes, or PowerShell public API changes are introduced.
+
+### Validation status
+
+- exact current-head automated validation is reported by PR/Actions or local validation artifacts and is not claimed in this file before execution;
+- manual Network/Proxy acceptance, controlled generated-downloader proxy acceptance, Explorer/taskbar icon visual check, high-DPI visual check, real ISO proxy E2E, final packaged GUI ISO E2E, and public feedback/update acceptance remain **NOT RUN** until performed.
+
+## 0.3.4 — 2026-08-21
 
 ### Added
 

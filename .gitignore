@@ -2,6 +2,7 @@ output/
 dist/
 bin/
 obj/
+logs/
 .private/
 *.iso
 *.wim
@@ -10,8 +11,16 @@ obj/
 *.log
 *.zip
 *.aria2
+*.tmp
+*.bak
+*.old
+*.pdb
+*.user
+*.suo
 validation-result*.json
+pester-result*.json
 TestResults/
+.vs/
 .vscode/
 .idea/
 .DS_Store
@@ -21,6 +30,7 @@ Thumbs.db
 # Release packaging still excludes .project-rules through its explicit denylist.
 
 # Private README governance and temporary templates
+/.project-rules/templates/
 /README_TEMPLATE.md
 /README_TEMPLATE_EN.md
 /README_*_TEMPLATE.md
@@ -39,6 +49,9 @@ Thumbs.db
 *.local
 *.secret
 *.secrets
+network.json
+proxy-credential.bin
+settings.json
 
 # Local AI/tool state that should not be published
 /.cursor/

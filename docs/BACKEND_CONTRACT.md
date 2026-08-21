@@ -2,13 +2,13 @@
 
 ## Назначение
 
-Backend Contract — stable machine-readable adapter над PowerShell backend Windows ISO Builder. GUI `v0.3.0-alpha.1`, automation и другие clients используют только этот boundary, а не private PowerShell implementation.
+Backend Contract — stable machine-readable adapter над PowerShell backend Windows ISO Builder. GUI, automation и другие clients используют только этот boundary, а не private PowerShell implementation.
 
 Transport: локальные UTF-8 JSON request/response files, optional UTF-8 NDJSON event file и отдельный `powershell.exe` process. HTTP/RPC server отсутствует.
 
 ## Версии
 
-- ApplicationVersion: `0.3.0-alpha.1`;
+- ApplicationVersion: `0.3.5-rc.1`;
 - ModuleVersion: `0.3.0`;
 - Backend Contract SchemaVersion: `1`;
 - BuildPlan SchemaVersion: `1`.
@@ -59,7 +59,7 @@ Schema v1 baseline:
 
 ```json
 {
-  "applicationVersion": "0.3.0-alpha.1",
+  "applicationVersion": "0.3.5-rc.1",
   "contractSchemaVersion": 1,
   "buildPlanSchemaVersion": 1
 }
@@ -129,7 +129,7 @@ Success:
   "requestId": "...",
   "command": "GetVersion",
   "success": true,
-  "applicationVersion": "0.3.0-alpha.1",
+  "applicationVersion": "0.3.5-rc.1",
   "data": {}
 }
 ```
