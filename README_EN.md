@@ -6,27 +6,31 @@ A GUI and PowerShell UUP dump client for searching, downloading, and building Wi
 
 [Русский](README.md) · **English**
 
-[![Version](https://img.shields.io/badge/VERSION-0.3.5--rc.1-1f6feb?style=for-the-badge)](VERSION)
+[![Version](https://img.shields.io/badge/VERSION-1.0.0-1f6feb?style=for-the-badge)](VERSION)
 [![Windows](https://img.shields.io/badge/WINDOWS-10%20%7C%2011-0078D4?style=for-the-badge&logo=windows11&logoColor=white)](REQUIREMENTS.md)
 [![Architecture](https://img.shields.io/badge/ARCH-X64-7C3AED?style=for-the-badge)](REQUIREMENTS.md)
 [![Build](https://github.com/Regstar2/windows-iso-builder/actions/workflows/windows-self-hosted-validation.yml/badge.svg?branch=master)](https://github.com/Regstar2/windows-iso-builder/actions/workflows/windows-self-hosted-validation.yml)
 [![License](https://img.shields.io/badge/LICENSE-MIT-f97316?style=for-the-badge)](LICENSE)
 
-[Quick start](#gui-quick-start) · [Documentation](#architecture-and-security) · [Releases](https://github.com/Regstar2/windows-iso-builder/releases)
+[Quick start](#quick-start) · [Documentation](#documentation) · [Releases](https://github.com/Regstar2/windows-iso-builder/releases) · [Security](SECURITY.md)
 
 </div>
 
-## Status
+## About
 
-Current release-train source version: **`0.3.5-rc.1`**.
+Windows ISO Builder helps build current Windows 10/11 ISO images through the dynamic UUP dump catalog. The GUI guides users through build selection, language, editions, image format, readiness checks, and the existing PowerShell build pipeline.
 
-- ApplicationVersion: `0.3.5-rc.1`;
-- GUI Version/FileVersion: `0.3.5-rc.1` / `0.3.5.1`;
+## Project status
+
+Current stable version: **`1.0.0`**.
+
+- ApplicationVersion: `1.0.0`;
+- GUI Version/FileVersion: `1.0.0` / `1.0.0.0`;
 - PowerShell ModuleVersion: `0.3.0`;
 - Backend Contract SchemaVersion: `1`;
 - BuildPlan SchemaVersion: `1`.
 
-The project is in final RC hardening before its first public release. v0.3.5-rc.1 adds no product features: the v0.3.4 Network/Proxy scope is preserved, and this branch covers only final polish, metadata, packaging/security audit, and release validation. History/Profiles and unrelated product features remain deferred.
+`v1.0.0` is the first stable release from the accepted `v0.3.5-rc.1`. It adds no new product features: the release finalizes the already implemented GUI, Network/Proxy, feedback/update, diagnostics, packaging, and validation capabilities.
 
 ## Features
 
@@ -47,18 +51,28 @@ The project is in final RC hardening before its first public release. v0.3.5-rc.
 - GitHub Issue Forms and in-app feedback;
 - Stable/Prerelease update checking through official GitHub Releases.
 
-## GUI quick start
+## Quick start
 
-1. Fully extract the release ZIP.
-2. Run `WindowsISOBuilder.exe` as a normal user.
-3. If required, configure `Settings → Network`: System, Direct, or Custom HTTP/SOCKS5.
-4. Choose Windows 11/10 and the recommended build, or open Catalog.
-5. Choose language, editions, ESD/WIM and output directory.
-6. Run readiness checks.
-7. Choose Create ISO and approve UAC when the backend requests elevation.
-8. On completion, open the ISO location or copy SHA-256.
+1. Download `windows-iso-builder-v1.0.0.zip` from [Releases](https://github.com/Regstar2/windows-iso-builder/releases).
+2. Fully extract the ZIP.
+3. Run `WindowsISOBuilder.exe` as a normal user.
+4. If required, configure `Settings -> Network`: System, Direct, or Custom HTTP/SOCKS5.
+5. Choose Windows 11/10 and the recommended build, or open Catalog.
+6. Choose language, editions, ESD/WIM and output directory.
+7. Run readiness checks.
+8. Choose Create ISO and approve UAC when the backend requests elevation.
+9. On completion, open the ISO location or copy SHA-256.
 
 The release is self-contained `win-x64`; users do not need a separate .NET Runtime.
+
+## Requirements
+
+- Windows 10/11 x64;
+- access to UUP dump and Microsoft CDN;
+- enough disk space for UUP cache, work directory, and the ISO;
+- UAC for the privileged build stage;
+- no .NET Runtime installation for the release ZIP;
+- .NET 10 SDK only when building from source.
 
 ## Network and proxy
 
@@ -75,11 +89,9 @@ Policy and credentials are stored separately. Proxy passwords are not written to
 
 ## Updates
 
-`Settings → Updates` provides Stable and Prerelease channels and a manual check of official GitHub Releases. Stable never selects a prerelease. The update checker uses the same global Network Policy.
+`Settings -> Updates` provides Stable and Prerelease channels and a manual check of official GitHub Releases. Stable never selects a prerelease. The update checker uses the same global Network Policy.
 
 The application **does not automatically download or install updates**. When a newer version exists, it shows the version and bounded release-note summary and, with user consent, opens a validated HTTPS release page on `github.com`.
-
-While the source repository remains private, an unauthenticated external client may not be able to query its releases; external acceptance is performed after a public release channel exists.
 
 ## Feedback
 
@@ -125,11 +137,22 @@ The PowerShell backend remains the only owner of UUP/build/elevation/cancellatio
 
 Requests and paths are untrusted; backend dispatch is allowlisted; GUI PowerShell launch uses safe process arguments; diagnostics/logging apply redaction. Invalid Custom proxy configuration or unavailable credentials fail closed.
 
-See [architecture](docs/ARCHITECTURE.md), [Backend Contract](docs/BACKEND_CONTRACT_EN.md), [validation matrix](docs/VALIDATION_MATRIX_EN.md), [security](SECURITY.md), and [roadmap](docs/product/roadmap.md).
+## Documentation
 
-## Next required stage
+- [Architecture](docs/ARCHITECTURE.md)
+- [GUI architecture](docs/GUI_ARCHITECTURE_EN.md)
+- [Backend Contract](docs/BACKEND_CONTRACT_EN.md)
+- [Validation matrix](docs/VALIDATION_MATRIX_EN.md)
+- [Requirements](REQUIREMENTS.md)
+- [Security](SECURITY.md)
+- [Changelog](CHANGELOG.md)
+- [Roadmap](docs/product/roadmap.md)
 
-Accept or reject the RC. Before public v1.0.0, only release actions and factual checks remain: manual Network/Proxy acceptance, a final packaged GUI ISO E2E, public feedback/update-channel accessibility, and the full Git-history secret audit.
+## Limitations
+
+- There is no automatic self-update: the app only opens the official GitHub Release.
+- Installer/MSIX, USB writer/Rufus integration, History/Profiles, Windows customization, debloat, unattended setup, driver injection, TPM bypass, activation, accounts/cloud sync, telemetry, and plugins are outside v1.0.0.
+- Manual proxy acceptance, real ISO E2E, icon/taskbar/high-DPI visual checks keep separate statuses in the [validation matrix](docs/VALIDATION_MATRIX_EN.md) and are not inferred from automated PASS.
 
 ## License
 

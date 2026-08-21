@@ -1,6 +1,39 @@
 # Changelog
 
-## Unreleased — v0.3.5-rc.1
+## 1.0.0 — 2026-08-21
+
+### Released
+
+- first stable public release from the accepted `v0.3.5-rc.1` baseline;
+- WPF GUI over the documented Backend Contract v1 and existing PowerShell backend;
+- dynamic UUP dump catalog for Windows 10/11 without hardcoded build catalogs;
+- recommended build flow plus full Catalog;
+- dynamic language/edition selection, multi-edition builds, WIM/ESD and existing converter options;
+- structured preflight before UAC, elevated build execution, progress, cancellation, result actions and SHA-256 display;
+- sanitized diagnostics, GUI logs and structured error handling;
+- RU/EN localization with English fallback and System/Light/Dark theme support;
+- in-app feedback links to GitHub Issue Forms without embedded PAT/OAuth;
+- manual Stable/Prerelease update discovery through official GitHub Releases with no self-updater;
+- global Network Policy with System, Direct, Custom HTTP and Custom SOCKS5;
+- protected proxy credentials through Windows DPAPI CurrentUser;
+- fail-closed Custom proxy handling, loopback proxy bridge for generated downloader/aria2 and diagnostics redaction;
+- release validation and packaging hardening for self-contained `win-x64` ZIP artifacts.
+
+### Compatibility
+
+- ApplicationVersion: `1.0.0`;
+- GUI Version/FileVersion: `1.0.0` / `1.0.0.0`;
+- PowerShell ModuleVersion: `0.3.0`;
+- Backend Contract SchemaVersion remains `1`;
+- BuildPlan SchemaVersion remains `1`;
+- no product features, Backend Contract changes, BuildPlan changes, or PowerShell public API changes are introduced relative to the accepted RC.
+
+### Validation status
+
+- exact current-head automated validation is reported by PR/Actions or local validation artifacts and is not claimed in this file before execution;
+- manual Network/Proxy acceptance, controlled generated-downloader proxy acceptance, Explorer/taskbar icon visual check, high-DPI visual check, real ISO proxy E2E and final packaged GUI ISO E2E remain **NOT RUN** until performed.
+
+## 0.3.5-rc.1 — 2026-08-21
 
 ### Changed
 

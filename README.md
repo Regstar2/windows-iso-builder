@@ -6,27 +6,31 @@ GUI и PowerShell-клиент UUP dump для поиска, загрузки и
 
 **Русский** · [English](README_EN.md)
 
-[![Version](https://img.shields.io/badge/VERSION-0.3.5--rc.1-1f6feb?style=for-the-badge)](VERSION)
+[![Version](https://img.shields.io/badge/VERSION-1.0.0-1f6feb?style=for-the-badge)](VERSION)
 [![Windows](https://img.shields.io/badge/WINDOWS-10%20%7C%2011-0078D4?style=for-the-badge&logo=windows11&logoColor=white)](REQUIREMENTS.md)
 [![Architecture](https://img.shields.io/badge/ARCH-X64-7C3AED?style=for-the-badge)](REQUIREMENTS.md)
 [![Build](https://github.com/Regstar2/windows-iso-builder/actions/workflows/windows-self-hosted-validation.yml/badge.svg?branch=master)](https://github.com/Regstar2/windows-iso-builder/actions/workflows/windows-self-hosted-validation.yml)
 [![License](https://img.shields.io/badge/LICENSE-MIT-f97316?style=for-the-badge)](LICENSE)
 
-[Быстрый старт](#быстрый-старт-gui) · [Документация](#архитектура-и-безопасность) · [Релизы](https://github.com/Regstar2/windows-iso-builder/releases)
+[Быстрый старт](#быстрый-старт) · [Документация](#документация) · [Релизы](https://github.com/Regstar2/windows-iso-builder/releases) · [Security](SECURITY.md)
 
 </div>
 
-## Статус
+## О проекте
 
-Текущая source-версия release train — **`0.3.5-rc.1`**.
+Windows ISO Builder помогает собрать актуальный Windows 10/11 ISO через динамический каталог UUP dump. GUI ведёт пользователя по выбору сборки, языка, редакций, формата образа, проверке готовности и запуску существующего PowerShell build pipeline.
 
-- ApplicationVersion: `0.3.5-rc.1`;
-- GUI Version/FileVersion: `0.3.5-rc.1` / `0.3.5.1`;
+## Статус проекта
+
+Текущая стабильная версия — **`1.0.0`**.
+
+- ApplicationVersion: `1.0.0`;
+- GUI Version/FileVersion: `1.0.0` / `1.0.0.0`;
 - PowerShell ModuleVersion: `0.3.0`;
 - Backend Contract SchemaVersion: `1`;
 - BuildPlan SchemaVersion: `1`.
 
-Проект находится в финальном RC hardening перед первым публичным релизом. v0.3.5-rc.1 не добавляет product features: v0.3.4 Network/Proxy scope сохраняется, а текущая ветка закрывает только финальную полировку, metadata, packaging/security audit и release validation. History/Profiles и другие продуктовые функции отложены.
+`v1.0.0` — первый стабильный релиз из принятого `v0.3.5-rc.1`. Он не добавляет новые product features: release фиксирует уже реализованные GUI, Network/Proxy, feedback/update, diagnostics, packaging и validation возможности.
 
 ## Возможности
 
@@ -47,18 +51,28 @@ GUI и PowerShell-клиент UUP dump для поиска, загрузки и
 - GitHub Issue Forms и in-app feedback;
 - Stable/Prerelease update check через официальный GitHub Releases.
 
-## Быстрый старт GUI
+## Быстрый старт
 
-1. Распакуйте release ZIP полностью.
-2. Запустите `WindowsISOBuilder.exe` обычным пользователем.
-3. При необходимости настройте `Настройки → Сеть`: System, Direct либо Custom HTTP/SOCKS5.
-4. Выберите Windows 11/10 и рекомендуемую сборку либо откройте Catalog.
-5. Выберите язык, редакции, ESD/WIM и каталог результата.
-6. Запустите проверку готовности.
-7. Нажмите «Создать ISO» и подтвердите UAC, когда backend запросит повышение прав.
-8. После завершения откройте ISO или скопируйте SHA-256.
+1. Скачайте `windows-iso-builder-v1.0.0.zip` из [Releases](https://github.com/Regstar2/windows-iso-builder/releases).
+2. Распакуйте ZIP полностью.
+3. Запустите `WindowsISOBuilder.exe` обычным пользователем.
+4. При необходимости настройте `Настройки -> Сеть`: System, Direct либо Custom HTTP/SOCKS5.
+5. Выберите Windows 11/10 и рекомендуемую сборку либо откройте Catalog.
+6. Выберите язык, редакции, ESD/WIM и каталог результата.
+7. Запустите проверку готовности.
+8. Нажмите «Создать ISO» и подтвердите UAC, когда backend запросит повышение прав.
+9. После завершения откройте ISO или скопируйте SHA-256.
 
 Release self-contained `win-x64`; отдельная установка .NET Runtime пользователю не нужна.
+
+## Требования
+
+- Windows 10/11 x64;
+- доступ к UUP dump и Microsoft CDN;
+- достаточно места на диске для UUP cache, work directory и ISO;
+- UAC для привилегированной стадии сборки;
+- .NET Runtime не требуется для release ZIP;
+- .NET 10 SDK нужен только для сборки из исходников.
 
 ## Сеть и proxy
 
@@ -75,11 +89,9 @@ Policy хранится отдельно от credential. Proxy password не з
 
 ## Обновления
 
-`Настройки → Обновления` поддерживает каналы Stable и Prerelease и ручную проверку официальных GitHub Releases. Stable не предлагает prerelease. Update checker использует ту же глобальную Network Policy.
+`Настройки -> Обновления` поддерживает каналы Stable и Prerelease и ручную проверку официальных GitHub Releases. Stable не предлагает prerelease. Update checker использует ту же глобальную Network Policy.
 
 Приложение **не скачивает и не устанавливает обновление автоматически**. Если новая версия найдена, оно показывает версию/краткие release notes и по согласию открывает проверенную HTTPS-страницу релиза на `github.com`.
-
-Пока repository остаётся private, unauthenticated update check для обычного внешнего клиента может быть недоступен; внешний acceptance выполняется после подготовки public release channel.
 
 ## Обратная связь
 
@@ -125,11 +137,22 @@ PowerShell backend остаётся единственным владельце�
 
 Requests/paths считаются недоверенными, backend dispatch allowlisted, GUI запускает PowerShell через безопасные process arguments, diagnostics/logging используют redaction. Custom proxy configuration/credential failures работают fail-closed.
 
-Подробнее: [архитектура](docs/ARCHITECTURE.md), [Backend Contract](docs/BACKEND_CONTRACT.md), [validation matrix](docs/VALIDATION_MATRIX.md), [security](SECURITY.md), [roadmap](docs/product/roadmap.md).
+## Документация
 
-## Следующий обязательный этап
+- [Архитектура](docs/ARCHITECTURE.md)
+- [GUI architecture](docs/GUI_ARCHITECTURE.md)
+- [Backend Contract](docs/BACKEND_CONTRACT.md)
+- [Validation matrix](docs/VALIDATION_MATRIX.md)
+- [Requirements](REQUIREMENTS.md)
+- [Security](SECURITY.md)
+- [Changelog](CHANGELOG.md)
+- [Roadmap](docs/product/roadmap.md)
 
-Принять или отклонить RC. Перед public v1.0.0 остаются только release actions и фактические проверки: manual Network/Proxy acceptance, финальный packaged GUI ISO E2E, публичная доступность feedback/update channel и full Git-history secret audit.
+## Ограничения
+
+- Автоматического self-update нет: приложение только открывает официальный GitHub Release.
+- Installer/MSIX, USB writer/Rufus integration, History/Profiles, Windows customization, debloat, unattended setup, driver injection, TPM bypass, activation, accounts/cloud sync, telemetry и plugins не входят в v1.0.0.
+- Manual proxy acceptance, real ISO E2E, icon/taskbar/high-DPI visual checks имеют отдельные статусы в [validation matrix](docs/VALIDATION_MATRIX.md) и не выводятся из automated PASS.
 
 ## Лицензия
 

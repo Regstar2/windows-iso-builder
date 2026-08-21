@@ -1,6 +1,6 @@
-# Windows ISO Builder — roadmap to v1.0.0
+# Windows ISO Builder — roadmap
 
-The pre-1.0 product scope is frozen. New unrelated features are deferred until real user feedback exists.
+Windows ISO Builder v1.0.0 is released as the stable baseline from the accepted pre-1.0 release train. New unrelated features are deferred until real user feedback exists.
 
 ## v0.3.3 — Feedback & Update Delivery
 
@@ -32,13 +32,15 @@ Goal: one global network policy for all outbound traffic.
 
 No new product features. Only blocker fixes, version/release synchronization, security, documentation, packaging, Git-history secret audit and final automated/manual acceptance.
 
-## v1.0.0
+## v1.0.0 — Released / Stable
 
 Stable release from the accepted RC. No new functionality beyond release/version metadata corrections.
 
-## Deferred after v1.0.0
+## Maintenance model
 
-Only reconsider with user demand or a demonstrated technical need:
+After v1.0.0 the default mode is maintenance, bug fixes, security fixes and user-driven development. No v1.1.0 feature train is defined.
+
+Only reconsider larger product work with user demand or a demonstrated technical need:
 
 - History / Profiles;
 - queue or parallel builds;
@@ -48,5 +50,3 @@ Only reconsider with user demand or a demonstrated technical need:
 - driver injection;
 - account/cloud/telemetry/plugin systems;
 - custom UUP downloader/converter.
-
-After v1.0.0 the default mode is maintenance, bug fixes and user-driven development.

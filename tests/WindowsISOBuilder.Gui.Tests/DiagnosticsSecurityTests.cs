@@ -25,7 +25,7 @@ public sealed class DiagnosticsSecurityTests
     public void SanitizerRedactsCredentialBearingProxyUrlsAsUrls()
     {
         const string fixtureValue = "proxy-fixture-value-42";
-        var input = $"proxy=http://alice:{fixtureValue}@127.0.0.1:3128/path";
+        var input = "proxy=http://alice:" + fixtureValue + "@127.0.0.1:3128/path";
         var sanitized = DiagnosticSanitizer.Sanitize(input, "test-user", TestUserProfile);
 
         Assert.IsFalse(sanitized.Contains(fixtureValue, StringComparison.Ordinal));

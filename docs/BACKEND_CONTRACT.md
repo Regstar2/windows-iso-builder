@@ -8,7 +8,7 @@ Transport: локальные UTF-8 JSON request/response files, optional UTF-8 
 
 ## Версии
 
-- ApplicationVersion: `0.3.5-rc.1`;
+- ApplicationVersion: `1.0.0`;
 - ModuleVersion: `0.3.0`;
 - Backend Contract SchemaVersion: `1`;
 - BuildPlan SchemaVersion: `1`.
@@ -59,7 +59,7 @@ Schema v1 baseline:
 
 ```json
 {
-  "applicationVersion": "0.3.5-rc.1",
+  "applicationVersion": "1.0.0",
   "contractSchemaVersion": 1,
   "buildPlanSchemaVersion": 1
 }
@@ -129,7 +129,7 @@ Success:
   "requestId": "...",
   "command": "GetVersion",
   "success": true,
-  "applicationVersion": "0.3.5-rc.1",
+  "applicationVersion": "1.0.0",
   "data": {}
 }
 ```

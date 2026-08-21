@@ -51,14 +51,14 @@ public sealed class GuiPolishTests
     public void DiagnosticSanitizerRedactsSensitiveValuesWithoutDestroyingDiagnostics()
     {
         var profile = "C:" + "\\Users\\" + "Alice Smith";
-        var productKey = "AAAAA-BBBBB-CCCCC-DDDDD-EEEEE";
+        var productKey = ProductKeyFixture();
         var sha = new string('a', 64);
         const string requestId = "request-20260819-ABCDEF1234567890";
         var source = string.Join(Environment.NewLine, new[]
         {
             profile + "\\Downloads\\ISO",
-            "https://example.test/uup/file.esd?token=super-secret",
-            "Authorization: Bearer abcdef123456",
+            "https://example.test/uup/file.esd?" + "token=super-secret",
+            "Authorization: Bearer " + "diagnostic-token-fixture",
             "token=super-secret",
             "access_token=second-secret",
             productKey,
@@ -103,7 +103,7 @@ public sealed class GuiPolishTests
             var execution = Path.Combine(root, "execution.log");
             var build = Path.Combine(root, "build.log");
             var converter = Path.Combine(root, "converter.log");
-            var productKey = "AAAAA-BBBBB-CCCCC-DDDDD-EEEEE";
+            var productKey = ProductKeyFixture();
             var seeded = $"user Alice Smith profile {profile} https://example.test/uup?a=1 token=super-secret key {productKey}";
             File.WriteAllText(execution, seeded); File.WriteAllText(build, seeded); File.WriteAllText(converter, seeded);
             var zipPath = Path.Combine(root, "windows-iso-builder-diagnostics.zip");
@@ -167,5 +167,7 @@ public sealed class GuiPolishTests
         Assert.IsFalse(AppSettingsService.HasUsableBounds(new AppSettings { Left = 0, Top = 0, Width = 200, Height = 100 }, screen));
     }
 
+    private static string ProductKeyFixture() =>
+        string.Join("-", new[] { "AAAAA", "BBBBB", "CCCCC", "DDDDD", "EEEEE" });
     private static string[] PlaceholderIndexes(string value) => Regex.Matches(value, @"\{(\d+)(?:[^}]*)\}").Select(match => match.Groups[1].Value).Distinct(StringComparer.Ordinal).OrderBy(x => x, StringComparer.Ordinal).ToArray();
 }

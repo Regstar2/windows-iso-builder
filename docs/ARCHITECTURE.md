@@ -59,7 +59,7 @@ Release-модель проекта — portable self-contained ZIP. Без от
 
 v0.3.3 вводит только `IHttpClientProvider` для update checker. Текущий `SystemHttpClientProvider` оставляет `HttpClientHandler.Proxy` не заданным и использует штатное system behavior .NET/Windows. Это не заявляется как завершённая global proxy feature.
 
-v0.3.4 заменяет этот seam общей Network Policy `System / Direct / Custom (HTTP/SOCKS5)` и применяет её ко всем поддерживаемым outbound путям, включая updater. v0.3.5-rc.1 сохраняет эту границу без расширения. Update-only proxy setting запрещён.
+v0.3.4 заменяет этот seam общей Network Policy `System / Direct / Custom (HTTP/SOCKS5)` и применяет её ко всем поддерживаемым outbound путям, включая updater. v1.0.0 сохраняет эту границу без расширения. Update-only proxy setting запрещён.
 
 ## Security and diagnostics
 
