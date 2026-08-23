@@ -65,7 +65,7 @@ function Write-WibConverterDetailLine {
 
     if ([string]::IsNullOrWhiteSpace($script:WibConverterDetailLogPath)) { return }
     try {
-        $record = '{0}`t{1}{2}' -f ([DateTimeOffset]::Now.ToString('o')), $Line, [Environment]::NewLine
+        $record = "{0}`t{1}{2}" -f ([DateTimeOffset]::Now.ToString('o')), $Line, [Environment]::NewLine
         [IO.File]::AppendAllText($script:WibConverterDetailLogPath, $record, (New-Object Text.UTF8Encoding($false)))
     }
     catch { }
