@@ -16,7 +16,8 @@ Describe 'Build progress liveness UI' {
         $script:buildPanelXaml | Should -Match '(?s)Visibility="\{Binding ShowBuildProgress,.*?BuildActivityIndicator'
     }
 
-    It 'reuses the localized build status instead of adding a hardcoded liveness label' {
+    It 'keeps the liveness indicator passive and reuses localized build status' {
+        $script:buildPanelXaml | Should -Match '(?s)x:Name="BuildActivityIndicator".*?Focusable="False".*?IsHitTestVisible="False"'
         $script:buildPanelXaml | Should -Match 'AutomationProperties\.Name="\{Binding Status, Mode=OneWay\}"'
     }
 }
