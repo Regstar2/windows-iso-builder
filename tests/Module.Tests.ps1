@@ -169,7 +169,7 @@ Describe 'WindowsISOBuilder module' {
 
         It 'classifies full Windows builds separately from servicing packages' {
             Get-WibBuildEntryType -Title 'Windows 10 build 19564.1005' | Should -Be 'Windows'
-            Get-WibBuildEntryType -Title 'Feature update to Windows 10, version 22H2 (19045.7548)' | Should -Be 'Windows'
+            Get-WibBuildEntryType -Title 'Feature update to Windows 10, version 22H2 (19045.7548)' -Build '19045.7548' | Should -Be 'Windows'
             Get-WibBuildEntryType -Title 'Windows 11, version 24H2 (26100.8973)' | Should -Be 'Windows'
             Get-WibBuildEntryType -Title 'Cumulative Update for Windows 10 Version 22H2 (19045.7548)' | Should -Be 'Servicing'
             Get-WibBuildEntryType -Title '.NET Framework Security Update for Windows 11 - KB5101002' | Should -Be 'Servicing'
@@ -258,9 +258,10 @@ Describe 'WindowsISOBuilder module' {
             }
             Set-WibConverterConfiguration -Path $path -Plan $plan
             $content = Get-Content -LiteralPath $path -Raw
-            $content | Should -Match '(?m)^AutoStart=1$'
+            $content | Should -Match '(?m)^AutoStart=2$'
             $content | Should -Match '(?m)^StartVirtual=1$'
             $content | Should -Match '(?m)^wim2esd=1$'
+            $content | Should -Match '(?m)^Cleanup=1$'
             $content | Should -Match '(?m)^vAutoEditions=Core,Education$'
         }
 
@@ -279,6 +280,7 @@ Describe 'WindowsISOBuilder module' {
             $plan = New-WibBuildPlan -Build $build -Language 'ru-ru' -Editions @('Core', 'Professional') -OutputDirectory $output -CacheDirectory $cache
             $plan.SourceEdition | Should -Be 'Core'
             @($plan.VirtualEditions) | Should -Contain 'Professional'
+            $plan.Cleanup | Should -BeFalse
         }
     }
 }
