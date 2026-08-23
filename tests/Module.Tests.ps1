@@ -169,7 +169,7 @@ Describe 'WindowsISOBuilder module' {
 
         It 'classifies full Windows builds separately from servicing packages' {
             Get-WibBuildEntryType -Title 'Windows 10 build 19564.1005' | Should -Be 'Windows'
-            Get-WibBuildEntryType -Title 'Feature update to Windows 10, version 22H2 (19045.7548)' -Build '19045.7548' | Should -Be 'Windows'
+            Get-WibBuildEntryType -Title 'Feature update to Windows 10, version 22H2 (19045.7548)' | Should -Be 'Windows'
             Get-WibBuildEntryType -Title 'Windows 11, version 24H2 (26100.8973)' | Should -Be 'Windows'
             Get-WibBuildEntryType -Title 'Cumulative Update for Windows 10 Version 22H2 (19045.7548)' | Should -Be 'Servicing'
             Get-WibBuildEntryType -Title '.NET Framework Security Update for Windows 11 - KB5101002' | Should -Be 'Servicing'
