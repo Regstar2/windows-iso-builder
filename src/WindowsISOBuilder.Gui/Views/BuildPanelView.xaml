@@ -19,11 +19,27 @@
             <Grid Margin="0,30,0,0" Visibility="{Binding ShowBuildProgress, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="18"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <StackPanel VerticalAlignment="Center">
-                    <TextBlock>
-                        <Run Text="{Binding Status, Mode=OneWay}"/>
-                        <Run Text="  "/>
-                        <Run Text="{Binding Speed, Mode=OneWay}"/>
-                    </TextBlock>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="48"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" VerticalAlignment="Center">
+                            <Run Text="{Binding Status, Mode=OneWay}"/>
+                            <Run Text="  "/>
+                            <Run Text="{Binding Speed, Mode=OneWay}"/>
+                        </TextBlock>
+                        <ProgressBar x:Name="BuildActivityIndicator"
+                                     Grid.Column="2"
+                                     Width="48"
+                                     Height="4"
+                                     IsIndeterminate="True"
+                                     VerticalAlignment="Center"
+                                     Focusable="False"
+                                     IsHitTestVisible="False"
+                                     AutomationProperties.Name="{Binding Status, Mode=OneWay}"/>
+                    </Grid>
                     <ProgressBar Value="{Binding Progress, Mode=OneWay}" Height="11" Minimum="0" Maximum="100" Margin="0,8,0,0" AutomationProperties.Name="{services:Loc AutomationProgress}"/>
                 </StackPanel>
                 <Button Grid.Column="2" Content="{services:Loc ButtonCancel}" Command="{Binding CancelCommand}" MinWidth="108" VerticalAlignment="Center" AutomationProperties.Name="{services:Loc AutomationCancel}"/>
