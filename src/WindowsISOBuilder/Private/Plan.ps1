@@ -8,7 +8,7 @@ function New-WibBuildPlan {
         [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string[]]$Editions,
         [ValidateSet('WIM', 'ESD')][string]$ImageFormat = 'ESD',
         [bool]$AddUpdates = $true,
-        [bool]$Cleanup = $true,
+        [bool]$Cleanup = $false,
         [bool]$NetFx3 = $false,
         [string]$OutputDirectory = (Get-WibDefaultOutputDirectory),
         [string]$CacheDirectory = (Get-WibDefaultCacheDirectory),
