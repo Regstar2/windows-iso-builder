@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<defs>
+  <linearGradient id="bg" x1="180" y1="80" x2="790" y2="940" gradientUnits="userSpaceOnUse">
+    <stop offset="0" stop-color="#1096F2"/>
+    <stop offset="0.48" stop-color="#0872DB"/>
+    <stop offset="1" stop-color="#0B419A"/>
+  </linearGradient>
+  <linearGradient id="ring" x1="430" y1="345" x2="605" y2="545" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#08D6F5"/>
+    <stop offset=".22" stop-color="#087BDF"/>
+    <stop offset="1" stop-color="#06459E"/>
+  </linearGradient>
+  <linearGradient id="disc" x1="330" y1="210" x2="730" y2="755" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#FFFFFF"/>
+    <stop offset=".58" stop-color="#F7FAFF"/>
+    <stop offset="1" stop-color="#D9E7F6"/>
+  </linearGradient>
+</defs>
+<rect x="16" y="16" width="992" height="992" rx="205" fill="url(#bg)"/>
+<circle cx="512" cy="500" r="365" fill="url(#disc)"/>
+<path d="M512 135 A365 365 0 0 1 829 319 L512 500Z" fill="#EAF3FC" opacity=".9"/>
+<path d="M147 500 A365 365 0 0 1 175 360 L512 500Z" fill="#E6F1FC" opacity=".8"/>
+<!-- W negative-space mark -->
+<path d="M198 553 L343 553 L420 700 L478 578 L512 532 L546 578 L604 700 L681 553 L826 553 L664 832 L568 650 L512 770 L456 650 L360 832 Z" fill="url(#bg)"/>
+<!-- center stem connecting mark to hub -->
+<path d="M454 518 L570 518 L546 615 L478 615 Z" fill="url(#bg)"/>
+<circle cx="512" cy="500" r="128" fill="#05C7EC"/>
+<circle cx="512" cy="500" r="116" fill="url(#ring)"/>
+<circle cx="512" cy="500" r="68" fill="#0754B1"/>
+<circle cx="512" cy="500" r="54" fill="#0A5EC0"/>
+</svg>
