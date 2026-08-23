@@ -9,8 +9,8 @@ Describe 'Windows PowerShell 5.1 form POST compatibility' {
             $moduleSource = Get-Content -LiteralPath (Join-Path $script:ModuleRoot 'WindowsISOBuilder.psm1') -Raw -Encoding UTF8
             $baseIndex = $moduleSource.IndexOf("Private\Network.ps1")
             $compatIndex = $moduleSource.IndexOf("Private\NetworkPowerShell51Compat.ps1")
-            $baseIndex | Should -BeGreaterThanOrEqual 0
-            $compatIndex | Should -BeGreaterThan $baseIndex
+            ($baseIndex -ge 0) | Should -BeTrue
+            ($compatIndex -gt $baseIndex) | Should -BeTrue
         }
 
         It 'constructs a five-field form body as one FormUrlEncodedContent argument' {
