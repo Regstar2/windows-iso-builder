@@ -261,7 +261,7 @@ Describe 'WindowsISOBuilder module' {
             $content | Should -Match '(?m)^AutoStart=2$'
             $content | Should -Match '(?m)^StartVirtual=1$'
             $content | Should -Match '(?m)^wim2esd=1$'
-            $content | Should -Match '(?m)^Cleanup=1$'
+            $content | Should -Match '(?m)^Cleanup=1\r?$'
             $content | Should -Match '(?m)^vAutoEditions=Core,Education$'
         }
 
