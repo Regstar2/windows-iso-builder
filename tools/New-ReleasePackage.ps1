@@ -105,12 +105,13 @@ try {
         throw 'Windows .NET Framework C# compiler is required to build the standalone release EXE.'
     }
 
-    $frameworkDirectory = Split-Path -Parent $csc
-    $compressionAssembly = Join-Path $frameworkDirectory 'System.IO.Compression.dll'
-    $formsAssembly = Join-Path $frameworkDirectory 'System.Windows.Forms.dll'
+    Add-Type -AssemblyName System.IO.Compression
+    Add-Type -AssemblyName System.Windows.Forms
+    $compressionAssembly = [IO.Compression.ZipArchive].Assembly.Location
+    $formsAssembly = [Windows.Forms.MessageBox].Assembly.Location
     $iconPath = Join-Path $projectRoot 'src\WindowsISOBuilder.Gui\Assets\WindowsISOBuilder.ico'
     foreach ($required in @($compressionAssembly,$formsAssembly,$iconPath)) {
-        if (-not (Test-Path -LiteralPath $required -PathType Leaf)) {
+        if ([string]::IsNullOrWhiteSpace([string]$required) -or -not (Test-Path -LiteralPath $required -PathType Leaf)) {
             throw ('Standalone launcher dependency is missing: {0}' -f $required)
         }
     }
