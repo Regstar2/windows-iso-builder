@@ -105,12 +105,12 @@ try {
         throw 'Windows .NET Framework C# compiler is required to build the standalone release EXE.'
     }
 
+    # System.Windows.Forms is already referenced by the .NET Framework compiler
+    # response file. Adding a second path from the GAC causes CS1703 on Windows.
     Add-Type -AssemblyName System.IO.Compression
-    Add-Type -AssemblyName System.Windows.Forms
     $compressionAssembly = [IO.Compression.ZipArchive].Assembly.Location
-    $formsAssembly = [Windows.Forms.MessageBox].Assembly.Location
     $iconPath = Join-Path $projectRoot 'src\WindowsISOBuilder.Gui\Assets\WindowsISOBuilder.ico'
-    foreach ($required in @($compressionAssembly,$formsAssembly,$iconPath)) {
+    foreach ($required in @($compressionAssembly,$iconPath)) {
         if ([string]::IsNullOrWhiteSpace([string]$required) -or -not (Test-Path -LiteralPath $required -PathType Leaf)) {
             throw ('Standalone launcher dependency is missing: {0}' -f $required)
         }
@@ -125,7 +125,6 @@ try {
         ('/win32icon:{0}' -f $iconPath),
         ('/resource:{0},WindowsISOBuilder.Payload.zip' -f $archivePath),
         ('/reference:{0}' -f $compressionAssembly),
-        ('/reference:{0}' -f $formsAssembly),
         $launcherSource
     )
     & $csc @cscArguments
