@@ -258,9 +258,10 @@ Describe 'WindowsISOBuilder module' {
             }
             Set-WibConverterConfiguration -Path $path -Plan $plan
             $content = Get-Content -LiteralPath $path -Raw
-            $content | Should -Match '(?m)^AutoStart=1$'
+            $content | Should -Match '(?m)^AutoStart=2$'
             $content | Should -Match '(?m)^StartVirtual=1$'
             $content | Should -Match '(?m)^wim2esd=1$'
+            $content | Should -Match '(?m)^Cleanup=1\r?$'
             $content | Should -Match '(?m)^vAutoEditions=Core,Education$'
         }
 
@@ -279,6 +280,7 @@ Describe 'WindowsISOBuilder module' {
             $plan = New-WibBuildPlan -Build $build -Language 'ru-ru' -Editions @('Core', 'Professional') -OutputDirectory $output -CacheDirectory $cache
             $plan.SourceEdition | Should -Be 'Core'
             @($plan.VirtualEditions) | Should -Contain 'Professional'
+            $plan.Cleanup | Should -BeFalse
         }
     }
 }

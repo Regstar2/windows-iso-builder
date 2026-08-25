@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:services="clr-namespace:WindowsISOBuilder.Gui.Services"
         Title="{services:Loc AdvancedTitle}"
-        Width="460" Height="275" MinWidth="420" MinHeight="245"
+        Width="590" Height="275" MinWidth="520" MinHeight="245"
         WindowStartupLocation="CenterOwner" ResizeMode="CanResizeWithGrip"
         ShowInTaskbar="False">
     <Grid Margin="18">

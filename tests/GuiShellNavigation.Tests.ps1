@@ -9,6 +9,7 @@ Describe 'v0.3.2 GUI shell navigation' {
         $script:aboutXaml = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Views\AboutView.xaml') -Raw -Encoding UTF8
         $script:quickXaml = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Views\QuickView.xaml') -Raw -Encoding UTF8
         $script:buildPanelXaml = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Views\BuildPanelView.xaml') -Raw -Encoding UTF8
+        $script:catalogXaml = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Views\CatalogView.xaml') -Raw -Encoding UTF8
         $script:stylesXaml = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Resources\Styles.xaml') -Raw -Encoding UTF8
         $script:themeService = Get-Content -LiteralPath (Join-Path $script:projectRoot 'src\WindowsISOBuilder.Gui\Services\ThemeService.cs') -Raw -Encoding UTF8
     }
@@ -66,6 +67,16 @@ Describe 'v0.3.2 GUI shell navigation' {
         $script:stylesXaml | Should -Match '<ControlTemplate TargetType="ComboBoxItem">'
         $script:stylesXaml | Should -Match 'TargetName="ComboSurface" Property="Background" Value="\{DynamicResource WibDisabledControlBrush\}"'
         $script:stylesXaml | Should -Match 'TargetName="DropDownArrow" Property="Stroke" Value="\{DynamicResource WibDisabledTextBrush\}"'
+    }
+
+    It 'keeps catalog result rows and cells on theme-owned surfaces' {
+        $script:catalogXaml | Should -Match 'RowBackground="\{DynamicResource WibCardBrush\}"'
+        $script:catalogXaml | Should -Match 'AlternatingRowBackground="\{DynamicResource WibSubtleBrush\}"'
+        $script:catalogXaml | Should -Match '<Style TargetType="\{x:Type DataGridRow\}">'
+        $script:catalogXaml | Should -Match '<Style TargetType="\{x:Type DataGridCell\}">'
+        $script:catalogXaml | Should -Match '<Style TargetType="\{x:Type DataGridColumnHeader\}">'
+        $script:catalogXaml | Should -Match 'Property="IsSelected" Value="True"'
+        $script:catalogXaml | Should -Match 'Value="\{DynamicResource WibControlPressedBrush\}"'
     }
 
     It 'keeps form controls readable in dark and disabled states' {
