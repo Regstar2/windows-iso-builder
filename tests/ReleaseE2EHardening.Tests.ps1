@@ -31,6 +31,7 @@ Describe 'Real E2E release hardening' {
             Set-WibConverterConfiguration -Path $configPath -Plan $esdPlan
             $esd = Get-Content -LiteralPath $configPath -Raw
             $esd | Should -Match '(?m)^AutoStart=2$'
+            $esd | Should -Match '(?m)^AddUpdates=1$'
             $esd | Should -Match '(?m)^wim2esd=1$'
             $esd | Should -Match '(?m)^Cleanup=0$'
 
@@ -40,6 +41,7 @@ Describe 'Real E2E release hardening' {
             Set-WibConverterConfiguration -Path $configPath -Plan $wimPlan
             $wim = Get-Content -LiteralPath $configPath -Raw
             $wim | Should -Match '(?m)^AutoStart=1$'
+            $wim | Should -Match '(?m)^AddUpdates=1$'
             $wim | Should -Match '(?m)^wim2esd=0$'
             $wim | Should -Match '(?m)^Cleanup=1$'
         }
@@ -56,6 +58,7 @@ Describe 'Real E2E release hardening' {
             Set-WibConverterConfiguration -Path $configPath -Plan $plan
             $content = Get-Content -LiteralPath $configPath -Raw
             $content | Should -Match '(?m)^AutoStart=2$'
+            $content | Should -Match '(?m)^AddUpdates=0$'
             $content | Should -Match '(?m)^wim2esd=0$'
         }
 
@@ -102,15 +105,17 @@ Describe 'Real E2E release hardening' {
             }
         }
 
-        It 'defaults backend cleanup to false while keeping explicit cleanup supported' {
+        It 'defaults expensive servicing options to false while keeping explicit opt-in supported' {
             $build = [pscustomobject]@{
                 Uuid='00000000-0000-0000-0000-000000000001'; Title='Windows 11, version 25H2';
                 Product='Windows 11'; VersionLabel='25H2'; Build='26200.1'; Architecture='amd64'; IsPreview=$false
             }
             $defaultPlan = New-WibBuildPlan -Build $build -Language 'ru-ru' -Editions @('Professional') -OutputDirectory (Join-Path $TestDrive 'out1') -CacheDirectory (Join-Path $TestDrive 'cache1')
+            $defaultPlan.AddUpdates | Should -BeFalse
             $defaultPlan.Cleanup | Should -BeFalse
 
-            $explicitPlan = New-WibBuildPlan -Build $build -Language 'ru-ru' -Editions @('Professional') -Cleanup $true -OutputDirectory (Join-Path $TestDrive 'out2') -CacheDirectory (Join-Path $TestDrive 'cache2')
+            $explicitPlan = New-WibBuildPlan -Build $build -Language 'ru-ru' -Editions @('Professional') -AddUpdates $true -Cleanup $true -OutputDirectory (Join-Path $TestDrive 'out2') -CacheDirectory (Join-Path $TestDrive 'cache2')
+            $explicitPlan.AddUpdates | Should -BeTrue
             $explicitPlan.Cleanup | Should -BeTrue
         }
 
@@ -124,9 +129,11 @@ Describe 'Real E2E release hardening' {
         }
     }
 
-    It 'defaults the WPF cleanup option to false' {
+    It 'defaults the WPF servicing options to false' {
         $projectRoot = Split-Path -Parent $PSScriptRoot
         $source = Get-Content -LiteralPath (Join-Path $projectRoot 'src\WindowsISOBuilder.Gui\ViewModels\MainViewModel.cs') -Raw -Encoding UTF8
+        $source | Should -Match 'private bool _addUpdates;'
+        $source | Should -Not -Match 'private bool _addUpdates\s*=\s*true;'
         $source | Should -Match 'private bool _cleanup;'
         $source | Should -Not -Match 'private bool _cleanup\s*=\s*true;'
     }
