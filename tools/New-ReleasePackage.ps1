@@ -60,8 +60,16 @@ try {
 
     Copy-Item -Path (Join-Path $guiPublishRoot '*') -Destination $packageRoot -Recurse -Force
 
+    # Keep the portable package root readable: GUI is a single self-contained
+    # EXE and no framework DLLs are allowed next to it. Backend source/modules
+    # stay in their existing subdirectories for CLI and advanced users.
+    $rootDlls = @(Get-ChildItem -LiteralPath $packageRoot -File -Filter '*.dll' -ErrorAction SilentlyContinue)
+    if ($rootDlls.Count -gt 0) {
+        throw ('Release package root must not contain DLL files: {0}' -f (($rootDlls.Name) -join ', '))
+    }
+
     $manifest = Get-WibReleaseManifestData -ProjectRoot $projectRoot -ApplicationVersion $Version
-    $manifest.gui = [ordered]@{ included=$true; runtime='win-x64'; selfContained=$true }
+    $manifest.gui = [ordered]@{ included=$true; runtime='win-x64'; selfContained=$true; singleFile=$true }
     $manifest.releaseArtifacts = @('zip','standalone-exe')
     [IO.File]::WriteAllText((Join-Path $packageRoot 'release-manifest.json'), (($manifest | ConvertTo-Json -Depth 6) + [Environment]::NewLine), $utf8NoBom)
 
@@ -75,9 +83,6 @@ try {
     }
 
     $guiExe = Join-Path $packageRoot 'WindowsISOBuilder.exe'
-    # Windows PowerShell 5.1 does not reliably wait for GUI-subsystem native
-    # applications invoked with '&'. Waiting explicitly prevents runtime DLLs
-    # from remaining locked when Compress-Archive starts reading the package.
     $smokeProcess = Start-Process -FilePath $guiExe -ArgumentList @('--backend-smoke') -Wait -PassThru -WindowStyle Hidden
     if ($smokeProcess.ExitCode -ne 0) { throw ('Packaged GUI backend smoke failed with exit code {0}.' -f $smokeProcess.ExitCode) }
 
