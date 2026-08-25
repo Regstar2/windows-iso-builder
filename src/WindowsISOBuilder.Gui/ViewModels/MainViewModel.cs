@@ -69,7 +69,7 @@ public sealed partial class MainViewModel : ObservableObject
     private string _technicalDetails = string.Empty;
     private string? _errorLogPath;
     private bool _showServicing;
-    private bool _addUpdates = true;
+    private bool _addUpdates;
     private bool _cleanup;
     private bool _netFx3;
     private bool _includePreview;
