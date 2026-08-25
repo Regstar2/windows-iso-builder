@@ -7,7 +7,7 @@ function New-WibBuildPlan {
         [Parameter(Mandatory = $true)][ValidatePattern('^[a-z]{2}-[a-z]{2}$')][string]$Language,
         [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string[]]$Editions,
         [ValidateSet('WIM', 'ESD')][string]$ImageFormat = 'ESD',
-        [bool]$AddUpdates = $true,
+        [bool]$AddUpdates = $false,
         [bool]$Cleanup = $false,
         [bool]$NetFx3 = $false,
         [string]$OutputDirectory = (Get-WibDefaultOutputDirectory),
