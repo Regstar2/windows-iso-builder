@@ -32,7 +32,40 @@
 
         <DataGrid x:Name="CatalogGrid" Grid.Row="2" ItemsSource="{Binding Builds}" SelectedItem="{Binding SelectedCatalogBuild, Mode=TwoWay}"
                   AutoGenerateColumns="False" IsReadOnly="True" Margin="0,10" MouseDoubleClick="CatalogGrid_DoubleClick"
-                  HorizontalScrollBarVisibility="Auto" AutomationProperties.Name="{services:Loc AutomationCatalogGrid}">
+                  HorizontalScrollBarVisibility="Auto" AutomationProperties.Name="{services:Loc AutomationCatalogGrid}"
+                  RowBackground="{DynamicResource WibCardBrush}" AlternatingRowBackground="{DynamicResource WibSubtleBrush}">
+            <DataGrid.RowStyle>
+                <Style TargetType="{x:Type DataGridRow}">
+                    <Setter Property="Foreground" Value="{DynamicResource WibTextBrush}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource WibBorderBrush}"/>
+                    <Style.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource WibControlHoverBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource WibControlPressedBrush}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource WibTextBrush}"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+            <DataGrid.CellStyle>
+                <Style TargetType="{x:Type DataGridCell}">
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type DataGridRow}}}"/>
+                    <Setter Property="BorderThickness" Value="0"/>
+                </Style>
+            </DataGrid.CellStyle>
+            <DataGrid.ColumnHeaderStyle>
+                <Style TargetType="{x:Type DataGridColumnHeader}">
+                    <Setter Property="Background" Value="{DynamicResource WibControlBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource WibTextBrush}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource WibBorderBrush}"/>
+                    <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                    <Setter Property="Padding" Value="5,4"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                </Style>
+            </DataGrid.ColumnHeaderStyle>
             <DataGrid.Columns>
                 <DataGridTextColumn Header="{services:Loc ColumnVersion}" Binding="{Binding VersionLabel}" Width="120"/>
                 <DataGridTextColumn Header="{services:Loc ColumnBuild}" Binding="{Binding Build}" Width="115"/>
