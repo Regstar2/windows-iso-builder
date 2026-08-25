@@ -29,7 +29,10 @@ $outputDirectoryFull = [IO.Path]::GetFullPath($OutputDirectory)
 New-Item -ItemType Directory -Path $outputDirectoryFull -Force | Out-Null
 $archiveName = 'windows-iso-builder-v{0}.zip' -f $Version
 $archivePath = Join-Path $outputDirectoryFull $archiveName
-$hashPath = "$archivePath.sha256"
+$archiveHashPath = "$archivePath.sha256"
+$standaloneName = 'windows-iso-builder-v{0}.exe' -f $Version
+$standalonePath = Join-Path $outputDirectoryFull $standaloneName
+$standaloneHashPath = "$standalonePath.sha256"
 $stagingRoot = Join-Path ([IO.Path]::GetTempPath()) ('windows-iso-builder-release-{0}' -f [Guid]::NewGuid().ToString('N'))
 $packageRoot = Join-Path $stagingRoot ('windows-iso-builder-v{0}' -f $Version)
 $guiPublishRoot = Join-Path $stagingRoot 'gui-publish'
@@ -59,6 +62,7 @@ try {
 
     $manifest = Get-WibReleaseManifestData -ProjectRoot $projectRoot -ApplicationVersion $Version
     $manifest.gui = [ordered]@{ included=$true; runtime='win-x64'; selfContained=$true }
+    $manifest.releaseArtifacts = @('zip','standalone-exe')
     [IO.File]::WriteAllText((Join-Path $packageRoot 'release-manifest.json'), (($manifest | ConvertTo-Json -Depth 6) + [Environment]::NewLine), $utf8NoBom)
 
     $packageFiles = @(Get-WibFilesUnderRoot -Root $packageRoot)
@@ -77,14 +81,68 @@ try {
     $smokeProcess = Start-Process -FilePath $guiExe -ArgumentList @('--backend-smoke') -Wait -PassThru -WindowStyle Hidden
     if ($smokeProcess.ExitCode -ne 0) { throw ('Packaged GUI backend smoke failed with exit code {0}.' -f $smokeProcess.ExitCode) }
 
-    Remove-Item -LiteralPath $archivePath,$hashPath -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $archivePath,$archiveHashPath,$standalonePath,$standaloneHashPath -Force -ErrorAction SilentlyContinue
     Compress-Archive -LiteralPath $packageRoot -DestinationPath $archivePath -CompressionLevel Optimal
-    $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $archivePath).Hash
-    [IO.File]::WriteAllText($hashPath, "$hash  $archiveName`r`n", $utf8NoBom)
+    $archiveHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $archivePath).Hash
+    [IO.File]::WriteAllText($archiveHashPath, "$archiveHash  $archiveName`r`n", $utf8NoBom)
 
-    Write-Host "Release ZIP: $archivePath" -ForegroundColor Green
-    Write-Host "SHA-256:     $hash" -ForegroundColor Green
-    Write-Host "Checksum:    $hashPath" -ForegroundColor DarkGray
+    # Build a Windows single-file launcher that embeds the exact validated ZIP.
+    # The launcher extracts the portable payload to a unique temp directory,
+    # starts WindowsISOBuilder.exe, forwards arguments, waits for completion,
+    # and performs best-effort cleanup. This preserves the existing PowerShell
+    # backend instead of introducing a second implementation.
+    $launcherSource = Join-Path $scriptDirectory 'StandaloneLauncher.cs'
+    if (-not (Test-Path -LiteralPath $launcherSource -PathType Leaf)) {
+        throw 'Standalone launcher source is missing.'
+    }
+
+    $cscCandidates = @(
+        (Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'),
+        (Join-Path $env:WINDIR 'Microsoft.NET\Framework\v4.0.30319\csc.exe')
+    )
+    $csc = $cscCandidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+    if ([string]::IsNullOrWhiteSpace([string]$csc)) {
+        throw 'Windows .NET Framework C# compiler is required to build the standalone release EXE.'
+    }
+
+    $frameworkDirectory = Split-Path -Parent $csc
+    $compressionAssembly = Join-Path $frameworkDirectory 'System.IO.Compression.dll'
+    $formsAssembly = Join-Path $frameworkDirectory 'System.Windows.Forms.dll'
+    $iconPath = Join-Path $projectRoot 'src\WindowsISOBuilder.Gui\Assets\WindowsISOBuilder.ico'
+    foreach ($required in @($compressionAssembly,$formsAssembly,$iconPath)) {
+        if (-not (Test-Path -LiteralPath $required -PathType Leaf)) {
+            throw ('Standalone launcher dependency is missing: {0}' -f $required)
+        }
+    }
+
+    $cscArguments = @(
+        '/nologo',
+        '/target:winexe',
+        '/optimize+',
+        '/platform:x64',
+        ('/out:{0}' -f $standalonePath),
+        ('/win32icon:{0}' -f $iconPath),
+        ('/resource:{0},WindowsISOBuilder.Payload.zip' -f $archivePath),
+        ('/reference:{0}' -f $compressionAssembly),
+        ('/reference:{0}' -f $formsAssembly),
+        $launcherSource
+    )
+    & $csc @cscArguments
+    if ($LASTEXITCODE -ne 0) { throw ('Standalone launcher compilation failed with exit code {0}.' -f $LASTEXITCODE) }
+    if (-not (Test-Path -LiteralPath $standalonePath -PathType Leaf)) { throw 'Standalone release EXE was not produced.' }
+
+    $standaloneSmoke = Start-Process -FilePath $standalonePath -ArgumentList @('--backend-smoke') -Wait -PassThru -WindowStyle Hidden
+    if ($standaloneSmoke.ExitCode -ne 0) { throw ('Standalone EXE backend smoke failed with exit code {0}.' -f $standaloneSmoke.ExitCode) }
+
+    $standaloneHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $standalonePath).Hash
+    [IO.File]::WriteAllText($standaloneHashPath, "$standaloneHash  $standaloneName`r`n", $utf8NoBom)
+
+    Write-Host "Release ZIP:       $archivePath" -ForegroundColor Green
+    Write-Host "ZIP SHA-256:       $archiveHash" -ForegroundColor Green
+    Write-Host "Standalone EXE:    $standalonePath" -ForegroundColor Green
+    Write-Host "EXE SHA-256:       $standaloneHash" -ForegroundColor Green
+    Write-Host "ZIP checksum:      $archiveHashPath" -ForegroundColor DarkGray
+    Write-Host "EXE checksum:      $standaloneHashPath" -ForegroundColor DarkGray
 }
 finally {
     Remove-Item -LiteralPath $stagingRoot -Recurse -Force -ErrorAction SilentlyContinue
