@@ -25,11 +25,17 @@ internal sealed class AppSettingsService
 
     public AppSettings Load()
     {
+        if (!File.Exists(_settingsPath)) return new AppSettings();
+
         try
         {
-            if (!File.Exists(_settingsPath)) return new AppSettings();
             var json = File.ReadAllText(_settingsPath);
             return JsonSerializer.Deserialize<AppSettings>(json, JsonOptions) ?? new AppSettings();
+        }
+        catch (JsonException exception)
+        {
+            QuarantineCorruptSettings(exception);
+            return new AppSettings();
         }
         catch (Exception exception)
         {
@@ -40,15 +46,50 @@ internal sealed class AppSettingsService
 
     public void Save(AppSettings settings)
     {
+        string? temporaryPath = null;
         try
         {
             var directory = Path.GetDirectoryName(_settingsPath);
             if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory);
-            File.WriteAllText(_settingsPath, JsonSerializer.Serialize(settings, JsonOptions));
+
+            temporaryPath = _settingsPath + ".tmp-" + Guid.NewGuid().ToString("N");
+            File.WriteAllText(temporaryPath, JsonSerializer.Serialize(settings, JsonOptions));
+            File.Move(temporaryPath, _settingsPath, true);
+            temporaryPath = null;
         }
         catch (Exception exception)
         {
             _log.Error("Failed to persist GUI settings", exception);
+        }
+        finally
+        {
+            if (!string.IsNullOrWhiteSpace(temporaryPath))
+            {
+                try { File.Delete(temporaryPath); }
+                catch { }
+            }
+        }
+    }
+
+    private void QuarantineCorruptSettings(JsonException exception)
+    {
+        try
+        {
+            var directory = Path.GetDirectoryName(_settingsPath);
+            var fileName = Path.GetFileName(_settingsPath);
+            var quarantineName = $"{fileName}.corrupt-{DateTime.UtcNow:yyyyMMddHHmmssfff}-{Guid.NewGuid():N}";
+            var quarantinePath = string.IsNullOrWhiteSpace(directory)
+                ? quarantineName
+                : Path.Combine(directory, quarantineName);
+
+            File.Move(_settingsPath, quarantinePath);
+            _log.Error("Corrupt GUI settings were quarantined and defaults will be used", exception);
+            _log.Info($"Corrupt GUI settings backup: {quarantinePath}");
+        }
+        catch (Exception quarantineException)
+        {
+            _log.Error("Failed to read GUI settings and could not quarantine the corrupt file", exception);
+            _log.Error("Failed to quarantine corrupt GUI settings", quarantineException);
         }
     }
 
