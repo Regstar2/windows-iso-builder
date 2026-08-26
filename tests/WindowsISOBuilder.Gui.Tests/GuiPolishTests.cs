@@ -136,7 +136,7 @@ public sealed class GuiPolishTests
     }
 
     [TestMethod]
-    public void CorruptSettingsAreIgnoredAndValidSettingsRoundTrip()
+    public void CorruptSettingsAreQuarantinedAndValidSettingsRoundTrip()
     {
         var root = Path.Combine(Path.GetTempPath(), "wib-settings-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
@@ -145,7 +145,11 @@ public sealed class GuiPolishTests
             var path = Path.Combine(root, "settings.json");
             File.WriteAllText(path, "{ definitely not json");
             var service = new AppSettingsService(new GuiLogger(), path);
+
             Assert.IsNull(service.Load().Language);
+            Assert.IsFalse(File.Exists(path));
+            Assert.HasCount(1, Directory.GetFiles(root, "settings.json.corrupt-*"));
+
             var expected = new AppSettings { Left = 120, Top = 80, Width = 1100, Height = 700, IsMaximized = true, Language = "ru", Theme = "dark" };
             service.Save(expected);
             var actual = service.Load();
@@ -154,8 +158,32 @@ public sealed class GuiPolishTests
             Assert.AreEqual("ru", actual.Language);
             Assert.AreEqual("dark", actual.Theme);
             Assert.IsTrue(actual.IsMaximized);
+            Assert.IsFalse(Directory.GetFiles(root, "settings.json.tmp-*").Any());
         }
         finally { Directory.Delete(root, true); }
+    }
+
+    [TestMethod]
+    public void FileNotFoundDiagnosticsIncludeFileHResultAndStackContext()
+    {
+        const string missing = "C:\\example\\missing-backend.ps1";
+        string formatted;
+        try
+        {
+            ThrowMissingFile(missing);
+            Assert.Fail("Expected FileNotFoundException.");
+            return;
+        }
+        catch (FileNotFoundException exception)
+        {
+            formatted = GuiLogger.FormatExceptionForLog(exception);
+        }
+
+        StringAssert.Contains(formatted, "FileNotFoundException");
+        StringAssert.Contains(formatted, "hresult=0x");
+        StringAssert.Contains(formatted, "file=");
+        StringAssert.Contains(formatted, "missing-backend.ps1");
+        StringAssert.Contains(formatted, nameof(ThrowMissingFile));
     }
 
     [TestMethod]
@@ -167,6 +195,7 @@ public sealed class GuiPolishTests
         Assert.IsFalse(AppSettingsService.HasUsableBounds(new AppSettings { Left = 0, Top = 0, Width = 200, Height = 100 }, screen));
     }
 
+    private static void ThrowMissingFile(string path) => throw new FileNotFoundException("Missing component", path);
     private static string ProductKeyFixture() =>
         string.Join("-", new[] { "AAAAA", "BBBBB", "CCCCC", "DDDDD", "EEEEE" });
     private static string[] PlaceholderIndexes(string value) => Regex.Matches(value, @"\{(\d+)(?:[^}]*)\}").Select(match => match.Groups[1].Value).Distinct(StringComparer.Ordinal).OrderBy(x => x, StringComparer.Ordinal).ToArray();
