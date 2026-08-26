@@ -138,20 +138,41 @@ jobs:
 
             $log = Join-Path $env:LOCALAPPDATA ('WindowsISOBuilder\logs\gui-' + (Get-Date -Format 'yyyyMMdd') + '.log')
             $before = if (Test-Path -LiteralPath $log) { [IO.File]::ReadAllText($log).Length } else { 0 }
-            $process = Start-Process -FilePath $exe -WorkingDirectory $packageRoot -PassThru
+            $runnerSessionId = (Get-Process -Id $PID).SessionId
+            $interactiveDesktop = [Environment]::UserInteractive -and $runnerSessionId -ne 0
+            Write-Host "Runner sessionId=$runnerSessionId userInteractive=$([Environment]::UserInteractive) requireWindowHandle=$interactiveDesktop"
 
+            $process = Start-Process -FilePath $exe -WorkingDirectory $packageRoot -PassThru
             $windowReady = $false
+            $startupReady = $false
+            $newLog = ''
+
             for ($attempt = 0; $attempt -lt 20; $attempt++) {
               Start-Sleep -Milliseconds 500
               $process.Refresh()
               if ($process.HasExited) { break }
+
               if ($process.MainWindowHandle -ne 0) {
                 $windowReady = $true
+              }
+
+              if (Test-Path -LiteralPath $log) {
+                $allLog = [IO.File]::ReadAllText($log)
+                if ($allLog.Length -gt $before) {
+                  $newLog = $allLog.Substring($before)
+                  $startupReady = (
+                    $newLog -match 'backend resolved' -and
+                    $newLog -match 'guiVersion=1\.0\.0\s+backendApplicationVersion=1\.0\.0\s+contractSchema=1\s+buildPlanSchema=1' -and
+                    $newLog -match 'state=Idle'
+                  )
+                }
+              }
+
+              if ($startupReady -and (-not $interactiveDesktop -or $windowReady)) {
                 break
               }
             }
 
-            $newLog = ''
             if (Test-Path -LiteralPath $log) {
               $allLog = [IO.File]::ReadAllText($log)
               if ($allLog.Length -gt $before) {
@@ -176,16 +197,30 @@ jobs:
               throw 'Packaged GUI did not remain alive through startup smoke.'
             }
 
-            if (-not $windowReady) {
+            if (-not $startupReady) {
               if ($newLog) {
                 Write-Host '--- GUI startup log ---'
                 $newLog -split "`r?`n" | ForEach-Object { if ($_ -ne '') { Write-Host $_ } }
                 Write-Host '--- end GUI startup log ---'
               }
-              throw 'Packaged GUI process stayed alive but did not create a main window.'
+              throw 'Packaged GUI did not complete the startup backend handshake.'
             }
 
-            Write-Host 'Packaged GUI created a main window and remained alive without unhandled exceptions.'
+            if ($interactiveDesktop -and -not $windowReady) {
+              if ($newLog) {
+                Write-Host '--- GUI startup log ---'
+                $newLog -split "`r?`n" | ForEach-Object { if ($_ -ne '') { Write-Host $_ } }
+                Write-Host '--- end GUI startup log ---'
+              }
+              throw 'Interactive packaged GUI process stayed alive but did not create a main window.'
+            }
+
+            if ($interactiveDesktop) {
+              Write-Host 'Packaged GUI completed its backend handshake, created a main window, and remained alive without unhandled exceptions.'
+            }
+            else {
+              Write-Host 'Packaged GUI completed its backend handshake and remained alive without unhandled exceptions. Window-handle assertion skipped because the self-hosted runner has no interactive desktop session.'
+            }
           }
           finally {
             if ($null -ne $process) {

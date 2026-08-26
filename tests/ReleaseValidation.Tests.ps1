@@ -63,6 +63,19 @@ Describe 'Release validation tooling' {
         $workflow | Should -Match 'InstallationPolicy \$originalPolicy'
     }
 
+    It 'uses a session-aware real GUI startup smoke on the self-hosted runner' {
+        $workflow = Get-Content -LiteralPath (Join-Path $script:projectRoot '.github\workflows\windows-self-hosted-validation.yml') -Raw -Encoding UTF8
+        $workflow | Should -Match '\$runnerSessionId\s*=\s*\(Get-Process -Id \$PID\)\.SessionId'
+        $workflow | Should -Match '\[Environment\]::UserInteractive'
+        $workflow | Should -Match '\$interactiveDesktop'
+        $workflow | Should -Match '\$startupReady'
+        $workflow | Should -Match 'backend resolved'
+        $workflow | Should -Match 'backendApplicationVersion=1\\\.0\\\.0'
+        $workflow | Should -Match 'state=Idle'
+        $workflow | Should -Match '\$interactiveDesktop -and -not \$windowReady'
+        $workflow | Should -Match 'Window-handle assertion skipped because the self-hosted runner has no interactive desktop session'
+    }
+
     It 'has a complete source allowlist without generated GUI publish files' {
         $files = @(Get-WibReleaseSourceFiles -ProjectRoot $script:projectRoot -Config $script:releaseConfig -Version $script:version)
         $files.Count | Should -BeGreaterThan 0
