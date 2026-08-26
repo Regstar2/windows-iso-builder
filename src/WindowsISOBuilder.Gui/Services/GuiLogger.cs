@@ -26,6 +26,46 @@ public sealed class GuiLogger
     public void Error(string message, Exception? exception = null) => Write("ERROR", message, exception);
     public static string SanitizeDiagnostic(string value) => DiagnosticSanitizer.Sanitize(value);
 
+    internal static string FormatExceptionForLog(Exception exception)
+    {
+        var parts = new List<string>
+        {
+            exception.GetType().Name,
+            $"hresult=0x{exception.HResult:X8}"
+        };
+
+        if (!string.IsNullOrWhiteSpace(exception.Message))
+        {
+            parts.Add("message=" + exception.Message);
+        }
+
+        if (exception is FileNotFoundException fileNotFound && !string.IsNullOrWhiteSpace(fileNotFound.FileName))
+        {
+            parts.Add("file=" + fileNotFound.FileName);
+        }
+        else if (exception is FileLoadException fileLoad && !string.IsNullOrWhiteSpace(fileLoad.FileName))
+        {
+            parts.Add("file=" + fileLoad.FileName);
+        }
+
+        if (!string.IsNullOrWhiteSpace(exception.StackTrace))
+        {
+            parts.Add("stack=" + NormalizeMultiline(exception.StackTrace));
+        }
+
+        if (exception.InnerException is not null)
+        {
+            parts.Add("inner={" + FormatExceptionForLog(exception.InnerException) + "}");
+        }
+
+        return DiagnosticSanitizer.Sanitize(string.Join(" | ", parts));
+    }
+
+    private static string NormalizeMultiline(string value) =>
+        value.Replace("\r\n", " <- ", StringComparison.Ordinal)
+             .Replace("\n", " <- ", StringComparison.Ordinal)
+             .Replace("\r", " <- ", StringComparison.Ordinal);
+
     private void Write(string level, string message, Exception? exception)
     {
         try
@@ -38,7 +78,7 @@ public sealed class GuiLogger
             {
                 null => string.Empty,
                 BackendException backend => $" | BackendException: code={backend.Code} requestId={DiagnosticSanitizer.Sanitize(backend.RequestId ?? string.Empty)}",
-                _ => $" | {exception.GetType().Name}: {DiagnosticSanitizer.Sanitize(exception.Message)}"
+                _ => " | " + FormatExceptionForLog(exception)
             };
             File.AppendAllText(LogPath, $"{DateTimeOffset.Now:O} [{level}] {safeMessage}{suffix}{Environment.NewLine}");
         }
