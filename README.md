@@ -9,7 +9,6 @@ GUI и PowerShell-клиент UUP dump для поиска, загрузки и
 [![Version](https://img.shields.io/badge/VERSION-1.0.0-1f6feb?style=for-the-badge)](VERSION)
 [![Windows](https://img.shields.io/badge/WINDOWS-10%20%7C%2011-0078D4?style=for-the-badge&logo=windows11&logoColor=white)](REQUIREMENTS.md)
 [![Architecture](https://img.shields.io/badge/ARCH-X64-7C3AED?style=for-the-badge)](REQUIREMENTS.md)
-[![Build](https://github.com/Regstar2/windows-iso-builder/actions/workflows/windows-self-hosted-validation.yml/badge.svg?branch=master)](https://github.com/Regstar2/windows-iso-builder/actions/workflows/windows-self-hosted-validation.yml)
 [![License](https://img.shields.io/badge/LICENSE-MIT-f97316?style=for-the-badge)](LICENSE)
 
 [Быстрый старт](#быстрый-старт) · [Документация](#документация) · [Релизы](https://github.com/Regstar2/windows-iso-builder/releases) · [Security](SECURITY.md)
