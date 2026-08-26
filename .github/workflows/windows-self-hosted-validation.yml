@@ -91,60 +91,128 @@ jobs:
             -File .\tools\Invoke-ReleaseValidation.ps1 `
             -Full
 
-      - name: Run real GUI startup smoke
+      - name: Run real packaged GUI startup smoke
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
-          $publish = Join-Path $env:RUNNER_TEMP 'wib-gui-startup-smoke'
-          if (Test-Path -LiteralPath $publish) {
-            Remove-Item -LiteralPath $publish -Recurse -Force
-          }
+          $packageOutput = Join-Path $env:RUNNER_TEMP 'wib-gui-startup-package'
+          $extractRoot = Join-Path $env:RUNNER_TEMP 'wib-gui-startup-extracted'
+          $settingsPath = Join-Path $env:LOCALAPPDATA 'WindowsISOBuilder\settings.json'
+          $settingsBackup = Join-Path $env:RUNNER_TEMP 'wib-gui-startup-settings-backup.json'
+          $process = $null
 
-          powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
-            -File .\tools\Build-Gui.ps1 `
-            -OutputDirectory $publish
-          if ($LASTEXITCODE -ne 0) {
-            throw "Build-Gui.ps1 failed with exit code $LASTEXITCODE."
-          }
-
-          $exe = Join-Path $publish 'WindowsISOBuilder.exe'
-          $log = Join-Path $env:LOCALAPPDATA ('WindowsISOBuilder\logs\gui-' + (Get-Date -Format 'yyyyMMdd') + '.log')
-          $before = if (Test-Path -LiteralPath $log) { [IO.File]::ReadAllText($log).Length } else { 0 }
-          $process = Start-Process -FilePath $exe -PassThru
-          Start-Sleep -Seconds 5
-          $process.Refresh()
-
-          $newLog = ''
-          if (Test-Path -LiteralPath $log) {
-            $allLog = [IO.File]::ReadAllText($log)
-            if ($allLog.Length -gt $before) {
-              $newLog = $allLog.Substring($before)
+          try {
+            foreach ($path in @($packageOutput, $extractRoot)) {
+              if (Test-Path -LiteralPath $path) {
+                Remove-Item -LiteralPath $path -Recurse -Force
+              }
             }
-          }
+            New-Item -ItemType Directory -Path $packageOutput -Force | Out-Null
 
-          if ($newLog -match '\[ERROR\]\s+Unhandled UI exception') {
-            Write-Host '--- GUI startup error log ---'
-            $newLog -split "`r?`n" | ForEach-Object { if ($_ -ne '') { Write-Host $_ } }
-            Write-Host '--- end GUI startup error log ---'
-            if (-not $process.HasExited) {
-              Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            if (Test-Path -LiteralPath $settingsBackup) {
+              Remove-Item -LiteralPath $settingsBackup -Force
             }
-            throw 'GUI reported an unhandled UI exception during startup smoke.'
-          }
+            if (Test-Path -LiteralPath $settingsPath) {
+              Copy-Item -LiteralPath $settingsPath -Destination $settingsBackup -Force
+              Remove-Item -LiteralPath $settingsPath -Force
+            }
 
-          if ($process.HasExited) {
-            Write-Host "GUI exited during startup smoke with code $($process.ExitCode)."
-            if ($newLog) {
-              Write-Host '--- GUI startup log ---'
+            powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
+              -File .\tools\New-ReleasePackage.ps1 `
+              -Version 1.0.0 `
+              -OutputDirectory $packageOutput
+            if ($LASTEXITCODE -ne 0) {
+              throw "New-ReleasePackage.ps1 failed with exit code $LASTEXITCODE."
+            }
+
+            $zip = Join-Path $packageOutput 'windows-iso-builder-v1.0.0.zip'
+            Expand-Archive -LiteralPath $zip -DestinationPath $extractRoot -Force
+            $packageRoot = Join-Path $extractRoot 'windows-iso-builder-v1.0.0'
+            $exe = Join-Path $packageRoot 'WindowsISOBuilder.exe'
+            $backend = Join-Path $packageRoot 'Invoke-WibBackend.ps1'
+            if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'Packaged GUI executable is missing.' }
+            if (-not (Test-Path -LiteralPath $backend -PathType Leaf)) { throw 'Packaged backend entry point is missing.' }
+            if (@(Get-ChildItem -LiteralPath $packageRoot -File -Filter '*.dll').Count -ne 0) {
+              throw 'Packaged GUI root contains unexpected DLL files.'
+            }
+
+            $log = Join-Path $env:LOCALAPPDATA ('WindowsISOBuilder\logs\gui-' + (Get-Date -Format 'yyyyMMdd') + '.log')
+            $before = if (Test-Path -LiteralPath $log) { [IO.File]::ReadAllText($log).Length } else { 0 }
+            $process = Start-Process -FilePath $exe -WorkingDirectory $packageRoot -PassThru
+
+            $windowReady = $false
+            for ($attempt = 0; $attempt -lt 20; $attempt++) {
+              Start-Sleep -Milliseconds 500
+              $process.Refresh()
+              if ($process.HasExited) { break }
+              if ($process.MainWindowHandle -ne 0) {
+                $windowReady = $true
+                break
+              }
+            }
+
+            $newLog = ''
+            if (Test-Path -LiteralPath $log) {
+              $allLog = [IO.File]::ReadAllText($log)
+              if ($allLog.Length -gt $before) {
+                $newLog = $allLog.Substring($before)
+              }
+            }
+
+            if ($newLog -match '\[ERROR\]\s+Unhandled (UI|application) exception') {
+              Write-Host '--- GUI startup error log ---'
               $newLog -split "`r?`n" | ForEach-Object { if ($_ -ne '') { Write-Host $_ } }
-              Write-Host '--- end GUI startup log ---'
+              Write-Host '--- end GUI startup error log ---'
+              throw 'Packaged GUI reported an unhandled exception during startup smoke.'
             }
-            throw 'GUI did not remain alive through startup smoke.'
-          }
 
-          Write-Host 'GUI remained alive without unhandled UI exceptions through startup smoke.'
-          Stop-Process -Id $process.Id -Force
-          Wait-Process -Id $process.Id -ErrorAction SilentlyContinue
+            if ($process.HasExited) {
+              Write-Host "Packaged GUI exited during startup smoke with code $($process.ExitCode)."
+              if ($newLog) {
+                Write-Host '--- GUI startup log ---'
+                $newLog -split "`r?`n" | ForEach-Object { if ($_ -ne '') { Write-Host $_ } }
+                Write-Host '--- end GUI startup log ---'
+              }
+              throw 'Packaged GUI did not remain alive through startup smoke.'
+            }
+
+            if (-not $windowReady) {
+              if ($newLog) {
+                Write-Host '--- GUI startup log ---'
+                $newLog -split "`r?`n" | ForEach-Object { if ($_ -ne '') { Write-Host $_ } }
+                Write-Host '--- end GUI startup log ---'
+              }
+              throw 'Packaged GUI process stayed alive but did not create a main window.'
+            }
+
+            Write-Host 'Packaged GUI created a main window and remained alive without unhandled exceptions.'
+          }
+          finally {
+            if ($null -ne $process) {
+              try {
+                $process.Refresh()
+                if (-not $process.HasExited) {
+                  Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+                  Wait-Process -Id $process.Id -ErrorAction SilentlyContinue
+                }
+              }
+              catch { }
+            }
+
+            if (Test-Path -LiteralPath $settingsPath) {
+              Remove-Item -LiteralPath $settingsPath -Force -ErrorAction SilentlyContinue
+            }
+            if (Test-Path -LiteralPath $settingsBackup) {
+              New-Item -ItemType Directory -Path (Split-Path -Parent $settingsPath) -Force | Out-Null
+              Move-Item -LiteralPath $settingsBackup -Destination $settingsPath -Force
+            }
+
+            foreach ($path in @($packageOutput, $extractRoot)) {
+              if (Test-Path -LiteralPath $path) {
+                Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction SilentlyContinue
+              }
+            }
+          }
 
       - name: Upload validation report
         if: always()
