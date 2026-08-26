@@ -26,11 +26,11 @@ Windows ISO Builder помогает собрать актуальный Windows
 
 ### Сборка
 
-![Windows ISO Builder — сборка в тёмной теме](docs/assets/screenshots/build-dark-current.webp)
+![Windows ISO Builder — сборка в тёмной теме](docs/assets/screenshots/build-dark-current.jpg)
 
 ### Каталог Windows
 
-![Windows ISO Builder — каталог Windows в тёмной теме](docs/assets/screenshots/catalog-dark-current.webp)
+![Windows ISO Builder — каталог Windows в тёмной теме](docs/assets/screenshots/catalog-dark-current.jpg)
 
 На скриншоте каталога показано исправленное отображение результатов поиска в Dark theme.
 
