@@ -46,12 +46,13 @@ Describe 'Release package validation' {
         @(Get-ChildItem -LiteralPath $script:packageOutput -File -Filter '*.dll').Count | Should -Be 0
     }
 
-    It 'contains every allowlisted source runtime file plus generated GUI runtime files inside the ZIP' {
+    It 'contains every allowlisted source runtime file plus the single-file GUI inside the ZIP' {
         foreach ($source in @(Get-WibReleaseSourceFiles -ProjectRoot $script:projectRoot -Config $script:releaseConfig -Version $script:releaseVersion)) {
             Test-Path -LiteralPath (Join-Path $script:packageRoot $source.RelativePath) -PathType Leaf | Should -BeTrue
         }
         Test-Path -LiteralPath (Join-Path $script:packageRoot 'WindowsISOBuilder.exe') -PathType Leaf | Should -BeTrue
-        Test-Path -LiteralPath (Join-Path $script:packageRoot 'WindowsISOBuilder.dll') -PathType Leaf | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $script:packageRoot 'WindowsISOBuilder.dll') -PathType Leaf | Should -BeFalse
+        @(Get-ChildItem -LiteralPath $script:packageRoot -File -Filter '*.dll').Count | Should -Be 0
     }
 
     It 'generates expected package-only manifest versions and GUI metadata' {
