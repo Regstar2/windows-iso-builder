@@ -22,13 +22,17 @@ Windows ISO Builder помогает собрать актуальный Windows
 
 ## Интерфейс
 
+Актуальный интерфейс `v1.0.0` после финальных исправлений перед публикацией.
+
 ### Сборка
 
-![Windows ISO Builder — сборка в тёмной теме](docs/assets/screenshots/build-dark.jpg)
+![Windows ISO Builder — сборка в тёмной теме](docs/assets/screenshots/build-dark-current.webp)
 
 ### Каталог Windows
 
-![Windows ISO Builder — каталог Windows](docs/assets/screenshots/catalog-dark.jpg)
+![Windows ISO Builder — каталог Windows в тёмной теме](docs/assets/screenshots/catalog-dark-current.webp)
+
+На скриншоте каталога показано исправленное отображение результатов поиска в Dark theme.
 
 ## Статус проекта
 
