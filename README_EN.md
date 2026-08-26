@@ -9,7 +9,6 @@ A GUI and PowerShell UUP dump client for searching, downloading, and building Wi
 [![Version](https://img.shields.io/badge/VERSION-1.0.0-1f6feb?style=for-the-badge)](VERSION)
 [![Windows](https://img.shields.io/badge/WINDOWS-10%20%7C%2011-0078D4?style=for-the-badge&logo=windows11&logoColor=white)](REQUIREMENTS.md)
 [![Architecture](https://img.shields.io/badge/ARCH-X64-7C3AED?style=for-the-badge)](REQUIREMENTS.md)
-[![Build](https://github.com/Regstar2/windows-iso-builder/actions/workflows/windows-self-hosted-validation.yml/badge.svg?branch=master)](https://github.com/Regstar2/windows-iso-builder/actions/workflows/windows-self-hosted-validation.yml)
 [![License](https://img.shields.io/badge/LICENSE-MIT-f97316?style=for-the-badge)](LICENSE)
 
 [Quick start](#quick-start) · [Documentation](#documentation) · [Releases](https://github.com/Regstar2/windows-iso-builder/releases) · [Security](SECURITY.md)
@@ -19,6 +18,20 @@ A GUI and PowerShell UUP dump client for searching, downloading, and building Wi
 ## About
 
 Windows ISO Builder helps build current Windows 10/11 ISO images through the dynamic UUP dump catalog. The GUI guides users through build selection, language, editions, image format, readiness checks, and the existing PowerShell build pipeline.
+
+## Interface
+
+Current `v1.0.0` interface after the final pre-publication fixes.
+
+### Build
+
+![Windows ISO Builder — Build page in Dark theme](docs/assets/screenshots/build-dark-current.jpg)
+
+### Windows Catalog
+
+![Windows ISO Builder — Catalog in Dark theme](docs/assets/screenshots/catalog-dark-current.jpg)
+
+The Catalog screenshot shows the corrected Dark theme rendering for search-result rows.
 
 ## Project status
 
@@ -30,7 +43,7 @@ Current stable version: **`1.0.0`**.
 - Backend Contract SchemaVersion: `1`;
 - BuildPlan SchemaVersion: `1`.
 
-`v1.0.0` is the first stable release from the accepted `v0.3.5-rc.1`. It adds no new product features: the release finalizes the already implemented GUI, Network/Proxy, feedback/update, diagnostics, packaging, and validation capabilities.
+`v1.0.0` is the first stable release. It finalizes the implemented GUI, Network/Proxy, feedback/update, diagnostics, packaging, and validation capabilities and is backed by real Windows 11 E2E builds.
 
 ## Features
 
@@ -38,6 +51,7 @@ Current stable version: **`1.0.0`**.
 - recommended build and full Catalog;
 - dynamic languages/editions and multi-edition selection;
 - WIM/ESD and existing converter options;
+- update integration and Cleanup are available as explicit opt-in options and are disabled by default for a faster normal build;
 - structured preflight before UAC;
 - progress, logs, cancellation, SHA-256 and result actions;
 - WPF GUI with preserved TUI/CLI;
@@ -49,21 +63,26 @@ Current stable version: **`1.0.0`**.
 - fail-closed Custom mode with no silent Direct fallback;
 - sanitized diagnostics bundle;
 - GitHub Issue Forms and in-app feedback;
-- Stable/Prerelease update checking through official GitHub Releases.
+- Stable/Prerelease update checking through official GitHub Releases;
+- two release formats: standalone EXE and full portable ZIP.
+
+## What to download
+
+- **`windows-iso-builder-v1.0.0.exe`** — the primary option for normal GUI use: one executable containing the validated portable payload.
+- **`windows-iso-builder-v1.0.0.zip`** — the complete portable package with GUI, PowerShell CLI/backend, module, and documentation.
+
+Inside the ZIP, the GUI is published as one self-contained `WindowsISOBuilder.exe`; framework/runtime DLLs are not scattered next to it. The release does not require a separate .NET Runtime installation.
 
 ## Quick start
 
-1. Download `windows-iso-builder-v1.0.0.zip` from [Releases](https://github.com/Regstar2/windows-iso-builder/releases).
-2. Fully extract the ZIP.
-3. Run `WindowsISOBuilder.exe` as a normal user.
-4. If required, configure `Settings -> Network`: System, Direct, or Custom HTTP/SOCKS5.
-5. Choose Windows 11/10 and the recommended build, or open Catalog.
-6. Choose language, editions, ESD/WIM and output directory.
-7. Run readiness checks.
-8. Choose Create ISO and approve UAC when the backend requests elevation.
-9. On completion, open the ISO location or copy SHA-256.
-
-The release is self-contained `win-x64`; users do not need a separate .NET Runtime.
+1. Download `windows-iso-builder-v1.0.0.exe` from [Releases](https://github.com/Regstar2/windows-iso-builder/releases), or download the ZIP if you need the CLI or the complete portable package.
+2. For the EXE, launch it directly. For the ZIP, fully extract it and run `WindowsISOBuilder.exe`.
+3. If required, configure `Settings -> Network`: System, Direct, or Custom HTTP/SOCKS5.
+4. Choose Windows 11/10 and the recommended build, or open Catalog.
+5. Choose language, editions, ESD/WIM, and output directory.
+6. Run readiness checks.
+7. Choose Create ISO and approve UAC when the backend requests elevation.
+8. On completion, open the ISO location or copy its SHA-256.
 
 ## Requirements
 
@@ -71,7 +90,7 @@ The release is self-contained `win-x64`; users do not need a separate .NET Runti
 - access to UUP dump and Microsoft CDN;
 - enough disk space for UUP cache, work directory, and the ISO;
 - UAC for the privileged build stage;
-- no .NET Runtime installation for the release ZIP;
+- no .NET Runtime installation for the release EXE/ZIP;
 - .NET 10 SDK only when building from source.
 
 ## Network and proxy
@@ -91,7 +110,7 @@ Policy and credentials are stored separately. Proxy passwords are not written to
 
 `Settings -> Updates` provides Stable and Prerelease channels and a manual check of official GitHub Releases. Stable never selects a prerelease. The update checker uses the same global Network Policy.
 
-The application **does not automatically download or install updates**. When a newer version exists, it shows the version and bounded release-note summary and, with user consent, opens a validated HTTPS release page on `github.com`.
+The application **does not automatically download or install updates**. When a newer version exists, it shows the version and a bounded release-note summary and, with user consent, opens a validated HTTPS release page on `github.com`.
 
 ## Feedback
 
@@ -101,11 +120,19 @@ Do not publish product keys, passwords, tokens, cookies, proxy credentials, priv
 
 ## Console / automation
 
+Interactive CLI entry point:
+
 ```powershell
 .\Start-Builder.cmd
 ```
 
-Machine-readable entry point:
+PowerShell entry point:
+
+```powershell
+.\Start-Builder.ps1
+```
+
+Machine-readable backend entry point:
 
 ```powershell
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass `
