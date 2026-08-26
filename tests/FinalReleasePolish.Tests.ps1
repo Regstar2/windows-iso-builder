@@ -23,16 +23,18 @@ Describe 'v1.0.0 final release polish' {
         $package | Should -Match 'singleFile=\$true'
     }
 
-    It 'tracks the README screenshots' {
+    It 'tracks the current README screenshots in both languages' {
         foreach ($path in @(
-            'docs\assets\screenshots\build-dark.jpg',
-            'docs\assets\screenshots\catalog-dark.jpg'
+            'docs\assets\screenshots\build-dark-current.jpg',
+            'docs\assets\screenshots\catalog-dark-current.jpg'
         )) {
             Test-Path (Join-Path $script:repoRoot $path) | Should -BeTrue
         }
 
-        $readme = Get-Content (Join-Path $script:repoRoot 'README.md') -Raw
-        $readme | Should -Match 'docs/assets/screenshots/build-dark.jpg'
-        $readme | Should -Match 'docs/assets/screenshots/catalog-dark.jpg'
+        foreach ($readmePath in @('README.md', 'README_EN.md')) {
+            $readme = Get-Content (Join-Path $script:repoRoot $readmePath) -Raw
+            $readme | Should -Match 'docs/assets/screenshots/build-dark-current.jpg'
+            $readme | Should -Match 'docs/assets/screenshots/catalog-dark-current.jpg'
+        }
     }
 }
